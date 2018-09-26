@@ -1,20 +1,26 @@
-﻿#include "unicode.h"
+﻿//////////////////////////////////////////////////
+//ПРЕДВАРИТЕЛЬНЫЙ ВАРИАНТ, ВЕРСИЯ -10.0
+//////////////////////////////////////////////////
+
+#include "unicode.h"
 #include "strings.h"
-
-//#include "python3.5m/Python.h"
-
-/*
-int main()
-{
-	
-}
-*/
-
 
 LPTSTR ipaVowels = L"iɪɨɯeɛəɘɜɞaʌæɐäɒɑɵoɔøœɶuʉʏyʊɤ";
 LPTSTR ipaConsonants = L"mɱnɳɲŋɴpbptdʈɖcɟkɡqɢʡʔszʃʒʂʐɕʑɸβfvθðɹçʝxɣχʁħʕhɦʋɹɻjɰⱱwɾɽʙrɽʀʜʢɬɮɭʎʟlɺ";
 LPTSTR ipaModifiers = L"ʷʲ:ː̪̠̊̆ʼ̈";
 
+enum
+{
+	CV_LABIAL,
+	CV_DENTAL,
+	CV_LIQUID,
+	CV_LAST = CV_LIQUID,
+};
+
+LPTSTR CVbyGroup[CV_LAST + 1];
+LPTSTR CVbyGroupName[CV_LAST + 1];
+
+void __assigncvbygroup(int i, LPTSTR list, LPTSTR name) { CVbyGroup[i] = list; CVbyGroupName[i] = name; }
 
 #define IT_COLUMN 			0x1
 #define IT_LINEBRKBEFORE 	0x2
@@ -132,7 +138,7 @@ public:
 		{
 			if (iLevel && (flags & IT_LINEBRKBEFORE))
 			{
-				lstrcpy(posOut, L"\r\n");
+				lstrcpy(posOut, TEXT("\r\n"));
 				posOut += 2;
 			}
 			if (flags & IT_IDENT)
@@ -148,7 +154,7 @@ public:
 			{
 				if (flags & IT_SQRBRK)
 				{
-					lstrcpy(posOut, L"[");
+					lstrcpy(posOut, TEXT("["));
 					posOut++;
 				}
 
@@ -160,26 +166,26 @@ public:
 				}
 				if (flags & IT_SQRBRK)
 				{
-					lstrcpy(posOut, L"]");
+					lstrcpy(posOut, TEXT("]"));
 					posOut++;
 				}
 
 				if (flags & IT_COLUMN)
 				{
-					lstrcpy(posOut, L": ");
+					lstrcpy(posOut, TEXT(": "));
 					posOut += 2;
 				}
 
 			}
 			if ((flags & IT_COMMA) && !isLast && !isFirst)
 			{
-				lstrcpy(posOut, L", ");
+				lstrcpy(posOut, TEXT(", "));
 				posOut += 2;
 			}
 
 			if (flags & IT_LINEBRKAFTER)
 			{
-				lstrcpy(posOut, L"\r\n");
+				lstrcpy(posOut, TEXT("\r\n"));
 				posOut += 2;
 			}
 
@@ -214,18 +220,15 @@ public:
 		LPTSTR 	pos = sIn,
 			end = sIn + lstrlen(sIn),
 			old = pos;
-		while (true)
+		while (pos < end)
 		{
 			switch (*pos)
 			{
 			case '\r':
 				*pos = 0;
 				pos += 2;
-			case '\0':
 				trWordList->Add(NULL, old);
 				old = pos;
-
-				if (!*pos) return;
 				break;
 			default:
 				pos++;
@@ -234,7 +237,8 @@ public:
 	}
 	bool FindSymbolInWords(InfoTree* trWordList, LPTSTR symbol)
 	{
-		for (InfoNode* ndWord = trWordList->ndRoot->chldFirst; ndWord; ndWord = ndWord->next)
+		InfoNode* ndWord = trWordList->ndRoot->chldFirst;
+		for (; ndWord; ndWord = ndWord->next)
 		{
 			LPTSTR posSmb = wcsstr(ndWord->Data, symbol);
 			if (posSmb)
@@ -285,6 +289,123 @@ public:
 		}
 	}
 
+	void GetDistributionLists(InfoNode* ndW, InfoTree* trOut, InfoTree& trSounds, InfoTree& trWordList)
+	{
+		for (InfoNode* nditS = trSounds.ndRoot->chldFirst; nditS; nditS = nditS->next)
+		{
+			InfoNode* ndThisSound = trOut->Add(nditS->Data, NULL, IT_IDENT | IT_SQRBRK | IT_COLUMN | IT_LINEBRKBEFORE, ndW);
+
+			for (InfoNode* nditW = trWordList.ndRoot->chldFirst; nditW; nditW = nditW->next)
+			{
+				LPTSTR minposS = NULL;
+				InfoNode* ndSFirst;
+				for (InfoNode* nditSList = trSounds.ndRoot->chldFirst; nditSList; nditSList = nditSList->next)
+				{
+					LPTSTR posS = wcsstr(nditW->Data, nditSList->Data);
+					if (posS)
+					{
+						if (!nditSList->Data[1] && wcschr(ipaModifiers, posS[1]))
+							;
+						else if (!minposS)
+							goto FoundLeft;
+						else if (posS < minposS)
+						{
+						FoundLeft:
+							minposS = posS;
+							ndSFirst = nditSList;
+						}
+					}
+				}
+
+				if (minposS)
+				{
+					if (ndSFirst == nditS)
+					{
+						trOut->Add(NULL, nditW->Data, IT_COMMA, ndThisSound);
+					}
+				}
+			}
+
+			InfoNode* ndAfter = trOut->Add(L"после", NULL, IT_COLUMN | IT_LINEBRKBEFORE | IT_IDENT, ndThisSound);
+			InfoNode* ndBefore = trOut->Add(L"перед", NULL, IT_COLUMN | IT_LINEBRKBEFORE | IT_IDENT, ndThisSound);
+
+
+			InfoNode* ndAfterGroups[CV_LAST + 1];
+			for (int iGroup = 0; iGroup <= CV_LAST; iGroup++)
+			{
+				ndAfterGroups[iGroup] = trOut->Add(CVbyGroupName[iGroup], NULL, IT_COLUMN | IT_LINEBRKBEFORE | IT_IDENT, ndThisSound);
+			}
+
+			for (InfoNode* nditW = ndThisSound->chldFirst; nditW; nditW = nditW->next)
+			{
+				if (!nditW->Data)
+					break;
+				TCHAR symbol[3];
+
+				LPTSTR posV = wcsstr(nditW->Data, ndThisSound->Title);
+
+				symbol[1] = symbol[2] = '\0';
+
+				if (posV == nditW->Data)
+					symbol[0] = '#';
+				else
+				{
+					if (!wcschr(ipaModifiers, posV[-1]))
+						symbol[0] = posV[-1];
+					else
+					{
+						symbol[0] = posV[-2];
+						symbol[1] = posV[-1];
+					}
+				}
+
+				trOut->Add(NULL, symbol, IT_COMMA, ndAfter);
+				for (int iGroup = 0; iGroup <= CV_LAST; iGroup++)
+				{
+					LPTSTR posinGroup = wcschr(CVbyGroup[iGroup], symbol[0]);
+					if (posinGroup && !ndAfterGroups[iGroup]->chldFirst)
+						trOut->Add(L"+", NULL, 0, ndAfterGroups[iGroup]);
+				}
+
+
+				symbol[1] = symbol[2] = '\0';
+				int szV = lstrlen(ndThisSound->Title);
+				if (posV == nditW->Data + lstrlen(nditW->Data) - szV)
+					symbol[0] = '#';
+				else
+				{
+					symbol[0] = posV[szV];
+
+					if (!wcschr(ipaModifiers, posV[szV + 1]))
+						symbol[1] = '\0';
+					else
+						symbol[1] = posV[szV + 1];
+				}
+				trOut->Add(NULL, symbol, IT_COMMA, ndBefore);
+			}
+
+			bool isChld = false;
+			for (int iGroup = 0; iGroup <= CV_LAST; iGroup++)
+			{
+				if (ndAfterGroups[iGroup]->chldFirst)
+				{
+					isChld = true;
+					break;
+				}
+			}
+
+			if (!isChld)
+			{
+				for (int iGroup = 0; iGroup <= CV_LAST; iGroup++)
+				{
+					delete ndAfterGroups[iGroup];
+				}
+				//ВРЕМЕННО
+				ndBefore->next = NULL;
+			}
+		}
+	}
+
 	InfoNode* Analyze(InfoTree* trOut, LPTSTR sIn)
 	{
 		trOut->ndRoot = new InfoNode(L"ПРОСТЕЙШИЙ АНАЛИЗ НА ПРЕДМЕТ ПОИСКА ФОНЕМ", NULL, IT_LINEBRKAFTER);
@@ -321,86 +442,11 @@ public:
 
 
 		InfoNode* ndW = trOut->Add(L"Списки по гласному первого слога", NULL, IT_COLUMN | IT_LINEBRKBEFORE);
+		GetDistributionLists(ndW, trOut, trVowels, trWordList);
 
-		for (InfoNode* nditV = trVowels.ndRoot->chldFirst; nditV; nditV = nditV->next)
-		{
-			InfoNode* ndThisVowel = trOut->Add(nditV->Data, NULL, IT_IDENT | IT_SQRBRK | IT_COLUMN | IT_LINEBRKBEFORE, ndW);
+		ndW = trOut->Add(L"Списки по согласному первого слога", NULL, IT_COLUMN | IT_LINEBRKBEFORE);
+		GetDistributionLists(ndW, trOut, trConsonants, trWordList);
 
-			for (InfoNode* nditW = trWordList.ndRoot->chldFirst; nditW; nditW = nditW->next)
-			{
-				LPTSTR minposV = NULL;
-				InfoNode* ndVFirst;
-				for (InfoNode* nditVList = trVowels.ndRoot->chldFirst; nditVList; nditVList = nditVList->next)
-				{
-					LPTSTR posV = wcsstr(nditW->Data, nditVList->Data);
-					if (posV)
-					{
-						if (!nditVList->Data[1] && wcschr(ipaModifiers, posV[1]))
-							;
-						else if (!minposV)
-							goto FoundLeft;
-						else if (posV < minposV)
-						{
-						FoundLeft:
-							minposV = posV;
-							ndVFirst = nditVList;
-						}
-					}
-				}
-
-				if (minposV)
-				{
-					if (ndVFirst == nditV)
-					{
-						trOut->Add(NULL, nditW->Data, IT_COMMA, ndThisVowel);
-					}
-				}
-			}
-			InfoNode* ndAfter = trOut->Add(L"после", NULL, IT_COLUMN | IT_LINEBRKBEFORE | IT_IDENT, ndThisVowel);
-			InfoNode* ndBefore = trOut->Add(L"перед", NULL, IT_COLUMN | IT_LINEBRKBEFORE | IT_IDENT, ndThisVowel);
-
-			for (InfoNode* nditW = ndThisVowel->chldFirst; nditW; nditW = nditW->next)
-			{
-				if (!nditW->Data)
-					break;
-				TCHAR symbol[3];
-
-				LPTSTR posV = wcsstr(nditW->Data, ndThisVowel->Title);
-
-				symbol[1] = symbol[2] = '\0';
-
-				if (posV == nditW->Data)
-					symbol[0] = '#';
-				else
-				{
-					if (!wcschr(ipaModifiers, posV[-1]))
-						symbol[0] = posV[-1];
-					else
-					{
-						symbol[0] = posV[-2];
-						symbol[1] = posV[-1];
-					}
-				}
-
-				trOut->Add(NULL, symbol, IT_COMMA, ndAfter);
-
-
-				symbol[1] = symbol[2] = '\0';
-				int szV = lstrlen(ndThisVowel->Title);
-				if (posV == nditW->Data + lstrlen(nditW->Data) - szV)
-					symbol[0] = '#';
-				else
-				{
-					symbol[0] = posV[szV];
-
-					if (!wcschr(ipaModifiers, posV[szV + 1]))
-						symbol[1] = '\0';
-					else
-						symbol[1] = posV[szV + 1];
-				}
-				trOut->Add(NULL, symbol, IT_COMMA, ndBefore);
-			}
-		}
 		return trOut->ndRoot;
 	}
 };
@@ -410,6 +456,10 @@ extern "C" {
 	{
 		InfoTree trOut;
 		Dictionary dic;
+
+		__assigncvbygroup(CV_LABIAL, L"pbvw", L"   после губных");
+		__assigncvbygroup(CV_DENTAL, L"dtn", L"   после зубных");
+		__assigncvbygroup(CV_LIQUID, L"lr", L"   после плавных");
 
 		dic.Analyze(&trOut, bufIn);
 
