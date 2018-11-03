@@ -1,6 +1,7 @@
 #pragma once
 #define UNICODE
 
+typedef unsigned char byte;
 typedef wchar_t WCHAR;
 
 typedef char *LPSTR;
