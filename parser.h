@@ -2,6 +2,7 @@
 
 #define PARSER_SKIPNEWLINE		0x1
 #define PARSER_NONNULLEND		0x2
+#define PARSER_CHECKSIZE		0x4
 
 class Parser
 {
@@ -9,19 +10,21 @@ class Parser
 	LPTSTR 	old;
 	LPTSTR 	text;
 	LPTSTR 	seps;
+	int 	size;
 	int		flags;
 public:
-	Parser(LPTSTR _text, LPTSTR _seps, int _flags = 0)
-	  //: text(_text)/*ничего не делает*/, flags(_flags), seps(_seps)
+	Parser(LPTSTR _text, LPTSTR _seps, int _flags = 0, int _size = 0)
+		//: text(_text)/*ничего не делает*/, flags(_flags), seps(_seps)
 	{
 		flags = _flags;
 		seps = _seps;
 		old = NULL;
 		pos = text = _text;
+		size = _size;
 	}
 	bool IsItemEmpty()
 	{
-		return *old== '\0';
+		return *old == '\0';
 	}
 	bool IsItemFirstInLine()
 	{
@@ -35,7 +38,7 @@ public:
 		else
 			return false;
 	}
-	
+
 	LPTSTR Next() //пишет нули в исходную строку
 	{
 		if (!(flags & PARSER_NONNULLEND))
@@ -43,9 +46,16 @@ public:
 			if (*pos == '\0')
 				return NULL;
 		}
-		
+
 		for (old = pos; ; pos++)
 		{
+
+			if ((flags & PARSER_NONNULLEND) && (flags & PARSER_CHECKSIZE))
+			{
+				if (pos >= text + size)
+					return NULL;
+			}
+
 			int iSep = -1;
 			do
 			{
@@ -54,7 +64,7 @@ public:
 				{
 					if ((flags & PARSER_SKIPNEWLINE) && *pos == '\n')
 					{
-					//	old = ++pos; //ЭТО НЕ СДЕЛАНО!!
+						//	old = ++pos; //ЭТО НЕ СДЕЛАНО!!
 						old = pos + 1;
 						goto EndSepCycle;
 					}
@@ -69,10 +79,8 @@ public:
 						return old;
 					}
 				}
-			}
-			while (seps[iSep]);
-EndSepCycle:
-			;
+			} while (seps[iSep]);
+		EndSepCycle:;
 		}
 		return NULL;
 	}

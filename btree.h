@@ -20,19 +20,21 @@ public:
 
 class BNode : public OwnNew
 {
-//friend	BTree;
+	//friend	BTree;
 public:
 	BNode*	son[2];
-//private:должно быть так, но с работающим //friend	BTree;
+	//private:должно быть так, но с работающим //friend	BTree;
 	byte	depth[2];
-public: 
-//	Word	wName;
-	BNode()
-	{
-		son[0] = son[1] = NULL;
-		depth[0] = depth[1] = 0;
-	}
-//	LPTSTR	Data;
+public:
+	//	Word	wName;
+	/*
+		BNode()
+		{
+			son[0] = son[1] = NULL;
+			depth[0] = depth[1] = 0;
+		}
+	*/
+	//	LPTSTR	Data;
 
 };
 
@@ -50,18 +52,18 @@ public://временно, для RecurListScopes
 	BNode*			ndRoot;
 	BNode*			ndToFind;
 	//Word			wSearch;
-	
-	virtual	int		CompareNodes(BNode*, BNode*, void*)=0;
-/*
-	int CompareNodes(BNode* n1, BNode* n2, void*_)
-	{
-		return 0xbadf00d;
-	}
-*/
+
+	virtual	int		CompareNodes(BNode*, BNode*, void*) = 0;
+	/*
+		int CompareNodes(BNode* n1, BNode* n2, void*_)
+		{
+			return 0xbadf00d;
+		}
+	*/
 	class Walker
-	{		
+	{
 		BTree* 		tree;
-//		BNode**		stack;
+		//		BNode**		stack;
 		BNode*		stack[100];
 		int			maxStack;
 		BNode*		curr;
@@ -73,24 +75,28 @@ public://временно, для RecurListScopes
 			//stack = new BNode*[tree->ndRoot->depth[0]*2+2];
 			maxStack = -1;
 			curr = NULL;
-		};
+		}
+		BNode* Current()
+		{
+			return curr;
+		}
 		BNode* Next()
 		{
 			if (!curr)
-				curr = tree->ndRoot; 
+				curr = tree->ndRoot;
 			else
-				curr = curr->son[1]; 
+				curr = curr->son[1];
 
-			while (curr || maxStack >= 0) 
-			{ 
-				while (curr) 
-				{ 
+			while (curr || maxStack >= 0)
+			{
+				while (curr)
+				{
 					maxStack++;
 					stack[maxStack] = curr;
 					curr = curr->son[0];
-				} 
+				}
 
-				curr = stack[maxStack]; 
+				curr = stack[maxStack];
 				maxStack--;
 
 				return curr;
@@ -106,7 +112,7 @@ public://временно, для RecurListScopes
 	byte insert(BNode* node)
 	{
 		int dir1 = CompareNodes(ndToInsert, node, NULL);
-		
+
 		byte depth;
 
 		if (dir1 < 0)
@@ -200,248 +206,248 @@ public://временно, для RecurListScopes
 		}
 		return 0;
 	}
-	
+
 	byte remove(BNode* node)
 	{
-	int	dir1,
-		dir2;
-		
-		
-	char _depth,
-		ret;
-	BNode* _son;	
-	BNode*	son1,
-		*	son2,
-		*	gson;
+		int	dir1,
+			dir2;
 
-	if (ndFound)
-		dir1=1;
-	else{
-		dir1 = CompareNodes(ndToFind, node, NULL);
-		
-/*
-		
-		int	sz=node->wName.size;
 
-		if (sz>wSearch.size)
-			sz=wSearch.size;
+		char _depth,
+			ret;
+		BNode* _son;
+		BNode*	son1,
+			*son2,
+			*gson;
 
-		dir1=memcmp(wSearch.pos,node->wName.pos,sz);
-*/
-		if (dir1<0)
-			dir1=0;
-		else if (dir1>0)
-			dir1=1;
-/*
-		else if (node->wName.size>wSearch.size)
-			dir1=0;
-		else if (node->wName.size<wSearch.size)
-			dir1=1;
-*/
-		else{
-			ndFound=node;
+		if (ndFound)
+			dir1 = 1;
+		else {
+			dir1 = CompareNodes(ndToFind, node, NULL);
 
-			if (node->depth[0] && node->depth[1]){
-				_depth=remove(node->son[0]);
+			/*
 
-				if (ndOrphan){
-					ndOrphan2->son[0]=ndOrphan;
-					ndOrphan=NULL;
+					int	sz=node->wName.size;
+
+					if (sz>wSearch.size)
+						sz=wSearch.size;
+
+					dir1=memcmp(wSearch.pos,node->wName.pos,sz);
+			*/
+			if (dir1 < 0)
+				dir1 = 0;
+			else if (dir1 > 0)
+				dir1 = 1;
+			/*
+					else if (node->wName.size>wSearch.size)
+						dir1=0;
+					else if (node->wName.size<wSearch.size)
+						dir1=1;
+			*/
+			else {
+				ndFound = node;
+
+				if (node->depth[0] && node->depth[1]) {
+					_depth = remove(node->son[0]);
+
+					if (ndOrphan) {
+						ndOrphan2->son[0] = ndOrphan;
+						ndOrphan = NULL;
+					}
+
+					if (_depth != -4)
+						ndOrphan2->depth[0] = (byte)_depth;
+
+					if (node == ndRoot)
+						ndRoot = ndOrphan2;
+
+					node = ndOrphan2;
+					dir1 = 0;
+					_depth = node->depth[0];
+
+					ndOrphan = node;
+
+					goto Check;
 				}
 
-				if (_depth!=-4)
-					ndOrphan2->depth[0]=(byte)_depth;
-
-				if (node==ndRoot)
-					ndRoot=ndOrphan2;
-
-				node=ndOrphan2;
-				dir1=0;
-				_depth=node->depth[0];
-
-				ndOrphan=node;
-
-				goto Check;
+				if (node == ndRoot) {
+					if (node->depth[0])
+						ndRoot = node->son[0];
+					else
+						ndRoot = node->son[1];
+					ret = -1;
+				}
+				else if (node->depth[0]) {
+					ndOrphan = node->son[0];
+					ret = node->depth[0];
+				}
+				else if (node->depth[1]) {
+					ndOrphan = node->son[1];
+					ret = node->depth[1];
+				}
+				else {
+					ret = -4;
+				}
+				goto Done;
 			}
-			
-			if (node==ndRoot){
-				if (node->depth[0])
-					ndRoot=node->son[0];
+		}
+
+		_son = node->son[dir1];
+
+		if (_son) {
+			_depth = remove(_son);
+			switch (_depth) {
+			case -1:
+				ret = -1;
+				goto Done;
+			case -4:
+				if (ndOrphan) {
+					node->son[dir1] = ndOrphan;
+					ndOrphan = NULL;
+					_depth = 1;
+				}
+				else {
+					node->son[dir1] = NULL;
+					_depth = 0;
+				}
+			}
+		}
+		else if (ndFound) {
+			son1 = ndFound->son[0];
+			son2 = ndFound->son[1];
+
+			if (node != son1) {
+				_son = node->son[0];
+
+				node->son[0] = son1;
+
+				if (son1->depth[0] >= son1->depth[1])
+					node->depth[0] = son1->depth[0] + 1;
 				else
-					ndRoot=node->son[1];
-				ret=-1;
+					node->depth[0] = son1->depth[1] + 1;
+				ndOrphan = _son;
 			}
-			else if (node->depth[0]){
-				ndOrphan=node->son[0];
-				ret=node->depth[0];
-			}
-			else if (node->depth[1]){
-				ndOrphan=node->son[1];
-				ret=node->depth[1];
-			}
-			else{
-				ret=-4;
-			}
-			goto Done;
-		}
-	}
 
-	_son=node->son[dir1];
+			node->son[1] = son2;
 
-	if (_son){
-		_depth=remove(_son);
-		switch (_depth){
-		case -1:
-			ret=-1;
-			goto Done;
-		case -4:
-			if (ndOrphan){
-				node->son[dir1]=ndOrphan;
-				ndOrphan=NULL;
-				_depth=1;
-			}
-			else{
-				node->son[dir1]=NULL;
-				_depth=0;
-			}
-		}
-	}
-	else if (ndFound){
-		son1=ndFound->son[0];
-		son2=ndFound->son[1];
-
-		if (node!=son1){
-			_son=node->son[0];
-
-			node->son[0]=son1;
-
-			if (son1->depth[0]>=son1->depth[1])
-				node->depth[0]=son1->depth[0]+1;
+			if (son2->depth[0] >= son2->depth[1])
+				node->depth[1] = son2->depth[0] + 1;
 			else
-				node->depth[0]=son1->depth[1]+1;
-			ndOrphan=_son;
-		}
+				node->depth[1] = son2->depth[1] + 1;
 
-		node->son[1]=son2;
+			ndOrphan2 = node;
 
-		if (son2->depth[0]>=son2->depth[1])
-			node->depth[1]=son2->depth[0]+1;
-		else
-			node->depth[1]=son2->depth[1]+1;
-
-		ndOrphan2=node;
-
-		ret=-4;
-		goto Done;
-	}
-	else{
-		ret=-1;
-		goto Done;
-	}
-
-	if (ndOrphan){
-		node->son[dir1]=ndOrphan;
-		ndOrphan=NULL;
-	}
-	node->depth[dir1]=(byte)_depth;
-
-Check:
-	dir2=1-dir1;
-
-	if (node->depth[dir2]<=_depth+1){
-		olddir=dir2;
-
-		if (node->depth[0]>=node->depth[1]){
-			ret=node->depth[0]+1;
+			ret = -4;
 			goto Done;
 		}
-		else{
-			ret=node->depth[1]+1;
+		else {
+			ret = -1;
 			goto Done;
 		}
-	}
 
-	///////////////////////////	
-	dir2=dir1;
-	dir1=1-dir1;
-	///////////////////////////	
+		if (ndOrphan) {
+			node->son[dir1] = ndOrphan;
+			ndOrphan = NULL;
+		}
+		node->depth[dir1] = (byte)_depth;
 
-	son1=node->son[dir1];
+	Check:
+		dir2 = 1 - dir1;
 
-	if (son1->depth[dir2]>son1->depth[dir1])
-		olddir=dir2;
-	else
-		olddir=dir1;
-	_depth=node->depth[dir1];
+		if (node->depth[dir2] <= _depth + 1) {
+			olddir = dir2;
 
-	if (dir1==olddir){
-		son1=node->son[dir1];
-		son2=son1->son[dir2];
-
-		node->son[dir1]=son2;
-
-		node->depth[dir1]=son1->depth[dir2];
-		son1->son[dir2]=node;
-
-		if (node->depth[0]>=node->depth[1])
-			son1->depth[dir2]=node->depth[0]+1;
-		else
-			son1->depth[dir2]=node->depth[1]+1;
-
-		if (node==ndRoot)
-			ndRoot=son1;
-		else{
-			ndOrphan=son1;
-			if (son1->depth[0]>=son1->depth[1]){
-				ret=son1->depth[0]+1;
+			if (node->depth[0] >= node->depth[1]) {
+				ret = node->depth[0] + 1;
 				goto Done;
 			}
-			else{
-				ret=son1->depth[1]+1;
+			else {
+				ret = node->depth[1] + 1;
 				goto Done;
 			}
 		}
-	}
-	else{
-		_son=node->son[dir1];
-		gson=_son->son[dir2];
 
-		son1=gson->son[dir1];
-		son2=gson->son[dir2];
+		///////////////////////////	
+		dir2 = dir1;
+		dir1 = 1 - dir1;
+		///////////////////////////	
 
-		gson->son[dir2]=node;
-		gson->son[dir1]=_son;
+		son1 = node->son[dir1];
 
-		node->son[dir1]=son2;
-
-		node->depth[dir1]=gson->depth[dir2];
-		_son->son[dir2]=son1;
-
-		_son->depth[dir2]=gson->depth[dir1];
-
-		gson->depth[dir1]=_depth-1;
-		if (node->depth[0]>=node->depth[1])
-			gson->depth[dir2]=node->depth[0]+1;
+		if (son1->depth[dir2] > son1->depth[dir1])
+			olddir = dir2;
 		else
-			gson->depth[dir2]=node->depth[1]+1;
+			olddir = dir1;
+		_depth = node->depth[dir1];
 
-		if (node==ndRoot)
-			ndRoot=gson;
-		else{
-			ndOrphan=gson;
-			if (gson->depth[0]>=gson->depth[1]){
-				ret=gson->depth[0]+1;
-				goto Done;
-			}
-			else{
-				ret=gson->depth[1]+1;
-				goto Done;
+		if (dir1 == olddir) {
+			son1 = node->son[dir1];
+			son2 = son1->son[dir2];
+
+			node->son[dir1] = son2;
+
+			node->depth[dir1] = son1->depth[dir2];
+			son1->son[dir2] = node;
+
+			if (node->depth[0] >= node->depth[1])
+				son1->depth[dir2] = node->depth[0] + 1;
+			else
+				son1->depth[dir2] = node->depth[1] + 1;
+
+			if (node == ndRoot)
+				ndRoot = son1;
+			else {
+				ndOrphan = son1;
+				if (son1->depth[0] >= son1->depth[1]) {
+					ret = son1->depth[0] + 1;
+					goto Done;
+				}
+				else {
+					ret = son1->depth[1] + 1;
+					goto Done;
+				}
 			}
 		}
-	}
-	ret=-10;
-Done:
-	return ret;
+		else {
+			_son = node->son[dir1];
+			gson = _son->son[dir2];
+
+			son1 = gson->son[dir1];
+			son2 = gson->son[dir2];
+
+			gson->son[dir2] = node;
+			gson->son[dir1] = _son;
+
+			node->son[dir1] = son2;
+
+			node->depth[dir1] = gson->depth[dir2];
+			_son->son[dir2] = son1;
+
+			_son->depth[dir2] = gson->depth[dir1];
+
+			gson->depth[dir1] = _depth - 1;
+			if (node->depth[0] >= node->depth[1])
+				gson->depth[dir2] = node->depth[0] + 1;
+			else
+				gson->depth[dir2] = node->depth[1] + 1;
+
+			if (node == ndRoot)
+				ndRoot = gson;
+			else {
+				ndOrphan = gson;
+				if (gson->depth[0] >= gson->depth[1]) {
+					ret = gson->depth[0] + 1;
+					goto Done;
+				}
+				else {
+					ret = gson->depth[1] + 1;
+					goto Done;
+				}
+			}
+		}
+		ret = -10;
+	Done:
+		return ret;
 	}
 	BNode* find(BNode* node)
 	{
@@ -454,9 +460,9 @@ Done:
 		//не шустрей ли, если свою сделать?
 		dir1 = memcmp(wSearch.pos, node->wName.pos, sz);
 		*/
-		if (dir1<0)
+		if (dir1 < 0)
 			dir1 = 0;
-		else if (dir1>0)
+		else if (dir1 > 0)
 			dir1 = 1;
 		/*else if (node->wName.size>wSearch.size)
 			dir1 = 0;
@@ -468,7 +474,7 @@ Done:
 		BNode*	son = node->son[dir1];
 		BNode*	BNode;
 
-		if (son){
+		if (son) {
 			if (BNode = find(son))
 				return BNode;
 		}
@@ -479,10 +485,16 @@ public:
 	{
 		ndRoot = NULL;
 	}
+	void Empty()
+	{
+		ndRoot = NULL;
+	}
 
 	BNode* Add(BNode* node, bool replace = false)
 	{
-		if (ndRoot){
+		node->son[0] = node->son[1] = NULL;
+		node->depth[0] = node->depth[1] = 0;
+		if (ndRoot) {
 			doReplace = replace;
 			ndToInsert = node;
 			ndOrphan = NULL;
@@ -490,39 +502,39 @@ public:
 			insert(ndRoot);
 			return ndFound;
 		}
-		else{
+		else {
 			ndRoot = node;
 			return NULL;
 		}
 	}
-/*	inline BNode* Remove(Word* word)
-	{
-		ndFound = NULL;
-		if (ndRoot)
+	/*	inline BNode* Remove(Word* word)
 		{
-			wSearch = *word;
-			remove(this->ndRoot);
+			ndFound = NULL;
+			if (ndRoot)
+			{
+				wSearch = *word;
+				remove(this->ndRoot);
+			}
+			return ndFound;
 		}
-		return ndFound;
-	}
 
-	inline BNode* Remove(BNode* node)
-	{
-		
-	}
-
-	inline BNode* Find(char* word, int size)
-	{
-		if (this->ndRoot)
+		inline BNode* Remove(BNode* node)
 		{
-			wSearch.pos = word;
-			wSearch.size = size;
-			return find(this->ndRoot);
+
 		}
-		else
-			return NULL;
-	}
-*/
+
+		inline BNode* Find(char* word, int size)
+		{
+			if (this->ndRoot)
+			{
+				wSearch.pos = word;
+				wSearch.size = size;
+				return find(this->ndRoot);
+			}
+			else
+				return NULL;
+		}
+	*/
 
 	BNode* Find(BNode* _ndToFind)
 	{
@@ -539,131 +551,3 @@ public:
 	}
 };
 
-
-class Word
-{
-public:
-	union
-	{
-		char*		pos;
-		wchar_t*	posUC;
-	};
-	size_t	size;
-
- 	inline void* operator new(size_t sz, void* mem)
- 	{
- 		return mem;
- 	}
-	Word()
-	{
- 	}
- 	Word(wchar_t* _pos)
-	{	
- 		posUC = _pos;
- 		size = wcslen(_pos) * sizeof(wchar_t);
- 	}
- 	Word(char* _pos, int _size)
-	{	
- 		pos = _pos;
- 		size = _size;
- 	}
- 	Word(const char* text)
- 	{
- 		pos = (char*)text;
-		size = pos ? strlen(pos) : 0;
- 	}
-	Word(char* begin, char* end)
-	{
-		pos = begin;
-		size = end - begin;
-	}
-	inline void operator = (char* s)
-	{
-		pos = s;
-		size = pos ? strlen(pos) : 0;
-	}
-	inline bool operator == (const Word& w2) const
-	{
-		if (size != w2.size)
-			return false;
-		if (!w2.pos && !pos)
-			return true;
-		if (!w2.pos || !pos)
-			return false;
-		return (0 == memcmp(pos, w2.pos, size));
-	}
-	inline bool operator == (const char* ch2) const
-	{
-		Word w2(ch2);
-		return (*this == w2);
-	}
-
-	inline bool operator != (const Word& w2) const
-	{
-//		return !this->operator == (w2);
-	}
-	inline bool operator != (const char* ch2) const
-	{
-//		return !this->operator == (ch2);
-	}
-
-	long ParseNumber(int base = 10)
-	{
-		char str[255];
-		memcpy(str, pos, size);
-		str[size] = '\0';
-
-		char *o;
-		return strtol(str, &o, base);	//ф-ция может кидать исключения
-	}
-
-	inline void CatFromW(Word* wFrom, bool doCountEndingZeroInSize = false)
-	{
-		CatFromW(wFrom->posUC, doCountEndingZeroInSize, wFrom->size);
-	}
-	inline void CatFromW(wchar_t* sFrom, bool doCountEndingZeroInSize = false,  int szFrom = -1)
-	{
-		if (szFrom == -1)
-			szFrom = wcslen(sFrom)*2;
-
-		memcpy(pos + size, sFrom, szFrom);
-		size += szFrom;
-		pos[size]=pos[size+1] = 0;
-		size += doCountEndingZeroInSize * 2;
-	}
-
-
-
-	inline void CopyFrom(Word* wFrom)
-	{
-		memcpy(pos, wFrom->pos, wFrom->size);
-		size = wFrom->size;
-		pos[size] = 0;
-	}
-	inline void CatFrom(char* sFrom, int szFrom = -1)
-	{
-		if (szFrom == -1)
-			szFrom = strlen(sFrom);
-
-		memcpy(pos + size, sFrom, szFrom);
-		size += szFrom;
-		pos[size] = 0;
-	}
-
-	inline int CopyTo(char* sTo)
-	{
-		memcpy(sTo, pos, size);
-		sTo[size] = 0;
-		return size + 1;
-	}
-	inline int CopyToW(char* sTo)
-	{
-		memcpy(sTo, pos, size);
-		sTo[size + 1] = sTo[size] = 0;
-		return size + 2;
-	}
-
-//	inline operator bool () { return size; }
-	
-	inline char* End() { return pos + size; }
-};

@@ -2,6 +2,9 @@
 
 #define UNICODE
 
+//#include "default.h"
+//#include "windows.h"//почему-то именно тут memcpy, malloc и т.п.
+
 //////////////////////////////////////////////////////////////////////////////////////
 template <class T>
 class LinkedList
@@ -32,7 +35,7 @@ public:
 			el->prev->next = el->next;
 		else
 			first = el->next;
-		
+
 		if (el->next)
 			el->next->prev = el->prev;
 		else
@@ -65,22 +68,22 @@ public:
 		if (!el->next)
 			last = el;
 	}
-/*
-	void Add(LinkedList& llToAdd)
-	{
-		if (!llToAdd.last)
-			return;
+	/*
+		void Add(LinkedList& llToAdd)
+		{
+			if (!llToAdd.last)
+				return;
 
-		if (!first)
-			first = llToAdd.first;
+			if (!first)
+				first = llToAdd.first;
 
-		llToAdd.first->prev=last;
-		if (last)
-			last->next = llToAdd.first;
+			llToAdd.first->prev=last;
+			if (last)
+				last->next = llToAdd.first;
 
-		last = llToAdd.last;
-	}
-*/
+			last = llToAdd.last;
+		}
+	*/
 	void CutOffAfter(T* el)
 	{
 		if (el)
@@ -89,7 +92,7 @@ public:
 			first = NULL;
 		last = el;
 	}
-	
+
 	void DestroyAll()
 	{
 		for (T* el = first; el; el = el->next)
@@ -108,9 +111,9 @@ class LinkedElement
 public:
 	T*	next;
 	T*	prev;
-// 	T()
-// 	{
-// 		next = NULL;
-// 	}
+	// 	T()
+	// 	{
+	// 		next = NULL;
+	// 	}
 };
 
