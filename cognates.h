@@ -69,10 +69,13 @@ public:
 					//	return -1;
 
 					isNonNull = true;
-					//мошенничаем (временно)
-					SoundTable::SoundTree* _st;
-					if (res = _st->CompareNodes(c1->comparanda[iCol].sound, c2->comparanda[iCol].sound, NULL))
+					if (res = CompareFeaturesAnd(c1->comparanda[iCol].sound->feature, c2->comparanda[iCol].sound->feature))
 						return res;
+
+					//					//мошенничаем (временно)
+					//					SoundTable::SoundTree* _st;
+					//					if (res = _st->CompareNodes(c1->comparanda[iCol].sound, c2->comparanda[iCol].sound, NULL))
+					//						return res;
 				}
 			}
 			/*
@@ -95,8 +98,6 @@ public:
 
 			return 0;
 		}
-
-
 
 		class Iterator : public BTree::Walker
 		{
@@ -162,6 +163,7 @@ public:
 	int					nDicts;
 	int 				nCorresp;
 
+
 	Comparison(int nRows, int nCols) : tCorrespondences(nCols)
 	{
 		nDicts = nCols;
@@ -182,7 +184,7 @@ public:
 			corresps[iRow].crspNextSame = NULL;
 		}
 	}
-	int Process(Query::Condition* cnd)
+	int Process(Condition* cnd)
 	{
 		Reset();
 
@@ -208,11 +210,12 @@ public:
 					{
 						new (&sgmntzr[iCol]) Segmentizer(dic.ipa, corresps[iRow].comparanda[iCol].form);
 						Sound* sound;
+						cnd->Reset();
 						if (!corresps[iRow].comparanda[iCol].form)
 							sound = NULL;
 						else
 						{
-							SoundTable::Sound* sdCur;
+							Sound* sdCur;
 							bool isYes = false;
 							while (sdCur = sgmntzr[iCol].GetNext())
 							{
@@ -276,7 +279,7 @@ public:
 			f = 0;
 		}
 	}
-	void Output(Query::Condition* cnd, InfoTree* trOut)
+	void Output(Condition* cnd, InfoTree* trOut)
 	{
 		Correspondence* c;
 		LPTSTR word;
@@ -401,7 +404,7 @@ public:
 					word = NULL;
 				else
 				{
-					dic.ipa->ReplaceSymbols(word, buf);
+					dic.ReplaceSymbols(word, buf);
 					word = pString.New(buf, wcslen(buf) + 1);
 					dic.ipa->SubmitWordForm(word);
 				}

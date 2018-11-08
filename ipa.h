@@ -5,64 +5,12 @@
 #include "btree.h"
 #include "datastructures.h"
 
-#define  COUNT(arr) sizeof(arr)/sizeof(arr[0])
-
-LPTSTR _tblPostModifiers =
-L"	губ	пал	прд	зпд	эгл	гло	эгд	зуб	крт	алв	тон	длг	пдг	суж	нос	огб	\r\n"
-"-	ʷ	ʲ	ʰ	ʱ	ˤ	ˀ	ˁ	̪	̆	̠	ʼ	ː	ˑ	̈	̃	̊	";
-
-
-LPTSTR _tblVowels =
-L"	-	ОГУ	-	ОГУ	-	ОГУ	\r\n"
-"	ПЕР		ЦНТ		ЗАД		\r\n"
-"ВР	i	y	ɨ	ʉ	ɯ	u	\r\n"
-"ВН	ɪ̈	ʏ				ʊ	\r\n"
-"ВС	e	ø	ɘ	ɵ	ɤ	o	\r\n"
-"СР			ə				\r\n"
-"СН	ɛ	œ	ɜ	ɞ	ʌ	ɔ	\r\n"
-"НН	æ		ɐ				\r\n"
-"НЖ	a	ɶ			ɑ	ɒ	";
-
-
-LPTSTR _tblConsonants =
-L"	-	З	-	З	-	З	-	З	-	З	-	З	-	З	-	З	-	З	-	З	-	З	-	З	\r\n"
-"	ГГ		ГЗ		ЗЗ		АЛ		ПА		РТф		ПАл		ВЕЛ		УВ		ФАР		ЭГЛ		ГЛО		\r\n"
-"	ГУБ				ЗУБ						РТФ		ПАЛ		ЗЯЗ				ЛАР						\r\n"
-"НОС		m		ɱ				n				ɳ		ɲ		ŋ		ɴ							\r\n"
-"ВЗР	p	b					t	d			ʈ	ɖ	c	ɟ	k	ɡ	q	ɢ			ʡ		ʔ		\r\n"
-"СВИ							s	z	ʃ	ʒ	ʂ	ʐ	ɕ	ʑ											\r\n"
-"АФР							ʦ	ʣ	ʧ	ʤ			ʨ	ʥ											\r\n"
-"ФРИ	ɸ	β	f	v	θ	ð							ç	ʝ	x	ɣ	χ	ʁ	ħ	ʕ			h	ɦ	\r\n"
-"АПП	ʍ	w		ʋ				ɹ				ɻ		j		ɰ									\r\n"
-"1УД				ⱱ			ɾ					ɽ													\r\n"
-"ДРО		ʙ						r										ʀ	ʜ			ʢ			\r\n"
-"БФР							ɬ	ɮ																	\r\n"
-"БАП								l				ɭ		ʎ		ʟ									\r\n"
-"Б1У							ɺ																		";
-
-
-//а куда ɥ?
-
-LPTSTR _tblReplacements =
-L":ː\r\n"
-"'ʲ\r\n"
-"’ʲ\r\n"
-"́@\r\n"
-"ïɪ̈\r\n"
-"ää\r\n"
-"ʚɞ\r\n"
-"gɡ\r\n"
-"ńɲ\r\n"
-"ļlʲ\r\n"
-"ľlʲ\r\n"
-"ďdʲ\r\n"
-"ťtʲ\r\n"
-"γɣ";
-
+#include "ipatables.h"
+#include "ipareplacements.h"
 
 enum
 {
-	FT_VOWEL,
+	FT_VOWEL = 1,
 	FT_CONSONANT,
 	FT_MODIFIER,
 	FT_UNKNOWNSOUND,
@@ -98,6 +46,29 @@ public:
 	}
 };
 
+int CompareFeaturesAnd(int* f1, int* f2)
+{
+	for (int iFType = 0; iFType < FT_NFEATURETYPES; iFType++)
+	{
+		if (f1[iFType] > f2[iFType])
+			return 1;
+		if (f1[iFType] < f2[iFType])
+			return -1;
+	}
+	return 0;
+}
+int CompareFeaturesOr(int* f1, int* f2, int max = FT_NFEATURETYPES - 1)
+{
+	for (int iFType = 0; iFType <= max; iFType++)
+	{
+		if (f2[iFType])
+		{
+			if (!(f1[iFType] & f2[iFType]))
+				return 1;
+		}
+	}
+	return 0;
+}
 class FeatureTree : public BTree
 {
 public:
@@ -133,23 +104,20 @@ public:
 		}
 	};
 
+	//сделать SoundRef
 
-	struct Sound : public BNode
+	class Sound : public BNode
 	{
 	public:
-		bool	canExist;
-		bool	exists;
-		//bool	isPreModifier;
-		//bool	isPostModifier;
-		//int		features;
-		int		iRow;
-		int		iCol;
-		int		feature[FT_NFEATURETYPES];
-		Row*	row[FT_NFEATURETYPES];
-		TCHAR	Symbol[8];
-		TCHAR	symbolToReplaceBy[8];
-		void*	dataExtra;
-		Sound*	nextModified;
+		bool			canExist;
+		bool			exists;
+		int				iRow;
+		int				iCol;
+		int				feature[FT_NFEATURETYPES];
+		Row*			row[FT_NFEATURETYPES];
+		TCHAR			Symbol[8];
+		void*			dataExtra;
+		Sound*			nextModified;
 
 		Sound(TCHAR* _symbol, int* _feature = NULL)
 		{
@@ -161,7 +129,7 @@ public:
 			else
 				canExist = false;
 
-			symbolToReplaceBy[0] = '\0';
+			//symbolToReplaceBy[0] = '\0';
 			exists = false;
 			dataExtra = nextModified = NULL;
 
@@ -181,7 +149,7 @@ public:
 			//features = _features;
 			Symbol[0] = _code;
 			Symbol[1] = '\0';
-			symbolToReplaceBy[0] = '\0';
+			//symbolToReplaceBy[0] = '\0';
 
 			dataExtra = nextModified = NULL;
 			canExist = true;
@@ -221,24 +189,7 @@ public:
 	public:
 		int CompareNodes(BNode* _nd1, BNode* _nd2, void*_)
 		{
-			Sound* nd1 = (Sound*)_nd1;//поэтому надо шаблонно!!
-			Sound* nd2 = (Sound*)_nd2;
-			/*
-						if (nd1->features > nd2->features)
-							return 1;
-						if (nd1->features < nd2->features)
-							return -1;
-						return 0;
-			*/
-			for (int iFType = 0; iFType < FT_NFEATURETYPES; iFType++)
-				//			for (int iFType = FT_NFEATURETYPES - 1; iFType >= 0; iFType--)
-			{
-				if (nd1->feature[iFType] > nd2->feature[iFType])
-					return 1;
-				if (nd1->feature[iFType] < nd2->feature[iFType])
-					return -1;
-			}
-			return 0;
+			return CompareFeaturesAnd(((Sound*)_nd1)->feature, ((Sound*)_nd2)->feature);
 		}
 	};
 
@@ -488,21 +439,26 @@ public:
 	}
 };
 
+
+///////////////////////////////////////////////////////////////
+typedef SoundTable::Sound Sound;
+///////////////////////////////////////////////////////////////
+
+
 class IPA
 {
 	//	friend Segmentizer;
 public://временно вм. friend
-	SoundTable::Sound*ipaAll;
-	Pool<SoundTable::Sound>	pSounds;
+	Sound*			ipaAll;
+	Pool<Sound>		pSounds;
 	Pool<Feature>	pFeatures;
 	FeatureTree		tFeatures;
 	int 			curFeatureValue[FT_NSOUNDCLASSES];
-	//	int 			modFeatureValue[FT_NSOUNDCLASSES];
-public://временно
 	SoundTable		tblSounds[FT_NSOUNDCLASSES];
 	Pool<TCHAR>		pString;
+
 public:
-	LPTSTR tblPostModifiers, tblConsonants, tblVowels, tblReplacements;
+	LPTSTR tblPostModifiers, tblConsonants, tblVowels;//, tblReplaceLat, tblReplaceCyr;
 
 	IPA() : pString(3000), pSounds(100)
 	{
@@ -519,13 +475,11 @@ public:
 		tblPostModifiers = pString.New(_tblPostModifiers, wcslen(_tblPostModifiers) + 1);
 		tblConsonants = pString.New(_tblConsonants, wcslen(_tblConsonants) + 1);
 		tblVowels = pString.New(_tblVowels, wcslen(_tblVowels) + 1);
-		tblReplacements = pString.New(_tblReplacements, wcslen(_tblReplacements) + 1);
 
 		BuildPotentialSoundTable(FT_MODIFIER, tblPostModifiers, FT_COARTICULATION);
 
 		BuildPotentialSoundTable(FT_CONSONANT, tblConsonants, FT_PLACE);
 		BuildPotentialSoundTable(FT_VOWEL, tblVowels, FT_PLACE);
-		BuildReplacementTable(tblReplacements);
 
 		tblSounds[FT_UNKNOWNSOUND].InitIPAMemory(&ipaAll);//плохо, что надо явно вызывать!!!		
 	}
@@ -536,11 +490,11 @@ public:
 	//void AddUnknownSound()
 	//{
 	//}
-	SoundTable::Sound* FindModifiedSound(SoundTable::Sound* sndBase, int* feature)
+	Sound* FindModifiedSound(Sound* sndBase, int* feature)
 	{
-		for (SoundTable::Sound* soundMod = sndBase->nextModified; soundMod; soundMod = soundMod->nextModified)
+		for (Sound* soundMod = sndBase->nextModified; soundMod; soundMod = soundMod->nextModified)
 		{
-			SoundTable::Sound sdForCompare(NULL, feature);
+			Sound sdForCompare(NULL, feature);
 			if (!tblSounds[sndBase->feature[FT_CLASS]].tSounds.CompareNodes(soundMod, &sdForCompare, NULL))
 				return soundMod;
 		}
@@ -548,12 +502,12 @@ public:
 	}
 	int GetPostModifiers(LPTSTR pInWord, LPTSTR chrWithMod, int* feature)
 	{
-		SoundTable::Sound* soundBase = &ipaAll[*pInWord];
+		Sound* soundBase = &ipaAll[*pInWord];
 		int nPostModifiers = 0;
 
 		while (true)
 		{
-			SoundTable::Sound* soundMod = &ipaAll[pInWord[1]];//GetSoundWithReplacement(pInWord+1);;//&ipaAll[chrMod];
+			Sound* soundMod = &ipaAll[pInWord[1]];//GetSoundWithReplacement(pInWord+1);;//&ipaAll[chrMod];
 
 			if (soundMod->feature[FT_CLASS] == FT_MODIFIER)
 			{
@@ -579,30 +533,8 @@ public:
 
 		return nPostModifiers;
 	}
-	bool ReplaceSymbols(LPTSTR bIn, LPTSTR bOut)
-	{
-		for (; *bIn; bIn++)
-		{
-			SoundTable::Sound* sound = &ipaAll[*bIn];
-			switch (sound->symbolToReplaceBy[0])
-			{
-			case '\0':
-				*bOut = *bIn;
-				bOut++;
-				break;
-			case '@':
-				break;
-			default:
-				int sz = wcslen(sound->symbolToReplaceBy);
-				wcscpy(bOut, sound->symbolToReplaceBy);
-				bOut += sz;
-			}
-		}
-		*bOut = '\0';
-		return true;// длину?
-	}
 
-	SoundTable::Sound* GetSound(TCHAR pChr)
+	Sound* GetSound(TCHAR pChr)
 	{
 		return &ipaAll[pChr];
 	}
@@ -611,7 +543,7 @@ public:
 	{
 		for (LPTSTR pInWord = word; *pInWord; pInWord++)
 		{
-			SoundTable::Sound* soundBase = &ipaAll[*pInWord];//GetSoundWithReplacement(pInWord);
+			Sound* soundBase = &ipaAll[*pInWord];//GetSoundWithReplacement(pInWord);
 			TCHAR chr = *pInWord;
 
 			bool isSoundOK = SoundIsInIPA(chr);
@@ -691,17 +623,7 @@ public:
 			return true;
 		return false;
 	}
-	void BuildReplacementTable(LPTSTR tblReplacements)
-	{
-		Parser parser(tblReplacements, L"\t\r\n", PARSER_SKIPNEWLINE);
 
-		LPTSTR word;
-		while (word = parser.Next())
-		{
-			//проверку размера вставь
-			wcscpy(ipaAll[word[0]].symbolToReplaceBy, word + 1);
-		}
-	}
 	void BuildPotentialSoundTable(int iClass, LPTSTR txtTable, int iHorFType)
 	{
 		SoundTable* table = &tblSounds[iClass];
@@ -824,8 +746,8 @@ public:
 	LPTSTR				pInWord;
 	LPTSTR				pOldInWord;
 	LPTSTR				text;
-	SoundTable::Sound*	sndCurrent;
-	SoundTable::Sound*	sndPrevious;
+	Sound*				sndCurrent;
+	Sound*				sndPrevious;
 public:
 	IPA*				ipa;//на самом деле friend Query?
 
@@ -837,21 +759,21 @@ public:
 		sndCurrent = NULL;
 		sndPrevious = NULL;
 	}
-	SoundTable::Sound* Current()
+	Sound* Current()
 	{
 		return sndCurrent;
 	}
-	SoundTable::Sound* PeekPrevious()
+	Sound* PeekPrevious()
 	{
 		return sndPrevious;
 	}
-	SoundTable::Sound* PeekNext()
+	Sound* PeekNext()
 	{
 		return GetNext(true);
 	}
-	SoundTable::Sound* GetNext(bool doPeek = false)
+	Sound* GetNext(bool doPeek = false)
 	{
-		SoundTable::Sound* soundBase, *sound;
+		Sound* soundBase, *sound;
 		LPTSTR pos = pInWord;
 
 		if (!pos)
@@ -889,5 +811,285 @@ public:
 		return pOldInWord == text;
 	}
 };
+/////////////////////////////////////////////////////////////////////////////
+#define QF_NOTHING					0x0
+#define QF_SOMETHING				0x2
+#define QF_BEGINNING				0x20
+#define QF_OBJECTONLYONCE			0x400
+#define QF_CONTEXTONLYONCE			0x2000
 
-typedef SoundTable::Sound Sound;
+class Condition;//надо без этого!
+class Condition : public LinkedElement<Condition>
+{
+public:
+	LPTSTR		title;
+
+	class Segment
+	{
+	public:
+		int 		flag;
+		int			feature[FT_NFEATURETYPES];
+		LPTSTR		txtFeature;
+		short		wasAlready;
+
+		Segment(LPTSTR _txt)
+		{
+			txtFeature = _txt;
+			//feature = NULL;
+			wasAlready = false;
+			//			iClass = -1;
+			flag = QF_NOTHING;
+
+			if (!lstrcmp(_txt, L"#"))
+				flag = QF_BEGINNING;//в конце иначе	
+
+			//обнулять как-то надо, тут нужен к-р особый для «совокупности признаков»?
+			for (int iFType = 0; iFType < FT_NFEATURETYPES; iFType++)
+				feature[iFType] = 0;
+		}
+		bool Init(IPA* ipa)
+		{
+			if (!txtFeature) return false;
+
+			Feature ftForSearch(txtFeature/*пока одно*/);
+			Feature* ftFound = (Feature*)ipa->tFeatures.Find(&ftForSearch);//будет искать, каждый раз, если задано несущ.
+			if (ftFound)
+			{
+				feature[ftFound->iType] = ftFound->value;
+				feature[FT_CLASS] = ftFound->iClass;
+				flag = QF_SOMETHING;
+			}
+			return true;
+		}
+	};
+
+	Segment		sgPrev;
+	Segment		sgThis;
+	Segment		sgNext;
+	int			flags;
+
+	Condition(LPTSTR _ftThis, LPTSTR _ftPrev, LPTSTR _ftNext, int _flags = 0, LPTSTR _title = NULL) : sgThis(_ftThis), sgPrev(_ftPrev), sgNext(_ftNext)
+	{
+		title = _title;
+		flags = _flags;
+		//		condition = _condition;
+		//		iClass = _iClass;
+		//		feature = NULL;
+		//		Reset();
+	}
+	void Reset()
+	{
+		sgPrev.wasAlready = 0;
+		sgThis.wasAlready = 0;
+		sgNext.wasAlready = 0;
+		//wasObject = wasContext = wasObjectInContext = false;//sgThis.feature = NULL;
+		//sgPrev.feature = NULL;
+		//sgNext.feature = NULL;
+	}
+	bool Check(Segmentizer* sgmtzr)
+	{
+		if (sgThis.flag == QF_NOTHING) sgThis.Init(sgmtzr->ipa);
+		if (sgPrev.flag == QF_NOTHING) sgPrev.Init(sgmtzr->ipa);
+		if (sgNext.flag == QF_NOTHING) sgNext.Init(sgmtzr->ipa);
+
+		Sound* sdThis = sgmtzr->Current(),
+			*sdAdjacent;
+		if ((flags & QF_OBJECTONLYONCE) && (sgThis.wasAlready))
+			return false;
+
+		if ((flags & QF_CONTEXTONLYONCE) && ((sgPrev.wasAlready) || (sgNext.wasAlready)))
+			return false;
+		//		if ((flags & QF_OBJECTINCONTEXTONLYONCE) && wasObjectInContext)
+		//			return false;
+		if (sgPrev.flag != QF_NOTHING)
+		{
+			if (!CompareFeaturesOr(sdThis->feature, sgPrev.feature, FT_CLASS))//т.е. текущая годится как контекст в принципе, но тольео по классу, т.с. С или Г!!
+				sgPrev.wasAlready++;
+		}
+		if (sgNext.flag != QF_NOTHING)
+		{
+			if (!CompareFeaturesOr(sdThis->feature, sgNext.feature, FT_CLASS))//т.е. текущая годится как контекст в принципе
+				sgNext.wasAlready++;
+		}
+		if (sgThis.flag != QF_NOTHING)
+		{
+			if (!CompareFeaturesOr(sdThis->feature, sgThis.feature, FT_CLASS))//т.е. текущая годится как заявленное «это»
+				sgThis.wasAlready++;
+			else
+				return false;
+		}
+
+		if (sgPrev.flag & QF_BEGINNING)
+		{
+			if (sgmtzr->IsFirst())
+				return true;
+			else
+				return false;
+		}
+
+		if (sgPrev.flag != QF_NOTHING)
+		{
+			sdAdjacent = sgmtzr->PeekPrevious();
+			if (!sdAdjacent)
+				return false;
+			if (!CompareFeaturesOr(sdAdjacent->feature, sgPrev.feature))
+				return true;
+			else
+				return false;
+		}
+		if (sgNext.flag != QF_NOTHING)
+		{
+			sdAdjacent = sgmtzr->PeekNext();
+			if (!sdAdjacent)
+				return false;
+			if (!CompareFeaturesOr(sdAdjacent->feature, sgNext.feature))
+				return true;
+			else
+				return false;
+		}
+
+
+		//		bool isMatch = !!(sdAdjacent->feature[feature->iType] & feature->value);
+
+		//		return isMatch;
+		return false;
+	}
+};
+
+class Query
+{
+public:
+	Segmentizer* sgmtzr;
+	Condition* cndCur;
+	LinkedList<Condition> llConditions;
+
+	Query()
+	{
+		cndCur = NULL;
+	}
+	~Query()
+	{
+		llConditions.DestroyAll();
+	}
+	void SetSegmentizer(Segmentizer* _sgmtzr)
+	{
+		sgmtzr = _sgmtzr;
+		ResetConditions();
+	}
+	void AddCondition(LPTSTR _ftThis, LPTSTR _ftPrev, LPTSTR _ftNext, int flags = 0, LPTSTR _title = NULL)
+	{
+		Condition* cnd = new Condition(_ftThis, _ftPrev, _ftNext, flags, _title);
+		llConditions.Add(cnd);
+	}
+	Condition* FirstCondition()
+	{
+		return cndCur = llConditions.first;
+	}
+	void SetIPA(IPA* ipa)//дурацкая ф-ция, заплата
+	{
+		for (Condition* c = llConditions.first; c; c = c->next)
+		{
+			c->sgThis.Init(ipa);
+			c->sgPrev.Init(ipa);
+			c->sgNext.Init(ipa);
+		}
+	}
+	void ResetConditions()
+	{
+		for (Condition* c = llConditions.first; c; c = c->next)
+		{
+			c->Reset();
+		}
+		cndCur = NULL;
+	}
+	Condition* NextCondition()
+	{
+		if (!cndCur)
+			cndCur = llConditions.first;
+		else
+			cndCur = cndCur->next;
+		return cndCur;
+	}
+	bool CheckCondition()
+	{
+		if (!cndCur)
+			return false;
+
+		return cndCur->Check(sgmtzr);
+	}
+};
+
+/////////////////////////////////////////////////////////////////////////////
+class Replacer
+{
+public:
+	class Rule
+	{
+	public:
+		TCHAR			Symbol[8];
+		TCHAR			symbolToReplaceBy[8];
+		void*			dataExtra;
+		Sound*			nextModified;
+		Condition*		condition;
+	};
+
+	Rule*				rules;
+	LPTSTR				lang;
+	LPTSTR				textRules;
+	Pool<TCHAR>			pString;
+
+	Replacer() : pString(2000)
+	{
+		textRules = NULL;
+
+		int nipaAll = 0xffff;
+		int sz = sizeof(Rule)*nipaAll;
+		rules = (Rule*)malloc(sz);//не new, чтоб избежать к-ра в цикле
+		memset(rules, sz, 0);
+	}
+	~Replacer()
+	{
+		free(rules);
+		if (textRules) free(textRules);
+	}
+	void Set(LPTSTR _lang)
+	{
+		lang = _lang;
+	}
+	bool AddRules(LPTSTR _textRules)
+	{
+		textRules = pString.New(_textRules, wcslen(_textRules) + 1);
+
+		Parser parser(textRules, L",\t\r\n", PARSER_SKIPNEWLINE);
+
+		LPTSTR word;
+		while (word = parser.Next())
+		{
+			//проверку размера вставь
+			if (word[0])
+				wcscpy(rules[word[0]].symbolToReplaceBy, word + 1);
+		}
+	}
+	bool Convert(LPTSTR bIn, LPTSTR bOut)
+	{
+		for (; *bIn; bIn++)
+		{
+			Replacer::Rule* rule = &rules[*bIn];
+			switch (rule->symbolToReplaceBy[0])
+			{
+			case '\0':
+				*bOut = *bIn;
+				bOut++;
+				break;
+			case '@':
+				break;
+			default:
+				int sz = wcslen(rule->symbolToReplaceBy);
+				wcscpy(bOut, rule->symbolToReplaceBy);
+				bOut += sz;
+			}
+		}
+		*bOut = '\0';
+		return true;// длину?
+	}
+};
