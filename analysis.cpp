@@ -15,6 +15,12 @@
 #include <seh.h>
 #endif
 
+#include "stringfunctions.h"
+
+#ifndef __linux__ 
+#include "gui_win32.h"
+#endif
+
 #include "infotree.h"
 #include "dictionary.h"
 #include "cognates.h"
@@ -29,7 +35,7 @@ int __declspec(dllexport)
 #endif
 PhonemicAnalysis_GetAllOutput(LPTSTR bufIn, LPTSTR bufOut)
 {
-	try
+	//	try
 	{
 		InfoTree trOut(L"ФОНЕТИЧЕСКИЙ АНАЛИЗ");
 		Dictionary dic;
@@ -44,11 +50,11 @@ PhonemicAnalysis_GetAllOutput(LPTSTR bufIn, LPTSTR bufOut)
 
 		trOut.AddSubtree(&trIPAConsonants, L"Согласные звуки", IT_COLUMN | IT_EMPTYLINEBEFORE | IT_LINEBRKAFTER, IT_TAB);
 		trOut.AddSubtree(&trIPAVowels, L"Гласные звуки", IT_COLUMN | IT_EMPTYLINEBEFORE | IT_LINEBRKAFTER, IT_TAB);
-		trOut.AddSubtree(&trIPANotFound, L"Неопознанные знаки", IT_COLUMN | IT_EMPTYLINEBEFORE, IT_COMMA | IT_SPACE);
+		trOut.AddSubtree(&trIPANotFound, L"Неопознанные знаки", IT_COLUMN | IT_EMPTYLINEBEFORE, 0);
 
 		InfoNode* ndDistr[FT_NSOUNDCLASSES];
-		ndDistr[FT_VOWEL] = trOut.Add(L"Списки по гласному первого слога", NULL, IT_COLUMN | IT_EMPTYLINEBEFORE);
-		ndDistr[FT_CONSONANT] = trOut.Add(L"Списки по согласному перед гласным первого слога", NULL, IT_COLUMN | IT_EMPTYLINEBEFORE);
+		ndDistr[FT_VOWEL] = trOut.Add(L"Списки по гласному первого слога",/*NULL,*/ IT_COLUMN | IT_EMPTYLINEBEFORE);
+		ndDistr[FT_CONSONANT] = trOut.Add(L"Списки по согласному перед гласным первого слога", /*NULL,*/ IT_COLUMN | IT_EMPTYLINEBEFORE);
 		dic.BuildDistributionLists(ndDistr, &trOut);
 
 
@@ -58,7 +64,7 @@ PhonemicAnalysis_GetAllOutput(LPTSTR bufIn, LPTSTR bufOut)
 		lstrcpy(bufOut, output.bufOut);
 		return 1;
 	}
-	catch (...)
+	//	catch (...)
 	{
 		return 2;
 	}
@@ -89,7 +95,7 @@ CognateAnalysis_GetAllOutput(LPTSTR bufIn, int nRows, int nCols, LPTSTR bufOut)
 		qry.AddCondition(L"С", L"#", NULL, 0, L"Соответствия по начальному согласному");
 		qry.AddCondition(L"Г", L"С", NULL, QF_OBJECTONLYONCE, L"Соответствия по гласному после первого согласного");
 
-		cmp.OutputHeader(&trOut);
+		cmp.OutputLanguageNames(&trOut);
 
 		for (Condition* cnd = qry.FirstCondition(); cnd; cnd = qry.NextCondition())
 		{
@@ -122,6 +128,9 @@ Retranscribe(LPTSTR bufIn, LPTSTR bufOut, LPTSTR langIn, LPTSTR langOut, int fla
 	try
 	{
 		Dictionary dic;
+
+		dic.GuessReplacer(bufIn);
+
 		dic.ReplaceSymbols(bufIn, bufOut);
 
 

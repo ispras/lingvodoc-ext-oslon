@@ -1,5 +1,6 @@
 #pragma once
 
+#include "stringfunctions.h"
 #include "parser.h"
 #include "pool.h"
 #include "btree.h"
@@ -748,16 +749,27 @@ public:
 	LPTSTR				text;
 	Sound*				sndCurrent;
 	Sound*				sndPrevious;
+	bool				doSearchModified;
 public:
 	IPA*				ipa;//на самом деле friend Query?
 
-	Segmentizer(IPA* _ipa, LPTSTR _text)
+	Segmentizer(IPA* _ipa, LPTSTR _text, bool _doSearchModified = true)
 	{
+		doSearchModified = _doSearchModified;
 		ipa = _ipa;
-		pInWord = pOldInWord = NULL;
+
+		Set(_text);
+	}
+	void Set(LPTSTR _text)
+	{
 		text = _text;
+		pInWord = pOldInWord = NULL;
 		sndCurrent = NULL;
 		sndPrevious = NULL;
+	}
+	TCHAR Current1Char()
+	{
+		return pOldInWord[0];
 	}
 	Sound* Current()
 	{
@@ -785,17 +797,18 @@ public:
 			pOldInWord = pos;
 
 		TCHAR chr = *pos;
-		soundBase = &ipa->ipaAll[chr];
+		sound = soundBase = &ipa->ipaAll[chr];
 
-		int	feature[FT_NFEATURETYPES];
-		TCHAR chrWithMod[9];
-		int nPostModifiers = ipa->GetPostModifiers(pos, chrWithMod, feature);
-		pos += nPostModifiers;
+		if (doSearchModified)
+		{
+			int	feature[FT_NFEATURETYPES];
+			TCHAR chrWithMod[9];
+			int nPostModifiers = ipa->GetPostModifiers(pos, chrWithMod, feature);
+			pos += nPostModifiers;
 
-		if (!nPostModifiers)
-			sound = soundBase;
-		else
-			sound = ipa->FindModifiedSound(soundBase, feature);
+			if (nPostModifiers)
+				sound = ipa->FindModifiedSound(soundBase, feature);
+		}
 
 		if (!doPeek)
 		{
@@ -819,7 +832,7 @@ public:
 #define QF_CONTEXTONLYONCE			0x2000
 
 class Condition;//надо без этого!
-class Condition : public LinkedElement<Condition>
+class Condition : public LinkedElement<Condition>, public OwnNew
 {
 public:
 	LPTSTR		title;
@@ -834,10 +847,10 @@ public:
 
 		Segment(LPTSTR _txt)
 		{
+			if (_txt) if (!_txt[0]) _txt = NULL; //у нас && неправильный
+
 			txtFeature = _txt;
-			//feature = NULL;
 			wasAlready = false;
-			//			iClass = -1;
 			flag = QF_NOTHING;
 
 			if (txtFeature)
@@ -980,7 +993,7 @@ public:
 	}
 	void AddCondition(LPTSTR _ftThis, LPTSTR _ftPrev, LPTSTR _ftNext, int flags = 0, LPTSTR _title = NULL)
 	{
-		Condition* cnd = new Condition(_ftThis, _ftPrev, _ftNext, flags, _title);
+		Condition* cnd = ::new Condition(_ftThis, _ftPrev, _ftNext, flags, _title);
 		llConditions.Add(cnd);
 	}
 	Condition* FirstCondition()
@@ -1025,22 +1038,32 @@ public:
 class Replacer
 {
 public:
-	class Rule
+	class Rule : public OwnNew
 	{
 	public:
-		TCHAR			Symbol[8];
+		TCHAR			symbolToReplace[8];
 		TCHAR			symbolToReplaceBy[8];
-		void*			dataExtra;
-		Sound*			nextModified;
+		//void*			dataExtra;
+		Rule*			nextSame;
 		Condition*		condition;
-	};
 
+		Rule()
+		{
+			condition = NULL;
+			nextSame = NULL;
+			symbolToReplace[0] = '\0';
+			symbolToReplaceBy[0] = '\0';
+		}
+	};
+	IPA*				ipa;
 	Rule*				rules;
 	LPTSTR				lang;
 	LPTSTR				textRules;
 	Pool<TCHAR>			pString;
+	Pool<Rule>			pRules;
+	Pool<Condition>		pConditions;
 
-	Replacer() : pString(2000)
+	Replacer() : pString(2000), pConditions(10), pRules(10)
 	{
 		textRules = NULL;
 
@@ -1052,46 +1075,154 @@ public:
 	~Replacer()
 	{
 		free(rules);
-		if (textRules) free(textRules);
 	}
-	void Set(LPTSTR _lang)
+	void Set(IPA* _ipa, LPTSTR _lang)
 	{
+		ipa = _ipa;
 		lang = _lang;
+	}
+	Rule* CreateRule(TCHAR replaceWhat, LPTSTR replaceBy)
+	{
+		Rule* rule = rules + replaceWhat;
+
+		if (rule->symbolToReplace[0]) //значит, уже есть, новое надо привесить к нему
+		{
+			Rule* ruleNew = new (pRules.New()) Rule;
+
+			Rule *ruleLast = rule;
+			for (Rule* r = rule->nextSame; r; r = r->nextSame)
+				ruleLast = r;
+			ruleLast->nextSame = ruleNew;
+
+			rule = ruleNew;
+		}
+
+		rule->symbolToReplace[0] = replaceWhat;
+		rule->symbolToReplace[1] = '\0';//пока только один знак
+		StrCpyWMax(rule->symbolToReplaceBy, replaceBy, 8);
+		return rule;
 	}
 	bool AddRules(LPTSTR _textRules)
 	{
 		textRules = pString.New(_textRules, wcslen(_textRules) + 1);
 
-		Parser parser(textRules, L",\t\r\n", PARSER_SKIPNEWLINE);
+		Parser parser(textRules, L">,|_\r\n", PARSER_SKIPNEWLINE);
 
+		Rule* rule = NULL;
 		LPTSTR word;
+		LPTSTR fPrev, fThis, fNext;
+		fPrev = fThis = fNext = NULL;
+		bool isCond = false;
 		while (word = parser.Next())
 		{
-			//проверку размера вставь
-			if (word[0])
-				wcscpy(rules[word[0]].symbolToReplaceBy, word + 1);
-		}
-	}
-	bool Convert(LPTSTR bIn, LPTSTR bOut)
-	{
-		for (; *bIn; bIn++)
-		{
-			Replacer::Rule* rule = &rules[*bIn];
-			switch (rule->symbolToReplaceBy[0])
+			switch (parser.Separator())
 			{
-			case '\0':
-				*bOut = *bIn;
-				bOut++;
+			case '>':
 				break;
-			case '@':
+			case '|':
+				isCond = true;
+				rule = CreateRule(word[0], word + 1);
 				break;
-			default:
-				int sz = wcslen(rule->symbolToReplaceBy);
-				wcscpy(bOut, rule->symbolToReplaceBy);
-				bOut += sz;
+			case '_':
+				fPrev = word;
+				break;
+			case ',':
+			case '\r':
+			case '\0'://конец
+				if (isCond)
+				{
+					fNext = word;
+					rule->condition = new (pConditions.New()) Condition(fThis, fPrev, fNext, 0, NULL);
+				}
+				else
+					rule = CreateRule(word[0], word + 1);
+
+				rule = NULL;
+				fPrev = fThis = fNext = NULL;
+				isCond = false;
 			}
 		}
-		*bOut = '\0';
+	}
+	bool IsCharInTable(TCHAR chr)
+	{
+		return !!rules[chr].symbolToReplace[0];
+	}
+	bool Convert(LPTSTR bInBeg, LPTSTR bOutBeg)
+	{
+		Segmentizer sgmntzr(ipa, bInBeg, false);
+
+		TCHAR buf[200];
+		bool isCondition = false;
+		//for (; *bIn; bIn++)
+
+		Sound* sdCur;
+		int sz;
+		LPTSTR bIn, bOut;
+
+		for (int iPass = 1; iPass <= 2; iPass++)
+		{
+			LPTSTR bIn = bInBeg;
+			LPTSTR bOut = bOutBeg;
+
+
+			while (sdCur = sgmntzr.GetNext())
+			{
+				TCHAR chr = sgmntzr.Current1Char();
+				Replacer::Rule* rule;// = &rules[chr];
+
+				for (rule = &rules[chr]; rule; rule = rule->nextSame)
+				{
+					if (rule->condition)
+					{
+						switch (iPass)
+						{
+						case 1:
+							isCondition = true;
+							goto JustCopy;
+							break;
+						case 2:
+							if (rule->condition->Check(&sgmntzr))
+								goto Replace;
+							else if (!rule->nextSame)
+								goto JustCopy;
+						}
+					}
+					else break;
+					if (iPass == 1) break;
+				}
+
+				if (!rule)
+					goto JustCopy;
+
+			Replace:
+				switch (rule->symbolToReplaceBy[0])
+				{
+				case '\0':
+				JustCopy:
+					*bOut = chr;
+					bOut++;
+					break;
+				case '@':
+					break;
+				default:
+					sz = wcslen(rule->symbolToReplaceBy);
+					wcscpy(bOut, rule->symbolToReplaceBy);
+					bOut += sz;
+				}
+			}
+			*bOut = '\0';
+			if (iPass == 1)
+			{
+				if (!isCondition)
+					break;
+				else
+				{
+					wcscpy(buf, bOutBeg);
+					bInBeg = buf;
+					sgmntzr.Set(bInBeg);
+				}
+			}
+		}
 		return true;// длину?
 	}
 };

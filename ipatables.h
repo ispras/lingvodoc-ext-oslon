@@ -1,4 +1,5 @@
-﻿LPTSTR _tblPostModifiers =
+﻿
+LPTSTR _tblPostModifiers =
 L"	глх	губ	пал	прд	зпд	эгл	гло	эгд	зуб	крт	алв	тон	длг	пдг	нос	скр	огб	цнт	сцн	\r\n"
 "-	̥	ʷ	ʲ	ʰ	ʱ	ˤ	ˀ	ˁ	̪	̆	̠	ʼ	ː	ˑ	̃	̰	̊	̈	̽	";
 

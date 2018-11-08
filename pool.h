@@ -2,6 +2,10 @@
 
 #define UNICODE
 
+//#include "default.h"
+//#include "windows.h"//почему-то именно тут memcpy, malloc и т.п.
+
+
 enum
 {
 	NPOOLSPERALLOC = 1000,
@@ -14,25 +18,25 @@ private:
 	{
 		T*	pool;
 		int size;
-	}*		index;
+	}*index;
 
 	int		imaxPool;
 	int		ilastmaxPool;
 	int		nInEachPool;
 	int		szDefault;
 	int		nElements;
-/*
-	enum
-	{
-		NPOOLSPERALLOC = 100,
-	};
-*/
+	/*
+		enum
+		{
+			NPOOLSPERALLOC = 100,
+		};
+	*/
 	inline void AllocNewPool()
 	{
 		//if (!index)
 		//	index = (Index*)malloc(sizeof(Index) * NPOOLSPERALLOC);
 		//else 
-			
+
 		if (imaxPool - ilastmaxPool >= NPOOLSPERALLOC)
 		{
 			index = (Index*)realloc(index, sizeof(Index) * (imaxPool + 1 + NPOOLSPERALLOC));

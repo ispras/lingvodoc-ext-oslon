@@ -12,10 +12,12 @@ class Parser
 	LPTSTR 	seps;
 	int 	size;
 	int		flags;
+	TCHAR	separatorLast;
 public:
 	Parser(LPTSTR _text, LPTSTR _seps, int _flags = 0, int _size = 0)
 		//: text(_text)/*ничего не делает*/, flags(_flags), seps(_seps)
 	{
+		separatorLast = '\0';
 		flags = _flags;
 		seps = _seps;
 		old = NULL;
@@ -25,6 +27,10 @@ public:
 	bool IsItemEmpty()
 	{
 		return *old == '\0';
+	}
+	TCHAR Separator()
+	{
+		return separatorLast;
 	}
 	bool IsItemFirstInLine()
 	{
@@ -70,10 +76,12 @@ public:
 					}
 					else if (!(flags & PARSER_NONNULLEND) && *pos == '\0')
 					{
+						separatorLast = *pos;
 						return old;
 					}
 					else
 					{
+						separatorLast = *pos;
 						*pos = '\0';
 						pos++;
 						return old;
