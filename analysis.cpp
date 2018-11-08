@@ -29,7 +29,7 @@ int __declspec(dllexport)
 #endif
 PhonemicAnalysis_GetAllOutput(LPTSTR bufIn, LPTSTR bufOut)
 {
-	//	try
+	try
 	{
 		InfoTree trOut(L"ФОНЕТИЧЕСКИЙ АНАЛИЗ");
 		Dictionary dic;
@@ -58,7 +58,7 @@ PhonemicAnalysis_GetAllOutput(LPTSTR bufIn, LPTSTR bufOut)
 		lstrcpy(bufOut, output.bufOut);
 		return 1;
 	}
-	//	catch (...)
+	catch (...)
 	{
 		return 2;
 	}
