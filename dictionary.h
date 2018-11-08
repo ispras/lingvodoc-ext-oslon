@@ -4,10 +4,12 @@
 class WordForm : public BNode
 {
 public:
-	LPTSTR	form;
-	WordForm(LPTSTR _form)
+	LPTSTR	formIPA;
+	LPTSTR	formOrig;
+	WordForm(LPTSTR _formIPA, LPTSTR _formOrig)
 	{
-		form = _form;
+		formOrig = _formOrig;
+		formIPA = _formIPA;
 	}
 	/*
 		Word	wName;
@@ -36,7 +38,7 @@ public:
 		WordForm* nd1 = (WordForm*)_nd1;//поэтому надо шаблонно!!
 		WordForm* nd2 = (WordForm*)_nd2;
 		//надо свой порядок вести, см. в Вербе
-		return wcscmp(nd1->form, nd2->form);
+		return wcscmp(nd1->formIPA, nd2->formIPA);
 		/*
 				int sz = nd1->wName.size;
 
@@ -56,7 +58,16 @@ public:
 				*/
 	}
 };
+///////////////////////////////////////////////////////////////////////////////////////////////////
+enum
+{
+	RT_LAT,
+	RT_CYR,
+	RT_COUNT,
+	RT_NONE = -1
+};
 
+///////////////////////////////////////////////////////////////////////////////////////////////////
 class Dictionary
 {
 public:
@@ -64,35 +75,78 @@ public:
 	Pool<WordForm>		pWordForms; //(500) — нельзя в старом C++
 	Pool<TCHAR>			pString;
 	IPA*				ipa;
-
+	Replacer			replacers[RT_COUNT];
+	int					iReplacer;
 public:
-	Dictionary()
+	Dictionary() : pString(1000), pWordForms(1000)
 	{
 		ipa = new IPA;
+		iReplacer = RT_NONE;
+		replacers[RT_LAT].Set(ipa, L"лат");
+		replacers[RT_LAT].AddRules(_tblReplaceLat);
+		replacers[RT_CYR].Set(ipa, L"кир");
+		replacers[RT_CYR].AddRules(_tblReplaceCyr);
 	}
 	~Dictionary()
 	{
 		delete ipa;
 	}
 
+	bool ReplaceSymbols(LPTSTR bIn, LPTSTR bOut)//, LPTSTR lang = NULL)
+	{
+		if (iReplacer == RT_NONE)
+		{
+			wcscpy(bOut, bIn);
+			return false;
+		}
+
+		Replacer* rr = &replacers[iReplacer];
+
+		return rr->Convert(bIn, bOut);
+	}
+
+
+	void GuessReplacer(LPTSTR word)
+	{
+		if (word[0])
+		{
+			for (int i = RT_COUNT - 1; i >= 0; i--)//начинаем с кир.
+			{
+				for (TCHAR* ch = word; *ch; ch++)
+				{
+					if (replacers[i].IsCharInTable(*ch))
+					{
+						iReplacer = i;
+						return;
+					}
+				}
+			}
+		}
+		iReplacer = RT_LAT;
+	}
+
 	void AddWordList(LPTSTR sIn)
 	{
 		Parser parser(sIn, L"\r\n", PARSER_SKIPNEWLINE);
-		LPTSTR word;
+		LPTSTR wordIPA, wordOrig;
 
-		TCHAR buf[1000];
+		TCHAR buf[200];
 
-		while (word = parser.Next())
+		while (wordOrig = parser.Next())
 		{
-			ipa->ReplaceSymbols(word, buf);
+			if (iReplacer == RT_NONE)
+				GuessReplacer(wordOrig);
 
-			word = pString.New(buf, wcslen(buf) + 1);
+			ReplaceSymbols(wordOrig, buf);
 
-			WordForm* wfNew = new (pWordForms.New()) WordForm(word);
+			wordOrig = pString.New(wordOrig, wcslen(wordOrig) + 1);
+			wordIPA = pString.New(buf, wcslen(buf) + 1);
+
+			WordForm* wfNew = new (pWordForms.New()) WordForm(wordIPA, wordOrig);
 
 			//создаются дубли-сироты этих объектов, если уже в дереве есть
 
-			ipa->SubmitWordForm(word);
+			ipa->SubmitWordForm(wordIPA);
 
 			trWordForms.Add(wfNew);
 		}
@@ -114,20 +168,20 @@ public:
 		SoundTable::Iterator* it = ipa->Iterator(iClass);
 		while (sound = it->Next())
 		{
-			int flags = 0;//IT_TAB;
+			int flags = IT_TAB;
 			if (sound->RowNumber(FT_MANNER) > iRowPrev)
 			{
-				flags = IT_LINEBRKBEFORE;
+				flags |= IT_LINEBRKBEFORE;
 				iColPrev = -1;
 			}
 
 			for (int i = iColPrev + 1; i < sound->RowNumber(FT_PLACE); i++)
 			{
-				trOut->Add(NULL, L"", flags);//, ndW);
-				flags = 0;//IT_TAB;
+				trOut->Add(L"", flags);//, ndW);
+				flags = IT_TAB;
 			}
 
-			ndSound = trOut->Add(NULL, sound->Symbol, flags);//, ndW);
+			ndSound = trOut->Add(sound->Symbol, flags);//, ndW);
 
 			iColPrev = sound->RowNumber(FT_PLACE);
 			iRowPrev = sound->RowNumber(FT_MANNER);
@@ -139,37 +193,41 @@ public:
 	{
 		Query qry;
 
-		qry.AddCondition(QF_FIRSTINWORD, L"???", FT_VOWEL, L"в начале");
-		qry.AddCondition(QF_RIGHTAFTER | QF_OBJECTONLYONCE, L"ГУБ", FT_VOWEL, L"после губных");
-		qry.AddCondition(QF_RIGHTAFTER | QF_OBJECTONLYONCE, L"ЗУБ", FT_VOWEL, L"после зубных");
-		qry.AddCondition(QF_RIGHTAFTER | QF_OBJECTONLYONCE, L"ПАЛ", FT_VOWEL, L"после палатальных");
-		qry.AddCondition(QF_RIGHTAFTER | QF_OBJECTONLYONCE, L"ЗЯЗ", FT_VOWEL, L"после заднеязычных");
-		qry.AddCondition(QF_RIGHTAFTER | QF_OBJECTONLYONCE, L"ЛАР", FT_VOWEL, L"после ларингальных");
-		qry.AddCondition(QF_RIGHTBEFORE | QF_OBJECTONLYONCE, L"ГУБ", FT_VOWEL, L"перед губными");
-		qry.AddCondition(QF_RIGHTBEFORE | QF_OBJECTONLYONCE, L"ЗУБ", FT_VOWEL, L"перед зубными");
-		qry.AddCondition(QF_RIGHTBEFORE | QF_OBJECTONLYONCE, L"ПАЛ", FT_VOWEL, L"перед палатальными");
-		qry.AddCondition(QF_RIGHTBEFORE | QF_OBJECTONLYONCE, L"ЗЯЗ", FT_VOWEL, L"перед заднеязычными");
-		qry.AddCondition(QF_RIGHTBEFORE | QF_OBJECTONLYONCE, L"ЛАР", FT_VOWEL, L"перед ларингальными");
+		qry.AddCondition(L"Г", L"#", NULL, 0, L"в начале");
+		qry.AddCondition(L"Г", L"ГУБ", NULL, QF_OBJECTONLYONCE, L"после губных");
+		qry.AddCondition(L"Г", L"ЗУБ", NULL, QF_OBJECTONLYONCE, L"после зубных");
+		qry.AddCondition(L"Г", L"ПАЛ", NULL, QF_OBJECTONLYONCE, L"после палатальных");
+		qry.AddCondition(L"Г", L"ЗЯЗ", NULL, QF_OBJECTONLYONCE, L"после заднеязычных");
+		qry.AddCondition(L"Г", L"ЛАР", NULL, QF_OBJECTONLYONCE, L"после ларингальных");
 
-		qry.AddCondition(QF_FIRSTINWORD, L"???", FT_CONSONANT, L"в начале");
-		qry.AddCondition(QF_RIGHTBEFORE | QF_CONTEXTONLYONCE, L"ПЕР", FT_CONSONANT, L"перед передними");
-		qry.AddCondition(QF_RIGHTBEFORE | QF_CONTEXTONLYONCE, L"ЦНТ", FT_CONSONANT, L"перед центральными");
-		qry.AddCondition(QF_RIGHTBEFORE | QF_CONTEXTONLYONCE, L"ЗАД", FT_CONSONANT, L"перед задними");
-		qry.AddCondition(QF_RIGHTBEFORE | QF_CONTEXTONLYONCE, L"ОГУ", FT_CONSONANT, L"перед огубленными");
+		qry.AddCondition(L"Г", NULL, L"ЗУБ", QF_OBJECTONLYONCE, L"перед зубными");
 
-		SoundTable::Sound* sdThis;
+		qry.AddCondition(L"Г", NULL, L"ПАЛ", QF_OBJECTONLYONCE, L"перед палатальными");
+		qry.AddCondition(L"Г", NULL, L"ЗЯЗ", QF_OBJECTONLYONCE, L"перед заднеязычными");
+		qry.AddCondition(L"Г", NULL, L"ЛАР", QF_OBJECTONLYONCE, L"перед ларингальными");
+
+		qry.AddCondition(L"С", L"#", NULL, 0, L"в начале");
+		qry.AddCondition(L"С", NULL, L"ПЕР", QF_OBJECTONLYONCE | QF_CONTEXTONLYONCE, L"перед передними");
+		qry.AddCondition(L"С", NULL, L"ЦНТ", QF_OBJECTONLYONCE | QF_CONTEXTONLYONCE, L"перед центральными");
+		qry.AddCondition(L"С", NULL, L"ЗАД", QF_OBJECTONLYONCE | QF_CONTEXTONLYONCE, L"перед задними");
+
+		qry.AddCondition(L"С", NULL, L"ОГУ", QF_OBJECTONLYONCE | QF_CONTEXTONLYONCE, L"перед огубленными");
+
+		qry.SetIPA(ipa);//временно, но, честно, пока не знаю, как лучше
+
+		Sound* sdThis;
 
 		for (int iClass = FT_VOWEL; ; iClass = FT_CONSONANT)
 		{
 			SoundTable::Iterator* it = ipa->Iterator(iClass);
 			while (sdThis = it->Next())
 			{
-				InfoNode* ndThisSound = trOut->Add(sdThis->Symbol, NULL, IT_IDENT | IT_SQRBRK | IT_COLUMN | IT_LINEBRKBEFORE, ndRoot[iClass]);
+				InfoNode* ndThisSound = trOut->Add(sdThis->Symbol, IT_IDENT | IT_SQRBRK | IT_COLUMN | IT_LINEBRKBEFORE, ndRoot[iClass]);
 
-				for (Query::Condition* cnd = qry.FirstCondition(); cnd; cnd = qry.NextCondition())
+				for (Condition* cnd = qry.FirstCondition(); cnd; cnd = qry.NextCondition())
 				{
-					if (iClass == cnd->iClass)
-						trOut->Add(cnd->title, NULL, IT_COLUMN | IT_LINEBRKBEFORE | IT_IDENT, ndThisSound, false, cnd);
+					if (iClass == cnd->sgThis.feature[FT_CLASS])
+						trOut->Add(cnd->title, IT_COLUMN | IT_LINEBRKBEFORE | IT_IDENT, ndThisSound, false, cnd);
 				}
 
 				sdThis->dataExtra = ndThisSound;
@@ -185,13 +243,13 @@ public:
 		for (BTree::Walker w(&trWordForms); word = (WordForm*)w.Next();)
 		{
 			SoundTable::Sound* sdCur, *sdNext = NULL, *sdPrev = NULL;
-			Segmentizer sgmntzr(ipa, word->form);
+			Segmentizer sgmntzr(ipa, word->formIPA);
 
 			qry.SetSegmentizer(&sgmntzr);//вызовет ResetConditions
 
 			while (sdCur = sgmntzr.GetNext())
 			{
-				for (Query::Condition* cnd = qry.FirstCondition(); cnd; cnd = qry.NextCondition())
+				for (Condition* cnd = qry.FirstCondition(); cnd; cnd = qry.NextCondition())
 				{
 					if (qry.CheckCondition())
 					{
@@ -202,7 +260,17 @@ public:
 							{
 								if (ndIter->dataExtra == cnd)
 								{
-									trOut->Add(NULL, word->form, IT_COMMA | IT_SPACE, ndIter);
+									int fAfterOrig;
+									bool isDiff = lstrcmp(word->formOrig, word->formIPA);
+									if (isDiff)
+										fAfterOrig = IT_SPACE;
+									else
+										fAfterOrig = IT_COMMA | IT_SPACE;
+
+									trOut->Add(word->formOrig, IT_SPACE | fAfterOrig, ndIter);
+
+									if (isDiff)
+										trOut->Add(word->formIPA, IT_SQRBRK | IT_COMMA | IT_SPACE, ndIter);
 									break;
 								}
 							}

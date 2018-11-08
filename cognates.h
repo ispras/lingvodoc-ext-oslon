@@ -69,10 +69,13 @@ public:
 					//	return -1;
 
 					isNonNull = true;
-					//мошенничаем (временно)
-					SoundTable::SoundTree _st;
-					if (res = _st.CompareNodes(c1->comparanda[iCol].sound, c2->comparanda[iCol].sound, NULL))
+					if (res = CompareFeaturesAnd(c1->comparanda[iCol].sound->feature, c2->comparanda[iCol].sound->feature))
 						return res;
+
+					//					//мошенничаем (временно)
+					//					SoundTable::SoundTree* _st;
+					//					if (res = _st->CompareNodes(c1->comparanda[iCol].sound, c2->comparanda[iCol].sound, NULL))
+					//						return res;
 				}
 			}
 			/*
@@ -95,8 +98,6 @@ public:
 
 			return 0;
 		}
-
-
 
 		class Iterator : public BTree::Walker
 		{
@@ -162,6 +163,7 @@ public:
 	int					nDicts;
 	int 				nCorresp;
 
+
 	Comparison(int nRows, int nCols) : tCorrespondences(nCols)
 	{
 		nDicts = nCols;
@@ -172,6 +174,15 @@ public:
 	~Comparison()
 	{
 		//delete[] corresps;
+		for (int iRow = 1; iRow < nCorresp; iRow++)
+		{
+			if (corresps[iRow].comparanda)
+			{
+				free(corresps[iRow].comparanda);//corresps[iRow].~Correspondence();
+				corresps[iRow].comparanda = NULL;
+			}
+		}
+
 		free(corresps);
 	}
 	void Reset()
@@ -182,7 +193,7 @@ public:
 			corresps[iRow].crspNextSame = NULL;
 		}
 	}
-	int Process(Query::Condition* cnd)
+	int Process(Condition* cnd)
 	{
 		Reset();
 
@@ -208,11 +219,12 @@ public:
 					{
 						new (&sgmntzr[iCol]) Segmentizer(dic.ipa, corresps[iRow].comparanda[iCol].form);
 						Sound* sound;
+						cnd->Reset();
 						if (!corresps[iRow].comparanda[iCol].form)
 							sound = NULL;
 						else
 						{
-							SoundTable::Sound* sdCur;
+							Sound* sdCur;
 							bool isYes = false;
 							while (sdCur = sgmntzr[iCol].GetNext())
 							{
@@ -260,23 +272,25 @@ public:
 			TCHAR buf[1000];
 			_ltow(iCol + 1, buf, 10);
 			word = buf;
-			trOut->Add(NULL, word, fAdd, ndTo);
+			trOut->Add(word, fAdd, ndTo);
+			//trOut->Add(NULL, word, fAdd, ndTo);
 		}
 	}
-	void OutputHeader(InfoTree* trOut)
+	void OutputLanguageNames(InfoTree* trOut)
 	{
 		TCHAR buf[500];
-		int f = IT_LINEBRKBEFORE;
+		int f = IT_EMPTYLINEBEFORE;
 		for (int i = 0; i < nDicts; i++)
 		{
 			_ltow(i + 1, buf, 10);
 			wcscat(buf, L" = ");
 			wcscat(buf, corresps[0].comparanda[i].form);
-			trOut->Add(NULL, buf, IT_LINEBRKAFTER | f);
+			trOut->Add(buf, IT_LINEBRKAFTER | f);
+			//trOut->Add(NULL, buf, IT_LINEBRKAFTER|f);
 			f = 0;
 		}
 	}
-	void Output(Query::Condition* cnd, InfoTree* trOut)
+	void Output(Condition* cnd, InfoTree* trOut)
 	{
 		Correspondence* c;
 		LPTSTR word;
@@ -291,20 +305,11 @@ public:
 
 		InfoNode* inCnd, *inMult, *inOnce;
 
-		inCnd = trOut->Add(cnd->title, NULL, IT_COLUMN | IT_LINEBRKBEFORE | IT_EMPTYLINEBEFORE, NULL, false, cnd);
-		inMult = trOut->Add(L"Неединичные соответствия", NULL, IT_COLUMN | IT_EMPTYLINEBEFORE, inCnd);
-		inOnce = trOut->Add(L"Единичные соответствия", NULL, IT_COLUMN | IT_EMPTYLINEBEFORE, inCnd);
-		trOut->Add(NULL, bufHLine, IT_LINEBRKBEFORE, inMult);
-		trOut->Add(NULL, bufHLine, IT_LINEBRKBEFORE, inOnce);
-
-
-
-
-
-		//		InfoNode* in1C =	 trOut->Add(L"Соответствия по первому согласному", NULL, IT_COLUMN | IT_EMPTYLINEBEFORE);
-		//		InfoNode* in1CMult = trOut->Add(L"Неединичные соответствия", NULL, IT_COLUMN | IT_EMPTYLINEBEFORE , in1C);
-		//		InfoNode* in1COnce = trOut->Add(L"Единичные соответствия", NULL, IT_COLUMN | IT_EMPTYLINEBEFORE, in1C);
-
+		inCnd = trOut->Add(cnd->title, /*NULL,*/ IT_COLUMN | IT_LINEBRKBEFORE, NULL, false, cnd);
+		inMult = trOut->Add(L"Неединичные соответствия", /*NULL,*/ IT_COLUMN | IT_EMPTYLINEBEFORE, inCnd);
+		inOnce = trOut->Add(L"Единичные соответствия", /*NULL,*/ IT_COLUMN | IT_EMPTYLINEBEFORE, inCnd);
+		trOut->Add(/*NULL,*/bufHLine, IT_LINEBRKBEFORE, inMult);
+		trOut->Add(/*NULL,*/bufHLine, IT_LINEBRKBEFORE, inOnce);
 
 
 		InfoNode* inTo = inOnce;
@@ -324,7 +329,7 @@ public:
 
 				fAdd = IT_TAB | IT_LINEBRKBEFORE;
 
-				trOut->Add(NULL, bufHLine, IT_LINEBRKBEFORE, inTo);
+				trOut->Add(/*NULL,*/bufHLine, IT_LINEBRKBEFORE, inTo);
 				for (int iCol = 0; iCol < nDicts; iCol++)
 				{
 					if (iCol != 0) fAdd = IT_TAB;
@@ -334,9 +339,9 @@ public:
 					else
 						word = c->comparanda[iCol].sound->Symbol;
 
-					trOut->Add(NULL, word, fAdd, inTo);
+					trOut->Add(word,/*NULL,*/fAdd | IT_SQRBRK, inTo);
 				}
-				trOut->Add(NULL, bufHLine, IT_LINEBRKBEFORE, inTo);
+				trOut->Add(/*NULL,*/ bufHLine, IT_LINEBRKBEFORE, inTo);
 			}
 
 			fAdd = IT_TAB | IT_LINEBRKBEFORE;
@@ -350,7 +355,7 @@ public:
 				if (!word)
 					word = L"—";
 
-				trOut->Add(NULL, word, fAdd, inTo);
+				trOut->Add(/*NULL,*/word, fAdd, inTo);
 			}
 
 			//TCHAR buf[10];
@@ -359,13 +364,13 @@ public:
 
 			if (it.IsEndOfGroup())
 			{
-				trOut->Add(NULL, bufHLine, IT_LINEBRKBEFORE, inTo);
+				trOut->Add(/*NULL,*/bufHLine, IT_LINEBRKBEFORE, inTo);
 				inTo = inOnce;
 			}
 		}
 
 		//trOut->Add(NULL, bufHLine, IT_LINEBRKBEFORE, inMult);
-		trOut->Add(NULL, bufHLine, IT_LINEBRKBEFORE, inOnce);
+		trOut->Add(/*NULL,*/bufHLine, IT_LINEBRKBEFORE, inOnce);
 
 		delete[] bufHLine;
 	}
@@ -401,7 +406,7 @@ public:
 					word = NULL;
 				else
 				{
-					dic.ipa->ReplaceSymbols(word, buf);
+					dic.ReplaceSymbols(word, buf);
 					word = pString.New(buf, wcslen(buf) + 1);
 					dic.ipa->SubmitWordForm(word);
 				}

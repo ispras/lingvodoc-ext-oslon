@@ -15,11 +15,13 @@
 #include <seh.h>
 #endif
 
-//#include "gui_win32.h"
-//#include "strings.h"
+#include "stringfunctions.h"
+
+#ifndef __linux__ 
+#include "gui_win32.h"
+#endif
 
 #include "infotree.h"
-#include "dictquery.h"
 #include "dictionary.h"
 #include "cognates.h"
 
@@ -33,7 +35,7 @@ int __declspec(dllexport)
 #endif
 PhonemicAnalysis_GetAllOutput(LPTSTR bufIn, LPTSTR bufOut)
 {
-	try
+	//	try
 	{
 		InfoTree trOut(L"ФОНЕТИЧЕСКИЙ АНАЛИЗ");
 		Dictionary dic;
@@ -48,11 +50,11 @@ PhonemicAnalysis_GetAllOutput(LPTSTR bufIn, LPTSTR bufOut)
 
 		trOut.AddSubtree(&trIPAConsonants, L"Согласные звуки", IT_COLUMN | IT_EMPTYLINEBEFORE | IT_LINEBRKAFTER, IT_TAB);
 		trOut.AddSubtree(&trIPAVowels, L"Гласные звуки", IT_COLUMN | IT_EMPTYLINEBEFORE | IT_LINEBRKAFTER, IT_TAB);
-		trOut.AddSubtree(&trIPANotFound, L"Неопознанные знаки", IT_COLUMN | IT_EMPTYLINEBEFORE, IT_COMMA | IT_SPACE);
+		trOut.AddSubtree(&trIPANotFound, L"Неопознанные знаки", IT_COLUMN | IT_EMPTYLINEBEFORE, 0);
 
 		InfoNode* ndDistr[FT_NSOUNDCLASSES];
-		ndDistr[FT_VOWEL] = trOut.Add(L"Списки по гласному первого слога", NULL, IT_COLUMN | IT_EMPTYLINEBEFORE);
-		ndDistr[FT_CONSONANT] = trOut.Add(L"Списки по согласному перед гласным первого слога", NULL, IT_COLUMN | IT_EMPTYLINEBEFORE);
+		ndDistr[FT_VOWEL] = trOut.Add(L"Списки по гласному первого слога",/*NULL,*/ IT_COLUMN | IT_EMPTYLINEBEFORE);
+		ndDistr[FT_CONSONANT] = trOut.Add(L"Списки по согласному перед гласным первого слога", /*NULL,*/ IT_COLUMN | IT_EMPTYLINEBEFORE);
 		dic.BuildDistributionLists(ndDistr, &trOut);
 
 
@@ -62,7 +64,7 @@ PhonemicAnalysis_GetAllOutput(LPTSTR bufIn, LPTSTR bufOut)
 		lstrcpy(bufOut, output.bufOut);
 		return 1;
 	}
-	catch (...)
+	//	catch (...)
 	{
 		return 2;
 	}
@@ -89,13 +91,13 @@ CognateAnalysis_GetAllOutput(LPTSTR bufIn, int nRows, int nCols, LPTSTR bufOut)
 		cmp.AddCognateList(bufIn);
 
 		Query qry;
-		qry.AddCondition(QF_FIRSTINWORD, L"???", FT_VOWEL, L"Соответствия по начальному гласному");
-		qry.AddCondition(QF_FIRSTINWORD, L"???", FT_CONSONANT, L"Соответствия по начальному согласному");
-		qry.AddCondition(QF_RIGHTAFTER, L"С", FT_VOWEL, L"Соответствия по гласному после первого согласного");
+		qry.AddCondition(L"Г", L"#", NULL, 0, L"Соответствия по начальному гласному");
+		qry.AddCondition(L"С", L"#", NULL, 0, L"Соответствия по начальному согласному");
+		qry.AddCondition(L"Г", L"С", NULL, QF_OBJECTONLYONCE, L"Соответствия по гласному после первого согласного");
 
-		cmp.OutputHeader(&trOut);
+		cmp.OutputLanguageNames(&trOut);
 
-		for (Query::Condition* cnd = qry.FirstCondition(); cnd; cnd = qry.NextCondition())
+		for (Condition* cnd = qry.FirstCondition(); cnd; cnd = qry.NextCondition())
 		{
 			cmp.Process(cnd);
 			cmp.Output(cnd, &trOut);
@@ -115,6 +117,36 @@ CognateAnalysis_GetAllOutput(LPTSTR bufIn, int nRows, int nCols, LPTSTR bufOut)
 #ifdef __linux__ 
 }
 #endif
+
+#ifdef __linux__ 
+extern "C" {int
+#else
+int __declspec(dllexport)
+#endif
+Retranscribe(LPTSTR bufIn, LPTSTR bufOut, LPTSTR langIn, LPTSTR langOut, int flags)
+{
+	try
+	{
+		Dictionary dic;
+
+		dic.GuessReplacer(bufIn);
+
+		dic.ReplaceSymbols(bufIn, bufOut);
+
+
+		//lstrcpy(bufOut, bufIn);
+		return 1;
+	}
+	catch (...)
+	{
+		return 2;
+	}
+}
+#ifdef __linux__ 
+}
+#endif
+
+
 
 
 /*
