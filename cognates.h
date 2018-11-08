@@ -282,7 +282,7 @@ public:
 		LPTSTR word;
 		Sound* sound;
 
-		int sz = nDicts * 13;
+		int sz = nDicts * 20;
 		LPTSTR bufHLine = new TCHAR[sz + 1];
 		LPTSTR _line = L"—";
 		for (int i = 0; i < sz; i++) bufHLine[i] = _line[0];
