@@ -70,8 +70,8 @@ public:
 
 					isNonNull = true;
 					//мошенничаем (временно)
-					SoundTable::SoundTree* _st;
-					if (res = _st->CompareNodes(c1->comparanda[iCol].sound, c2->comparanda[iCol].sound, NULL))
+					SoundTable::SoundTree _st;
+					if (res = _st.CompareNodes(c1->comparanda[iCol].sound, c2->comparanda[iCol].sound, NULL))
 						return res;
 				}
 			}
