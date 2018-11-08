@@ -840,9 +840,11 @@ public:
 			//			iClass = -1;
 			flag = QF_NOTHING;
 
-			if (!lstrcmp(_txt, L"#"))
-				flag = QF_BEGINNING;//в конце иначе	
-
+			if (txtFeature)
+			{
+				if (!lstrcmp(txtFeature, L"#"))
+					flag = QF_BEGINNING;//в конце иначе	
+			}
 			//обнулять как-то надо, тут нужен к-р особый для «совокупности признаков»?
 			for (int iFType = 0; iFType < FT_NFEATURETYPES; iFType++)
 				feature[iFType] = 0;
