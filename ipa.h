@@ -114,11 +114,11 @@ public:
 		bool			exists;
 		int				iRow;
 		int				iCol;
-		int				feature[FT_NFEATURETYPES];
-		Row*			row[FT_NFEATURETYPES];
 		TCHAR			Symbol[8];
 		void*			dataExtra;
 		Sound*			nextModified;
+		Row*			row[FT_NFEATURETYPES];
+		int				feature[FT_NFEATURETYPES];
 
 		Sound(TCHAR* _symbol, int* _feature = NULL)
 		{
@@ -134,31 +134,24 @@ public:
 			exists = false;
 			dataExtra = nextModified = NULL;
 
-			if (_feature)
+			for (int iFType = 0; iFType < FT_NFEATURETYPES; iFType++)
 			{
-				for (int iFType = 0; iFType < FT_NFEATURETYPES; iFType++)
-				{
-					row[iFType] = NULL;
+				row[iFType] = NULL;
+				if (_feature)
 					feature[iFType] = _feature[iFType];
-				}
+				else
+					feature[iFType] = 0;
 			}
 		}
 
 		Sound(int _code, Row** rows = NULL)//, bool _isPreModifier = false, bool _isPostModifier = false)
 		{
-			//code = _code;
-			//features = _features;
 			Symbol[0] = _code;
 			Symbol[1] = '\0';
-			//symbolToReplaceBy[0] = '\0';
 
 			dataExtra = nextModified = NULL;
 			canExist = true;
 			exists = false;
-			//isPreModifier = _isPreModifier;
-			//isPostModifier = _isPostModifier;
-
-			//features = 0;
 
 			if (rows)
 			{
@@ -174,6 +167,14 @@ public:
 					}
 					else
 						feature[iFType] = 0;
+				}
+			}
+			else
+			{
+				for (int iFType = 0; iFType < FT_NFEATURETYPES; iFType++)
+				{
+					row[iFType] = NULL;
+					feature[iFType] = 0;
 				}
 			}
 		}
