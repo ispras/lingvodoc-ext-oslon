@@ -64,7 +64,7 @@ enum
 	RT_LAT,
 	RT_CYR,
 	RT_COUNT,
-	RT_NONE = -1
+	RT_NONE = 1000
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -100,9 +100,7 @@ public:
 			return false;
 		}
 
-		Replacer* rr = &replacers[iReplacer];
-
-		return rr->Convert(bIn, bOut);
+		return replacers[iReplacer].Convert(bIn, bOut);
 	}
 
 
@@ -121,8 +119,8 @@ public:
 					}
 				}
 			}
+			iReplacer = RT_LAT;
 		}
-		iReplacer = RT_LAT;
 	}
 
 	void AddWordList(LPTSTR sIn)
@@ -261,7 +259,7 @@ public:
 								if (ndIter->dataExtra == cnd)
 								{
 									int fAfterOrig;
-									bool isDiff = lstrcmp(word->formOrig, word->formIPA);
+									int isDiff = lstrcmp(word->formOrig, word->formIPA);
 									if (isDiff)
 										fAfterOrig = IT_SPACE;
 									else

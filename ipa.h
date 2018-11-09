@@ -243,7 +243,7 @@ public:
 		{
 			int sz = sizeof(Sound)*nipaAll;
 			*_pipaAll = (Sound*)malloc(sz);//не new, чтоб избежать к-ра в цикле
-			memset(ipaAll, sz, 0);
+			memset(*_pipaAll, 0, sz);
 		}
 		ipaAll = *_pipaAll;
 	}
@@ -1071,7 +1071,7 @@ public:
 		int nipaAll = 0xffff;
 		int sz = sizeof(Rule)*nipaAll;
 		rules = (Rule*)malloc(sz);//не new, чтоб избежать к-ра в цикле
-		memset(rules, sz, 0);
+		memset(rules, 0, sz);
 	}
 	~Replacer()
 	{
