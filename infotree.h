@@ -77,7 +77,7 @@ public:
 		//InfoNode* Add(LPTSTR title = NULL, LPTSTR data = NULL, int flags = IT_COLUMN|IT_LINEBRKBEFORE, InfoNode* ndParent = NULL, bool isUnique = false, void* dataExtra = NULL)
 	{
 		if (!ndRoot)
-			ndRoot = new InfoNode(NULL, NULL, 0);
+			ndRoot = new InfoNode(NULL, 0, NULL);
 
 		if (!ndParent)
 			ndParent = ndRoot;
