@@ -12,11 +12,13 @@ public:
 	class Comparandum : public OwnNew
 	{
 	public:
-		LPTSTR 		form;
+		LPTSTR 		formIPA;
+		LPTSTR 		formOrig;
 		Sound*		sound;
-		Comparandum(LPTSTR _form)
+		Comparandum(LPTSTR _formIPA, LPTSTR _formOrig)
 		{
-			form = _form;
+			formIPA = _formIPA;
+			formOrig = _formOrig;
 			sound = NULL;
 		}
 	};
@@ -206,7 +208,7 @@ public:
 				bool hasEmpty = false;
 				for (int iCol = 0; iCol < nDicts; iCol++)
 				{
-					if (!corresps[iRow].comparanda[iCol].form)
+					if (!corresps[iRow].comparanda[iCol].formIPA)
 					{
 						hasEmpty = true;
 						break;
@@ -217,10 +219,10 @@ public:
 				{
 					for (int iCol = 0; iCol < nDicts; iCol++)
 					{
-						new (&sgmntzr[iCol]) Segmentizer(dic.ipa, corresps[iRow].comparanda[iCol].form);
+						new (&sgmntzr[iCol]) Segmentizer(dic.ipa, corresps[iRow].comparanda[iCol].formIPA);
 						Sound* sound;
 						cnd->Reset();
-						if (!corresps[iRow].comparanda[iCol].form)
+						if (!corresps[iRow].comparanda[iCol].formIPA)
 							sound = NULL;
 						else
 						{
@@ -284,7 +286,7 @@ public:
 		{
 			_ltow(i + 1, buf, 10);
 			wcscat(buf, L" = ");
-			wcscat(buf, corresps[0].comparanda[i].form);
+			wcscat(buf, corresps[0].comparanda[i].formOrig);
 			trOut->Add(buf, IT_LINEBRKAFTER | f);
 			//trOut->Add(NULL, buf, IT_LINEBRKAFTER|f);
 			f = 0;
@@ -350,7 +352,7 @@ public:
 			{
 				if (iCol != 0) fAdd = IT_TAB;
 
-				word = c->comparanda[iCol].form;
+				word = c->comparanda[iCol].formOrig;
 
 				if (!word)
 					word = L"—";
@@ -377,11 +379,14 @@ public:
 	void AddCognateList(LPTSTR sIn)
 	{
 		Parser parser(sIn, L"\0", PARSER_NONNULLEND);
-		LPTSTR word;
+		LPTSTR wordOrig, wordIPA;
 
 		int iRow = -1, iCol = nDicts - 1;
-		while (word = parser.Next())
+		while (wordOrig = parser.Next())
 		{
+			if (dic.iReplacer == RT_NONE)
+				dic.GuessReplacer(wordOrig);
+
 			if (iCol == nDicts - 1)
 			{
 				iRow++;
@@ -398,23 +403,24 @@ public:
 			TCHAR buf[1000];
 			if (iRow == 0)
 			{
-				word = pString.New(word, wcslen(word) + 1);
+				wordOrig = pString.New(wordOrig, wcslen(wordOrig) + 1);
+				wordIPA = NULL;
 			}
 			else
 			{
-				if (!word[0])
-					word = NULL;
+				if (!wordOrig[0])
+					wordIPA = wordOrig = NULL;
 				else
 				{
-					dic.ReplaceSymbols(word, buf);
-					word = pString.New(buf, wcslen(buf) + 1);
-					dic.ipa->SubmitWordForm(word);
+					dic.ReplaceSymbols(wordOrig, buf);
+					wordIPA = pString.New(buf, wcslen(buf) + 1);
+					dic.ipa->SubmitWordForm(wordIPA);
 				}
 			}
 			if (iCol == 0)
 				new (corresps + iRow) Correspondence(nDicts, iRow);
 
-			new (&corresps[iRow].comparanda[iCol]) Comparandum(word);
+			new (&corresps[iRow].comparanda[iCol]) Comparandum(wordIPA, wordOrig);
 		}
 	}
 };
