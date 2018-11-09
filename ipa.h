@@ -1146,7 +1146,7 @@ public:
 	}
 	bool IsCharInTable(TCHAR chr)
 	{
-		return !!rules[chr].symbolToReplace[0];
+		return rules[chr].symbolToReplace[0] != '\0';
 	}
 	bool Convert(LPTSTR bInBeg, LPTSTR bOutBeg)
 	{
