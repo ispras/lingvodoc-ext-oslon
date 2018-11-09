@@ -112,8 +112,6 @@ public:
 	public:
 		bool			canExist;
 		bool			exists;
-		int				iRow;
-		int				iCol;
 		TCHAR			Symbol[8];
 		void*			dataExtra;
 		Sound*			nextModified;
