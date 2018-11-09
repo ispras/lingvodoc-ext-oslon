@@ -261,7 +261,7 @@ public:
 								if (ndIter->dataExtra == cnd)
 								{
 									int fAfterOrig;
-									bool isDiff = lstrcmp(word->formOrig, word->formIPA);
+									int isDiff = lstrcmp(word->formOrig, word->formIPA);
 									if (isDiff)
 										fAfterOrig = IT_SPACE;
 									else
