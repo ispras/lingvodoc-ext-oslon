@@ -139,7 +139,7 @@ public:
 	TCHAR* bufOut;
 	OutputString()
 	{
-		bufOut = new TCHAR[100000];
+		bufOut = new TCHAR[1048576];
 	}
 	~OutputString()
 	{
