@@ -489,7 +489,10 @@ public:
 	{
 		ndRoot = NULL;
 	}
-
+	bool IsEmpty()
+	{
+		return ndRoot != NULL;
+	}
 	BNode* Add(BNode* node, bool replace = false)
 	{
 		node->son[0] = node->son[1] = NULL;

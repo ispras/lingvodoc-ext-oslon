@@ -7,19 +7,32 @@ class Comparison
 {
 public:
 	Dictionary 		dic;
-	Pool<TCHAR>		pString;
+	//Pool<TCHAR>		pString;
+
+	bool			isProcessed;
+
+	DictInfo*		dictinfos;
 
 	class Comparandum : public OwnNew
 	{
 	public:
 		LPTSTR 		formIPA;
 		LPTSTR 		formOrig;
+		LPTSTR 		translation;
 		Sound*		sound;
-		Comparandum(LPTSTR _formIPA, LPTSTR _formOrig)
+		bool		isSoundInCognates;
+		Comparandum(LPTSTR _formIPA, LPTSTR _formOrig, LPTSTR _translation)
 		{
 			formIPA = _formIPA;
 			formOrig = _formOrig;
+			translation = _translation;
 			sound = NULL;
+			isSoundInCognates = false;
+		}
+		void Reset_()
+		{
+			sound = NULL;
+			isSoundInCognates = false;
 		}
 	};
 
@@ -29,13 +42,20 @@ public:
 		int				iRow;
 		Correspondence*	crspNextSame;
 		Comparandum*	comparanda;
+		int				rankAllSoundsSame;
+		int				nSoundsSame;
+		int				nSoundsEmpty;
+
 		Correspondence(int nDicts, int _iRow)
 		{
 			iRow = _iRow;
 			crspNextSame = NULL;
 			comparanda = (Comparandum*)malloc(nDicts * sizeof(Comparandum));//new Comparandum[nDicts];
-			//memset(comparanda, '\0', nDicts * sizeof(Comparandum));
-			//for (int i = 0; i < nDicts; i++)
+			memset(comparanda, '\0', nDicts * sizeof(Comparandum));
+
+			rankAllSoundsSame = 0;
+			nSoundsSame = 0;
+			nSoundsEmpty = 0;
 		}
 		~Correspondence()
 		{
@@ -59,6 +79,11 @@ public:
 			Correspondence* c1 = (Correspondence*)_nd1;//поэтому надо шаблонно!!
 			Correspondence* c2 = (Correspondence*)_nd2;
 
+			if (c1->rankAllSoundsSame > c2->rankAllSoundsSame)
+				return -1;
+			if (c1->rankAllSoundsSame < c2->rankAllSoundsSame)
+				return 1;
+
 			bool isNonNull = false;
 			for (int iCol = 0; iCol < nDicts; iCol++)
 			{
@@ -73,11 +98,6 @@ public:
 					isNonNull = true;
 					if (res = CompareFeaturesAnd(c1->comparanda[iCol].sound->feature, c2->comparanda[iCol].sound->feature))
 						return res;
-
-					//					//мошенничаем (временно)
-					//					SoundTable::SoundTree* _st;
-					//					if (res = _st->CompareNodes(c1->comparanda[iCol].sound, c2->comparanda[iCol].sound, NULL))
-					//						return res;
 				}
 			}
 			/*
@@ -172,11 +192,15 @@ public:
 		nCorresp = nRows;
 		//corresps = new Correspondence[nRows];
 		corresps = (Correspondence*)malloc(nRows * sizeof(Correspondence));
+
+		dictinfos = (DictInfo*)malloc(nDicts * sizeof(DictInfo));//new DictInfo[nDicts];
+		for (int i = 0; i < nDicts; i++) new (&dictinfos[i]) DictInfo(L"?");
+
+		isProcessed = false;
 	}
 	~Comparison()
 	{
-		//delete[] corresps;
-		for (int iRow = 1; iRow < nCorresp; iRow++)
+		for (int iRow = 0; iRow < nCorresp; iRow++)
 		{
 			if (corresps[iRow].comparanda)
 			{
@@ -185,14 +209,48 @@ public:
 			}
 		}
 
+		//delete[] corresps; и т.п.
 		free(corresps);
+		free(dictinfos);
 	}
 	void Reset()
 	{
-		tCorrespondences.Empty();
-		for (int iRow = 1; iRow < nCorresp; iRow++)
+		if (isProcessed)
 		{
-			corresps[iRow].crspNextSame = NULL;
+			tCorrespondences.Empty();
+			for (int iRow = 0; iRow < nCorresp; iRow++)
+			{
+				corresps[iRow].crspNextSame = NULL;
+				for (int iCol = 0; iCol < nDicts; iCol++)
+					corresps[iRow].comparanda[iCol].Reset_();//почему-то Reset — неоднозначно
+
+				corresps[iRow].rankAllSoundsSame = 0;
+				corresps[iRow].nSoundsSame = 0;
+				corresps[iRow].nSoundsEmpty = 0;
+			}
+			isProcessed = false;
+		}
+	}
+	void AddCognateList(LPTSTR sIn)
+	{
+		Parser parser(sIn, L"\0", PARSER_NONNULLEND);
+		LPTSTR wordOrig, wordIPA, wordTranslation;
+
+		int iRow = -1, iCol = -1;
+		while (parser.Next())
+		{
+			if (!dic.NextCol(iCol, iRow, nDicts, nCorresp)) break;
+
+			if (iRow == -1)
+				dic.GetDictInfo(parser, dictinfos[iCol]);
+			else
+			{
+				dic.GetOrigIPAAndTranslation(parser, wordOrig, wordIPA, wordTranslation, dictinfos[iCol]);
+				if (iCol == 0)
+					new (&corresps[iRow]) Correspondence(nDicts, iRow);
+
+				new (&corresps[iRow].comparanda[iCol]) Comparandum(wordIPA, wordOrig, wordTranslation);
+			}
 		}
 	}
 	int Process(Condition* cnd)
@@ -201,27 +259,27 @@ public:
 
 		Segmentizer* sgmntzr = (Segmentizer*)malloc(nDicts * sizeof(Segmentizer));
 
-		for (bool isAddingWithEmpty = false;; isAddingWithEmpty = true)
+		for (int i_nEmtpy = 0; i_nEmtpy <= nDicts; i_nEmtpy++)
 		{
-			for (int iRow = 1; iRow < nCorresp; iRow++)
+			for (int iRow = 0; iRow < nCorresp; iRow++)
 			{
-				bool hasEmpty = false;
+				bool nEmpty = 0;
 				for (int iCol = 0; iCol < nDicts; iCol++)
 				{
 					if (!corresps[iRow].comparanda[iCol].formIPA)
-					{
-						hasEmpty = true;
-						break;
-					}
+						nEmpty++;
 				}
 
-				if (isAddingWithEmpty == hasEmpty)
+				if (i_nEmtpy == nEmpty)
 				{
+					corresps[iRow].nSoundsEmpty = nEmpty;
+
 					for (int iCol = 0; iCol < nDicts; iCol++)
 					{
 						new (&sgmntzr[iCol]) Segmentizer(dic.ipa, corresps[iRow].comparanda[iCol].formIPA);
 						Sound* sound;
 						cnd->Reset();
+
 						if (!corresps[iRow].comparanda[iCol].formIPA)
 							sound = NULL;
 						else
@@ -231,10 +289,7 @@ public:
 							while (sdCur = sgmntzr[iCol].GetNext())
 							{
 								isYes |= cnd->Check(&sgmntzr[iCol]);
-								if (isYes)
-									break;
-								//else if (!isYes && QR_FIRSTINWORD)
-								//	goto NextCorrespondence;
+								if (isYes) break; //else if (!isYes && QR_FIRSTINWORD)
 							}
 
 							if (!isYes) goto NextCorrespondence;
@@ -244,75 +299,149 @@ public:
 						}
 						corresps[iRow].comparanda[iCol].sound = sound;
 					}
+
+
+					bool wasNotEmpty = false;
+					Sound* soundSame = NULL,
+						*soundSameExact = NULL;
+					//int rankAllSoundsSame = 0;
+
+					for (int iCol = 0; iCol < nDicts; iCol++)
+					{
+						if (corresps[iRow].comparanda[iCol].formIPA)
+						{
+							if (!wasNotEmpty)
+							{
+								soundSameExact = soundSame = corresps[iRow].comparanda[iCol].sound;
+								corresps[iRow].rankAllSoundsSame = 10;
+								wasNotEmpty = true;
+								corresps[iRow].nSoundsSame = 1;
+							}
+							else if (soundSame)
+							{
+								if (soundSame == corresps[iRow].comparanda[iCol].sound)
+									corresps[iRow].nSoundsSame++;
+								else
+								{
+									Sound* sdBaseWas = dic.ipa->GetBaseSound(soundSame);
+									Sound* sdBaseThis = dic.ipa->GetBaseSound(corresps[iRow].comparanda[iCol].sound);
+									if (sdBaseWas == sdBaseThis)
+									{
+										corresps[iRow].rankAllSoundsSame = 5;
+										soundSame = sdBaseWas;
+									}
+									else
+									{
+										soundSame = NULL;
+										corresps[iRow].rankAllSoundsSame = 0;
+										corresps[iRow].nSoundsSame = 0;
+									}
+								}
+							}
+						}
+					}
+
+					if (nEmpty && soundSame)
+					{
+						for (int iCol = 0; iCol < nDicts; iCol++)
+						{
+							if (!corresps[iRow].comparanda[iCol].formIPA)
+								corresps[iRow].comparanda[iCol].sound = soundSame;
+						}
+					}
+
+					//corresps[iRow].rankAllSoundsSame = rankAllSoundsSame;
+
 					Correspondence* cFound = (Correspondence*)tCorrespondences.Add(&corresps[iRow]);
 					if (cFound)
 					{
 						corresps[iRow].crspNextSame = cFound->crspNextSame;
 						cFound->crspNextSame = &corresps[iRow];
-
-						for (int iCol = 0; iCol < nDicts; iCol++)
+					}
+					for (int iCol = 0; iCol < nDicts; iCol++)
+					{
+						//						corresps[iRow].comparanda[iCol].isSoundInCognates = false;
+						if (corresps[iRow].comparanda[iCol].formIPA && corresps[iRow].comparanda[iCol].sound)
 						{
-							if (!cFound->comparanda[iCol].sound)
+							corresps[iRow].comparanda[iCol].isSoundInCognates = true;
+							if (cFound)
+							{
 								cFound->comparanda[iCol].sound = corresps[iRow].comparanda[iCol].sound;
+								cFound->comparanda[iCol].isSoundInCognates = true;
+							}
 						}
 					}
 				}
 			NextCorrespondence:
 				;
 			}
-			if (isAddingWithEmpty) break;
+			//if (isAddingWithEmpty) break;
 		}
 		delete sgmntzr;
+
+		isProcessed = true;
+	}
+
+
+	void OutputLanguageNames(InfoTree* trOut)
+	{
+		TCHAR buf[500];
+		int f = 0;//IT_EMPTYLINEBEFORE;
+		trOut->Add(NULL, IT_HORLINE);
+		for (int i = 0; i < nDicts; i++)
+		{
+			_ltow(i + 1, buf, 10);
+			wcscat(buf, L": ");
+			if (dictinfos[i].name)
+				wcscat(buf, dictinfos[i].name);
+			trOut->Add(buf, IT_LINEBRKAFTER | f);
+			//trOut->Add(IT_LINEBRK, ndTo);
+			f = 0;
+		}
+		trOut->Add(NULL, IT_HORLINE);
 	}
 	void OutputHeader(InfoTree* trOut, InfoNode* ndTo)
 	{
 		LPTSTR word;
-		int fAdd = IT_TAB | IT_LINEBRKBEFORE;
+		//int fAdd = IT_TAB;
+		trOut->Add(NULL, IT_HORLINE, ndTo);
 		for (int iCol = 0; iCol < nDicts; iCol++)
 		{
-			if (iCol != 0) fAdd = IT_TAB;
-			TCHAR buf[1000];
-			_ltow(iCol + 1, buf, 10);
-			word = buf;
-			trOut->Add(word, fAdd, ndTo);
-			//trOut->Add(NULL, word, fAdd, ndTo);
+			//if (iCol != 0) fAdd = IT_TAB;
+			//TCHAR buf[1000];
+			//_ltow(iCol + 1, buf, 10);
+			//word = buf;
+			//trOut->Add(word, fAdd, ndTo);
+			trOut->Add(dictinfos[iCol].name, IT_TAB, ndTo);
+			trOut->Add(L"", IT_TAB, ndTo);
 		}
+		trOut->Add(NULL, IT_HORLINE, ndTo);
 	}
-	void OutputLanguageNames(InfoTree* trOut)
-	{
-		TCHAR buf[500];
-		int f = IT_EMPTYLINEBEFORE;
-		for (int i = 0; i < nDicts; i++)
+	/*
+		void OutputCorresponces(Condition* cnd, InfoTree* trOut)
 		{
-			_ltow(i + 1, buf, 10);
-			wcscat(buf, L" = ");
-			wcscat(buf, corresps[0].comparanda[i].formOrig);
-			trOut->Add(buf, IT_LINEBRKAFTER | f);
-			//trOut->Add(NULL, buf, IT_LINEBRKAFTER|f);
-			f = 0;
 		}
-	}
-	void Output(Condition* cnd, InfoTree* trOut)
+	*/
+	void OutputDeviationsWithMaterial(Condition* cnd, InfoTree* trOut)
 	{
-		Correspondence* c;
+		InfoNode* inCnd, *inMult, *inOnce, *inMultList;
+
+		inCnd = trOut->Add(cnd->title, IT_COLUMN | IT_LINEBRKBEFORE, NULL, false, cnd);
+		inMultList = trOut->Add(L"Оглавление (отклонения только в одном соответствии)", IT_COLUMN | IT_EMPTYLINEBEFORE | IT_LINEBRKAFTER, inCnd);
+		inMult = trOut->Add(L"Материал — отклонения", IT_COLUMN | IT_EMPTYLINEBEFORE | IT_LINEBRKAFTER, inCnd);
+		OutputHeader(trOut, inMult);
+	}
+	void OutputCorresponcesWithMaterial(Condition* cnd, InfoTree* trOut)
+	{
 		LPTSTR word;
 		Sound* sound;
 
-		int sz = nDicts * 20;
-		LPTSTR bufHLine = new TCHAR[sz + 1];
-		LPTSTR _line = L"—";
-		for (int i = 0; i < sz; i++) bufHLine[i] = _line[0];
-		bufHLine[sz] = '\0';
+		InfoNode* inCnd, *inMult, *inOnce, *inMultList;
 
-
-		InfoNode* inCnd, *inMult, *inOnce;
-
-		inCnd = trOut->Add(cnd->title, /*NULL,*/ IT_COLUMN | IT_LINEBRKBEFORE, NULL, false, cnd);
-		inMult = trOut->Add(L"Неединичные соответствия", /*NULL,*/ IT_COLUMN | IT_EMPTYLINEBEFORE, inCnd);
-		inOnce = trOut->Add(L"Единичные соответствия", /*NULL,*/ IT_COLUMN | IT_EMPTYLINEBEFORE, inCnd);
-		trOut->Add(/*NULL,*/bufHLine, IT_LINEBRKBEFORE, inMult);
-		trOut->Add(/*NULL,*/bufHLine, IT_LINEBRKBEFORE, inOnce);
-
+		inCnd = trOut->Add(cnd->title, IT_COLUMN | IT_LINEBRKBEFORE, NULL, false, cnd);
+		inMultList = trOut->Add(L"Оглавление (только неединичные соответствия)", IT_COLUMN | IT_EMPTYLINEBEFORE | IT_LINEBRKAFTER, inCnd);
+		inMult = trOut->Add(L"Материал — неединичные соответствия", IT_COLUMN | IT_EMPTYLINEBEFORE | IT_LINEBRKAFTER, inCnd);
+		inOnce = trOut->Add(L"Материал — единичные соответствия", IT_COLUMN | IT_EMPTYLINEBEFORE | IT_LINEBRKAFTER, inCnd);
 
 		InfoNode* inTo = inOnce;
 
@@ -321,106 +450,67 @@ public:
 		OutputHeader(trOut, inMult);
 		OutputHeader(trOut, inOnce);
 
-
-
+		Correspondence* c;
 		for (CorrespondenceTree::Iterator it(&tCorrespondences); c = it.Next();)
 		{
 			if (it.IsStartOfGroup())
 			{
-				inTo = inMult;
 
-				fAdd = IT_TAB | IT_LINEBRKBEFORE;
-
-				trOut->Add(/*NULL,*/bufHLine, IT_LINEBRKBEFORE, inTo);
 				for (int iCol = 0; iCol < nDicts; iCol++)
 				{
-					if (iCol != 0) fAdd = IT_TAB;
+					int fAdd = 0;
+					if (iCol < nDicts - 1) fAdd |= IT_DASH;
 
-					if (!c->comparanda[iCol].sound)
-						word = L"?";
-					else
+					if (c->comparanda[iCol].isSoundInCognates)
+					{
+						fAdd |= IT_SQRBRK;
 						word = c->comparanda[iCol].sound->Symbol;
-
-					trOut->Add(word,/*NULL,*/fAdd | IT_SQRBRK, inTo);
+					}
+					else word = L" ? ";
+					trOut->Add(word, fAdd, inMultList);
 				}
-				trOut->Add(/*NULL,*/ bufHLine, IT_LINEBRKBEFORE, inTo);
+				trOut->Add(NULL, IT_LINEBRK, inMultList);
+
+
+
+				inTo = inMult;
+
+				for (int iCol = 0; iCol < nDicts; iCol++)
+				{
+					int fAdd;
+
+					if (c->comparanda[iCol].isSoundInCognates)
+					{
+						fAdd = IT_SQRBRK;
+						word = c->comparanda[iCol].sound->Symbol;
+					}
+					else
+					{
+						fAdd = 0;
+						word = L" ? ";
+					}
+
+					trOut->Add(word, IT_TAB | fAdd, inTo);
+					trOut->Add(L"", IT_TAB, inTo);
+				}
+				trOut->Add(NULL, IT_HORLINE, inTo);
 			}
 
-			fAdd = IT_TAB | IT_LINEBRKBEFORE;
 
 			for (int iCol = 0; iCol < nDicts; iCol++)
 			{
-				if (iCol != 0) fAdd = IT_TAB;
-
-				word = c->comparanda[iCol].formOrig;
-
-				if (!word)
-					word = L"—";
-
-				trOut->Add(/*NULL,*/word, fAdd, inTo);
+				trOut->Add(c->comparanda[iCol].formOrig, IT_TAB, inTo);
+				trOut->Add(c->comparanda[iCol].translation, IT_MARRQUOTES | IT_TAB, inTo);
 			}
-
-			//TCHAR buf[10];
-			//_ltow(c->iRow,buf,10);
-			//trOut->Add(NULL, buf, fAdd);
 
 			if (it.IsEndOfGroup())
 			{
-				trOut->Add(/*NULL,*/bufHLine, IT_LINEBRKBEFORE, inTo);
+				trOut->Add(NULL, IT_HORLINE, inTo);
 				inTo = inOnce;
 			}
 		}
 
-		//trOut->Add(NULL, bufHLine, IT_LINEBRKBEFORE, inMult);
-		trOut->Add(/*NULL,*/bufHLine, IT_LINEBRKBEFORE, inOnce);
-
-		delete[] bufHLine;
-	}
-	void AddCognateList(LPTSTR sIn)
-	{
-		Parser parser(sIn, L"\0", PARSER_NONNULLEND);
-		LPTSTR wordOrig, wordIPA;
-
-		int iRow = -1, iCol = nDicts - 1;
-		while (wordOrig = parser.Next())
-		{
-			if (dic.iReplacer == RT_NONE)
-				dic.GuessReplacer(wordOrig);
-
-			if (iCol == nDicts - 1)
-			{
-				iRow++;
-				if (iRow >= nCorresp) break;
-				iCol = 0;
-
-			}
-			else
-			{
-				//fAdd = IT_TAB; 
-				iCol++;
-			}
-
-			TCHAR buf[1000];
-			if (iRow == 0)
-			{
-				wordOrig = pString.New(wordOrig, wcslen(wordOrig) + 1);
-				wordIPA = NULL;
-			}
-			else
-			{
-				if (!wordOrig[0])
-					wordIPA = wordOrig = NULL;
-				else
-				{
-					dic.ReplaceSymbols(wordOrig, buf);
-					wordIPA = pString.New(buf, wcslen(buf) + 1);
-					dic.ipa->SubmitWordForm(wordIPA);
-				}
-			}
-			if (iCol == 0)
-				new (corresps + iRow) Correspondence(nDicts, iRow);
-
-			new (&corresps[iRow].comparanda[iCol]) Comparandum(wordIPA, wordOrig);
-		}
+		trOut->Add(NULL, IT_HORLINE, inOnce);
+		trOut->Add(NULL, IT_SECTIONBRK, inTo);
 	}
 };

@@ -32,6 +32,10 @@ public:
 	{
 		return separatorLast;
 	}
+	LPTSTR Current()
+	{
+		return old;
+	}
 	bool IsItemFirstInLine()
 	{
 		//if (!old)//должно лететь
@@ -44,7 +48,10 @@ public:
 		else
 			return false;
 	}
-
+	int LengthOfCurrentWord()
+	{
+		return pos - old - 1;
+	}
 	LPTSTR Next() //пишет нули в исходную строку
 	{
 		if (!(flags & PARSER_NONNULLEND))

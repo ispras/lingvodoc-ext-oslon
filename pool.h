@@ -73,7 +73,8 @@ public:
 	T* New(T* from, int n)
 	{
 		T* last = New(n);
-		memcpy(last, from, n * sizeof(T));
+		if (last)
+			memcpy(last, from, n * sizeof(T));
 		return last;
 	}
 	inline T* New(int n = 1)
@@ -84,7 +85,11 @@ public:
 		if (!index)
 			AllocNewPool();
 		else if (index[imaxPool].size > nInEachPool - n)
+		{
+			if (n > nInEachPool)
+				return NULL;
 			AllocNewPool();
+		}
 
 		T* last = Last();
 		index[imaxPool].size += n;
@@ -120,6 +125,11 @@ public:
 	{//не будет работать, если New делается на более, чем один элемент
 		int iPool = i / nInEachPool;
 		return index[iPool].pool[i - iPool * nInEachPool];
+	}
+	T* GetByNum(int i)//временно, пока оп. не пашет
+	{
+		int iPool = i / nInEachPool;
+		return index[iPool].pool + (i - iPool * nInEachPool);
 	}
 	//inline operator void*()
 	//{

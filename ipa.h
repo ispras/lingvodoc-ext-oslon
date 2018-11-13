@@ -536,8 +536,16 @@ public:
 
 	Sound* GetSound(TCHAR pChr)
 	{
+		if (pChr == 0)
+			return NULL;
 		return &ipaAll[pChr];
 	}
+
+	Sound* GetBaseSound(Sound* sound)
+	{
+		return GetSound(sound->Symbol[0]);
+	}
+
 
 	bool SubmitWordForm(LPTSTR word)//будет меняться подстановками!
 	{
@@ -890,6 +898,10 @@ public:
 		//		iClass = _iClass;
 		//		feature = NULL;
 		//		Reset();
+
+		//		sgThis.Init(ipa);
+		//		sgPrev.Init(ipa);
+		//		sgNext.Init(ipa);
 	}
 	void Reset()
 	{
@@ -899,6 +911,11 @@ public:
 		//wasObject = wasContext = wasObjectInContext = false;//sgThis.feature = NULL;
 		//sgPrev.feature = NULL;
 		//sgNext.feature = NULL;
+	}
+	bool CheckThisFeature(int iFType, int val, IPA* ipa)
+	{
+		if (sgThis.flag == QF_NOTHING) sgThis.Init(ipa);
+		return sgThis.feature[iFType] & val;
 	}
 	bool Check(Segmentizer* sgmtzr)
 	{
@@ -976,9 +993,11 @@ public:
 	Segmentizer* sgmtzr;
 	Condition* cndCur;
 	LinkedList<Condition> llConditions;
+	//IPA* 		ipa;
 
-	Query()
+	Query(/*IPA* _ipa*/)
 	{
+		//ipa = _ipa;
 		cndCur = NULL;
 	}
 	~Query()
@@ -992,21 +1011,13 @@ public:
 	}
 	void AddCondition(LPTSTR _ftThis, LPTSTR _ftPrev, LPTSTR _ftNext, int flags = 0, LPTSTR _title = NULL)
 	{
-		Condition* cnd = ::new Condition(_ftThis, _ftPrev, _ftNext, flags, _title);
-		llConditions.Add(cnd);
+		Condition* c = ::new Condition(_ftThis, _ftPrev, _ftNext, flags, _title);
+
+		llConditions.Add(c);
 	}
 	Condition* FirstCondition()
 	{
 		return cndCur = llConditions.first;
-	}
-	void SetIPA(IPA* ipa)//дурацкая ф-ция, заплата
-	{
-		for (Condition* c = llConditions.first; c; c = c->next)
-		{
-			c->sgThis.Init(ipa);
-			c->sgPrev.Init(ipa);
-			c->sgNext.Init(ipa);
-		}
 	}
 	void ResetConditions()
 	{
@@ -1146,7 +1157,7 @@ public:
 	{
 		return rules[chr].symbolToReplace[0] != '\0';
 	}
-	bool Convert(LPTSTR bInBeg, LPTSTR bOutBeg)
+	int Convert(LPTSTR bInBeg, LPTSTR bOutBeg)
 	{
 		Segmentizer sgmntzr(ipa, bInBeg, false);
 
@@ -1160,8 +1171,8 @@ public:
 
 		for (int iPass = 1; iPass <= 2; iPass++)
 		{
-			LPTSTR bIn = bInBeg;
-			LPTSTR bOut = bOutBeg;
+			bIn = bInBeg;
+			bOut = bOutBeg;
 
 
 			while (sdCur = sgmntzr.GetNext())
@@ -1222,6 +1233,6 @@ public:
 				}
 			}
 		}
-		return true;// длину?
+		return bOut - bOutBeg;
 	}
 };

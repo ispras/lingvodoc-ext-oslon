@@ -6,10 +6,12 @@ class WordForm : public BNode
 public:
 	LPTSTR	formIPA;
 	LPTSTR	formOrig;
-	WordForm(LPTSTR _formIPA, LPTSTR _formOrig)
+	LPTSTR	wordTranslation;
+	WordForm(LPTSTR _formIPA, LPTSTR _formOrig, LPTSTR _wordTranslation)
 	{
 		formOrig = _formOrig;
 		formIPA = _formIPA;
+		wordTranslation = _wordTranslation;
 	}
 	/*
 		Word	wName;
@@ -28,10 +30,10 @@ class WordFormTree : public BTree
 {
 public:
 
-	WordFormTree()
-	{
+	//WordFormTree()
+	//{
 		//int ___i=0xabcd;
-	}
+	//}
 
 	int CompareNodes(BNode* _nd1, BNode* _nd2, void*_)
 	{
@@ -64,10 +66,30 @@ enum
 	RT_LAT,
 	RT_CYR,
 	RT_COUNT,
-	RT_NONE = 1000
+	RT_NONE = 100000,
+	RT_DEFAULT,
+	RT_GUESS
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+class DictInfo : public OwnNew//надо это вмонтировать в сам класс Dictionary
+{
+public:
+	int			iReplacer;
+	LPTSTR		name;
+	DictInfo(LPTSTR _name)
+	{
+		name = _name;
+		iReplacer = RT_NONE;
+	}
+	DictInfo()
+	{
+		name = NULL;
+		iReplacer = RT_NONE;
+	}
+};
+
+
 class Dictionary
 {
 public:
@@ -77,11 +99,15 @@ public:
 	IPA*				ipa;
 	Replacer			replacers[RT_COUNT];
 	int					iReplacer;
+	int					nWordForms;
+	DictInfo			dictinfo;
 public:
-	Dictionary() : pString(1000), pWordForms(1000)
+	Dictionary() : pString(10000), pWordForms(1000)
 	{
 		ipa = new IPA;
-		iReplacer = RT_NONE;
+
+		nWordForms = 0;
+
 		replacers[RT_LAT].Set(ipa, L"лат");
 		replacers[RT_LAT].AddRules(_tblReplaceLat);
 		replacers[RT_CYR].Set(ipa, L"кир");
@@ -92,72 +118,162 @@ public:
 		delete ipa;
 	}
 
-	bool ReplaceSymbols(LPTSTR bIn, LPTSTR bOut)//, LPTSTR lang = NULL)
+	int ReplaceSymbols(LPTSTR bIn, LPTSTR bOut, int iReplacerToUse = RT_DEFAULT)//, LPTSTR lang = NULL)
 	{
-		if (iReplacer == RT_NONE)
+		switch (iReplacerToUse)
 		{
+		case RT_DEFAULT:
+			iReplacerToUse = dictinfo.iReplacer;
+			break;
+		case RT_NONE:
 			wcscpy(bOut, bIn);
-			return false;
+			return lstrlen(bOut);
+		case RT_GUESS:
+			//сделать
+			return 0;
 		}
 
-		return replacers[iReplacer].Convert(bIn, bOut);
+		return replacers[iReplacerToUse].Convert(bIn, bOut);
 	}
 
 
-	void GuessReplacer(LPTSTR word)
+	int GuessReplacer(LPTSTR word)
 	{
 		if (word[0])
 		{
-			for (int i = RT_COUNT - 1; i >= 0; i--)//начинаем с кир.
+			for (TCHAR* ch = word; *ch; ch++)
 			{
-				for (TCHAR* ch = word; *ch; ch++)
+				int nMatch = 0;
+				int iMatch;
+				for (int i = 0; i < RT_COUNT; i++)
 				{
 					if (replacers[i].IsCharInTable(*ch))
 					{
-						iReplacer = i;
-						return;
+						iMatch = i;
+						nMatch++;
 					}
 				}
+				if (nMatch == 1)
+					return iMatch;
 			}
-			iReplacer = RT_LAT;
+			return RT_LAT;
 		}
+		return RT_NONE;
 	}
 
-	void AddWordList(LPTSTR sIn)
+	LPTSTR StoreString(LPTSTR str, int sz = -1)
 	{
-		Parser parser(sIn, L"\r\n", PARSER_SKIPNEWLINE);
-		LPTSTR wordIPA, wordOrig;
-
-		TCHAR buf[200];
-
-		while (wordOrig = parser.Next())
+		if (!str[0])
+			return NULL;
+		else
 		{
-			if (iReplacer == RT_NONE)
-				GuessReplacer(wordOrig);
+			if (sz == -1)
+				sz = wcslen(str);
+			return pString.New(str, sz + 1);
+		}
+	}
+	bool NextCol(int& iCol, int& iRow, int nCols, int nRows)
+	{
+		if (iCol == nCols - 1)
+		{
+			(iRow)++;
+			if (iRow >= nRows)
+				return false;
+			iCol = 0;
+		}
+		else (iCol)++;
 
-			ReplaceSymbols(wordOrig, buf);
+		return true;
+	}
+	void GetOrigIPAAndTranslation(Parser& parser, LPTSTR& wordOrig, LPTSTR& wordIPA, LPTSTR& wordTranslation, DictInfo& dinfo)
+	{
+		wordOrig = StoreString(parser.Current(), parser.LengthOfCurrentWord());
+		TCHAR buf[1000];
+		if (!wordOrig)
+			wordIPA = NULL;
+		else
+		{
+			if (dinfo.iReplacer == RT_NONE)
+				dinfo.iReplacer = GuessReplacer(wordOrig);
 
-			wordOrig = pString.New(wordOrig, wcslen(wordOrig) + 1);
-			wordIPA = pString.New(buf, wcslen(buf) + 1);
-
-			WordForm* wfNew = new (pWordForms.New()) WordForm(wordIPA, wordOrig);
-
-			//создаются дубли-сироты этих объектов, если уже в дереве есть
-
+			int szIPA = ReplaceSymbols(wordOrig, buf, dinfo.iReplacer);
+			wordIPA = pString.New(buf, szIPA + 1);
 			ipa->SubmitWordForm(wordIPA);
+		}
 
-			trWordForms.Add(wfNew);
+		wordTranslation = parser.Next();
+		wordTranslation = StoreString(wordTranslation, parser.LengthOfCurrentWord());
+	}
+
+	void GetDictInfo(Parser& parser, DictInfo& dictinfo)
+	{
+		LPTSTR wordOrig = StoreString(parser.Current(), parser.LengthOfCurrentWord());
+		new (&dictinfo) DictInfo(wordOrig);
+		LPTSTR wordAbbrName;
+		wordAbbrName = parser.Next();
+	}
+	void AddWordList(LPTSTR sIn, int nRows)
+	{
+		Parser parser(sIn, L"\0", PARSER_NONNULLEND);
+		LPTSTR wordOrig, wordIPA, wordTranslation;
+
+
+		int nDicts = 1;
+		int iRow = -1, iCol = -1;
+		while (parser.Next())
+		{
+			if (!NextCol(iCol, iRow, nDicts, nRows)) break;
+
+			if (iRow == -1)
+			{
+				GetDictInfo(parser, dictinfo);
+			}
+			else
+			{
+				GetOrigIPAAndTranslation(parser, wordOrig, wordIPA, wordTranslation, dictinfo);
+
+				WordForm* wfNew = new (pWordForms.New()) WordForm(wordIPA, wordOrig, wordTranslation); //создаются дубли-сироты этих объектов, если уже в дереве есть
+				WordForm* wfFound = (WordForm*)trWordForms.Add(wfNew);
+				if (!wfFound)
+					nWordForms++;
+			}
 		}
 		ipa->EndSubmitWordForms();
 	}
 	/*
-		bool IsVowel(LPTSTR symbol)
+		void AddWordList_CTAPOE(LPTSTR sIn)
 		{
-			return wcsstr(ipaVowels, symbol);
+			Parser parser(sIn, L"\r\n", PARSER_SKIPNEWLINE);
+			LPTSTR wordIPA, wordOrig;
+
+			TCHAR buf[200];
+
+			while (wordOrig = parser.Next())
+			{
+				if (iReplacer == RT_NONE)
+					iReplacer = GuessReplacer(wordOrig);
+				ReplaceSymbols(wordOrig, buf);
+
+				wordOrig = pString.New(wordOrig, wcslen(wordOrig)+1);
+				wordIPA = pString.New(buf, wcslen(buf)+1);
+
+				WordForm* wfNew = new (pWordForms.New()) WordForm(wordIPA, wordOrig, NULL);
+
+				//создаются дубли-сироты этих объектов, если уже в дереве есть
+
+				ipa->SubmitWordForm(wordIPA);
+
+				WordForm* wfFound = (WordForm*)trWordForms.Add(wfNew);
+				if (!wfFound)
+					nWordForms++;
+			}
+			ipa->EndSubmitWordForms();
 		}
 	*/
 	void BuildIPATable(int iClass, InfoTree* trOut)
 	{
+		trOut->Add(NULL, IT_HORLINE);
+
 		SoundTable::Sound* sound, *soundPrev = NULL;
 
 		InfoNode* ndSound = NULL;
@@ -166,25 +282,26 @@ public:
 		SoundTable::Iterator* it = ipa->Iterator(iClass);
 		while (sound = it->Next())
 		{
-			int flags = IT_TAB;
 			if (sound->RowNumber(FT_MANNER) > iRowPrev)
 			{
-				flags |= IT_LINEBRKBEFORE;
+				trOut->Add(NULL, IT_LINEBRK);
 				iColPrev = -1;
 			}
 
 			for (int i = iColPrev + 1; i < sound->RowNumber(FT_PLACE); i++)
 			{
-				trOut->Add(L"", flags);//, ndW);
-				flags = IT_TAB;
+				trOut->Add(L"", IT_TAB);
 			}
 
-			ndSound = trOut->Add(sound->Symbol, flags);//, ndW);
+			ndSound = trOut->Add(sound->Symbol, IT_TAB);
 
 			iColPrev = sound->RowNumber(FT_PLACE);
 			iRowPrev = sound->RowNumber(FT_MANNER);
 		}
 		it->Done();
+
+		//trOut->Add(NULL, IT_LINEBRK);
+		trOut->Add(NULL, IT_HORLINE);
 	}
 
 	void BuildDistributionLists(InfoNode** ndRoot, InfoTree* trOut)
@@ -211,7 +328,7 @@ public:
 
 		qry.AddCondition(L"С", NULL, L"ОГУ", QF_OBJECTONLYONCE | QF_CONTEXTONLYONCE, L"перед огубленными");
 
-		qry.SetIPA(ipa);//временно, но, честно, пока не знаю, как лучше
+		//qry.DoneAddConditions()
 
 		Sound* sdThis;
 
@@ -224,8 +341,8 @@ public:
 
 				for (Condition* cnd = qry.FirstCondition(); cnd; cnd = qry.NextCondition())
 				{
-					if (iClass == cnd->sgThis.feature[FT_CLASS])
-						trOut->Add(cnd->title, IT_COLUMN | IT_LINEBRKBEFORE | IT_IDENT, ndThisSound, false, cnd);
+					if (cnd->CheckThisFeature(FT_CLASS, iClass, ipa))
+						trOut->Add(cnd->title, IT_COLUMN | IT_SPACE | IT_LINEBRKBEFORE | IT_IDENT, ndThisSound, false, cnd);
 				}
 
 				sdThis->dataExtra = ndThisSound;
@@ -258,17 +375,16 @@ public:
 							{
 								if (ndIter->dataExtra == cnd)
 								{
-									int fAfterOrig;
 									int isDiff = lstrcmp(word->formOrig, word->formIPA);
-									if (isDiff)
-										fAfterOrig = IT_SPACE;
-									else
-										fAfterOrig = IT_COMMA | IT_SPACE;
 
-									trOut->Add(word->formOrig, IT_SPACE | fAfterOrig, ndIter);
+									trOut->Add(word->formOrig, IT_SPACE | (IT_COMMA*(!word->wordTranslation && !isDiff)), ndIter);
 
 									if (isDiff)
-										trOut->Add(word->formIPA, IT_SQRBRK | IT_COMMA | IT_SPACE, ndIter);
+										trOut->Add(word->formIPA, IT_SQRBRK | IT_SPACE | (IT_COMMA*(!word->wordTranslation)), ndIter);
+
+									if (word->wordTranslation)
+										trOut->Add(word->wordTranslation, IT_MARRQUOTES | IT_SPACE | IT_COMMA, ndIter);
+
 									break;
 								}
 							}
