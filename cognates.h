@@ -144,6 +144,10 @@ public:
 
 				return (crspCurrInGroup->crspNextSame == NULL);
 			}
+			bool AreWeInsideGroup()
+			{
+				return isInGroup;
+			}
 			void NextAndCheck()
 			{
 				if (!Walker::Next())
@@ -304,43 +308,40 @@ public:
 					bool wasNotEmpty = false;
 					Sound* soundSame = NULL,
 						*soundSameExact = NULL;
-					//int rankAllSoundsSame = 0;
 
 					for (int iCol = 0; iCol < nDicts; iCol++)
 					{
-						if (corresps[iRow].comparanda[iCol].formIPA)
+						if (!corresps[iRow].comparanda[iCol].formIPA)
+							continue;
+
+						if (!wasNotEmpty)
 						{
-							if (!wasNotEmpty)
+							soundSameExact = soundSame = corresps[iRow].comparanda[iCol].sound;
+							corresps[iRow].rankAllSoundsSame = 10;
+							wasNotEmpty = true;
+							corresps[iRow].nSoundsSame = 1;
+						}
+						else if (soundSame)
+						{
+							if (soundSame == corresps[iRow].comparanda[iCol].sound)
+								corresps[iRow].nSoundsSame++;
+							else
 							{
-								soundSameExact = soundSame = corresps[iRow].comparanda[iCol].sound;
-								corresps[iRow].rankAllSoundsSame = 10;
-								wasNotEmpty = true;
-								corresps[iRow].nSoundsSame = 1;
-							}
-							else if (soundSame)
-							{
-								if (soundSame == corresps[iRow].comparanda[iCol].sound)
-									corresps[iRow].nSoundsSame++;
+								Sound* sdBaseWas = dic.ipa->GetBaseSound(soundSame);
+								Sound* sdBaseThis = dic.ipa->GetBaseSound(corresps[iRow].comparanda[iCol].sound);
+								if (sdBaseWas == sdBaseThis)
+								{
+									corresps[iRow].rankAllSoundsSame = 5;
+									soundSame = sdBaseWas;
+								}
 								else
 								{
-									Sound* sdBaseWas = dic.ipa->GetBaseSound(soundSame);
-									Sound* sdBaseThis = dic.ipa->GetBaseSound(corresps[iRow].comparanda[iCol].sound);
-									if (sdBaseWas == sdBaseThis)
-									{
-										corresps[iRow].rankAllSoundsSame = 5;
-										soundSame = sdBaseWas;
-									}
-									else
-									{
-										soundSame = NULL;
-										corresps[iRow].rankAllSoundsSame = 0;
-										corresps[iRow].nSoundsSame = 0;
-									}
+									soundSame = NULL;
+									corresps[iRow].rankAllSoundsSame = 0;
 								}
 							}
 						}
 					}
-
 					if (nEmpty && soundSame)
 					{
 						for (int iCol = 0; iCol < nDicts; iCol++)
@@ -417,11 +418,35 @@ public:
 		}
 		trOut->Add(NULL, IT_HORLINE, ndTo);
 	}
-	/*
-		void OutputCorresponces(Condition* cnd, InfoTree* trOut)
+
+	void OutputSoundsHeader(Correspondence* c, InfoTree* trOut, InfoNode* inTo, bool skipTransl, int fSep, int fLine)
+	{
+		for (int iCol = 0; iCol < nDicts; iCol++)
 		{
+			LPTSTR word;
+
+			int fAdd;
+			if (iCol < nDicts - 1)
+				fAdd = fSep;
+			else
+				fAdd = 0;
+
+			if (c->comparanda[iCol].isSoundInCognates)
+			{
+				fAdd |= IT_SQRBRK;
+				word = c->comparanda[iCol].sound->Symbol;
+			}
+			else word = L" ? ";
+
+
+			trOut->Add(word, fAdd, inTo);
+
+			if (skipTransl)
+				trOut->Add(L"", IT_TAB, inTo);
 		}
-	*/
+		trOut->Add(NULL, fLine, inTo);
+	}
+
 	void OutputDeviationsWithMaterial(Condition* cnd, InfoTree* trOut)
 	{
 		InfoNode* inCnd, *inMult, *inOnce, *inMultList;
@@ -430,7 +455,35 @@ public:
 		inMultList = trOut->Add(L"Оглавление (отклонения только в одном соответствии)", IT_COLUMN | IT_EMPTYLINEBEFORE | IT_LINEBRKAFTER, inCnd);
 		inMult = trOut->Add(L"Материал — отклонения", IT_COLUMN | IT_EMPTYLINEBEFORE | IT_LINEBRKAFTER, inCnd);
 		OutputHeader(trOut, inMult);
+
+		InfoNode* inTo;
+		Correspondence* c;
+		for (CorrespondenceTree::Iterator it(&tCorrespondences); c = it.Next();)
+		{
+			if (c->nSoundsEmpty + c->nSoundsSame == nDicts - 1)
+			{
+				if (!it.AreWeInsideGroup() || it.IsStartOfGroup())
+				{
+					OutputSoundsHeader(c, trOut, inMultList, false, IT_DASH, IT_LINEBRK);
+
+					inTo = inMult;
+					OutputSoundsHeader(c, trOut, inTo, true, IT_TAB, IT_HORLINE);
+				}
+
+				for (int iCol = 0; iCol < nDicts; iCol++)
+				{
+					trOut->Add(c->comparanda[iCol].formOrig, IT_TAB, inTo);
+					trOut->Add(c->comparanda[iCol].translation, IT_MARRQUOTES | IT_TAB, inTo);
+				}
+				if (!it.AreWeInsideGroup() || it.IsEndOfGroup())
+					trOut->Add(NULL, IT_HORLINE, inTo);
+			}
+
+		}
+		trOut->Add(NULL, IT_HORLINE, inMult);
+		trOut->Add(NULL, IT_SECTIONBRK, inMult);
 	}
+
 	void OutputCorresponcesWithMaterial(Condition* cnd, InfoTree* trOut)
 	{
 		LPTSTR word;
@@ -443,57 +496,22 @@ public:
 		inMult = trOut->Add(L"Материал — неединичные соответствия", IT_COLUMN | IT_EMPTYLINEBEFORE | IT_LINEBRKAFTER, inCnd);
 		inOnce = trOut->Add(L"Материал — единичные соответствия", IT_COLUMN | IT_EMPTYLINEBEFORE | IT_LINEBRKAFTER, inCnd);
 
-		InfoNode* inTo = inOnce;
-
 		int fAdd;
 
 		OutputHeader(trOut, inMult);
 		OutputHeader(trOut, inOnce);
+
+		InfoNode* inTo = inOnce;
 
 		Correspondence* c;
 		for (CorrespondenceTree::Iterator it(&tCorrespondences); c = it.Next();)
 		{
 			if (it.IsStartOfGroup())
 			{
-
-				for (int iCol = 0; iCol < nDicts; iCol++)
-				{
-					int fAdd = 0;
-					if (iCol < nDicts - 1) fAdd |= IT_DASH;
-
-					if (c->comparanda[iCol].isSoundInCognates)
-					{
-						fAdd |= IT_SQRBRK;
-						word = c->comparanda[iCol].sound->Symbol;
-					}
-					else word = L" ? ";
-					trOut->Add(word, fAdd, inMultList);
-				}
-				trOut->Add(NULL, IT_LINEBRK, inMultList);
-
-
+				OutputSoundsHeader(c, trOut, inMultList, false, IT_DASH, IT_LINEBRK);
 
 				inTo = inMult;
-
-				for (int iCol = 0; iCol < nDicts; iCol++)
-				{
-					int fAdd;
-
-					if (c->comparanda[iCol].isSoundInCognates)
-					{
-						fAdd = IT_SQRBRK;
-						word = c->comparanda[iCol].sound->Symbol;
-					}
-					else
-					{
-						fAdd = 0;
-						word = L" ? ";
-					}
-
-					trOut->Add(word, IT_TAB | fAdd, inTo);
-					trOut->Add(L"", IT_TAB, inTo);
-				}
-				trOut->Add(NULL, IT_HORLINE, inTo);
+				OutputSoundsHeader(c, trOut, inTo, true, IT_TAB, IT_HORLINE);
 			}
 
 
@@ -511,6 +529,6 @@ public:
 		}
 
 		trOut->Add(NULL, IT_HORLINE, inOnce);
-		trOut->Add(NULL, IT_SECTIONBRK, inTo);
+		trOut->Add(NULL, IT_SECTIONBRK, inOnce);
 	}
 };

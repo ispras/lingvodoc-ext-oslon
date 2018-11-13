@@ -186,6 +186,7 @@ public:
 		bufOut = new TCHAR[szMax + 20];
 
 		bufHLine = NULL;
+		szHLine = 0;
 
 		nCols = _nCols;
 		wCol = _wCol;
@@ -199,14 +200,26 @@ public:
 	}
 	~OutputString()
 	{
-		delete[] bufOut;
+		if (bufOut)
+			delete[] bufOut;
 		if (bufHLine)
 			delete[] bufHLine;
 	}
 
-	int CheckSize(LPTSTR data)
+	int CheckSize(LPTSTR data, int flags)
 	{
-		int szToAdd = lstrlen(data);
+		int szToAdd = 0;
+		if (flags & IT_HORLINE)
+		{
+			GetHorLine();
+			szToAdd += szHLine + 4;
+		}
+		if (flags & IT_LINEBRK)
+		{
+			szToAdd += nCols + 2;
+		}
+		if (data)
+			szToAdd += lstrlen(data);
 		if (posOut + szToAdd + 20 - bufOut >= szMax)
 			return -1;
 		else
@@ -221,7 +234,7 @@ public:
 			else
 				szHLine = nCols * wCol;
 			bufHLine = new TCHAR[szHLine + 1];
-			for (int i = 0; i < szHLine; i++) bufHLine[i] = '—';
+			for (int i = 0; i < szHLine; i++) bufHLine[i] = L'—';
 			bufHLine[szHLine] = '\0';
 		}
 		return bufHLine;
@@ -253,7 +266,7 @@ public:
 		if (isBinary)
 			posOut[0] = '\0';
 		else
-		lstrcpy(posOut, TEXT("	"));
+			lstrcpy(posOut, TEXT("	"));
 		posOut++;
 
 		iColCur++;
@@ -270,8 +283,9 @@ public:
 		}
 		else
 		{
-			lstrcpy(posOut, L"***\r\n");
-			posOut += 5;
+			lstrcpy(posOut, L"***");
+			posOut += 3;
+			LineBreak();
 		}
 		nRows = 0;
 	}
@@ -383,7 +397,7 @@ public:
 					if (posOut - posOutOld > wCol)		//if (nCols && (posOut -  posOutOld > wCol))//так не прёт
 					{
 						sz = wCol;
-						posOutOld[sz - 1] = '…';
+						posOutOld[sz - 1] = L'…';
 						posOutOld[sz] = '\0';
 						posOut = posOutOld + sz;
 					}
@@ -416,11 +430,12 @@ public:
 		if (iLevel == 0)
 			posOut = bufOut;
 
-		int sz = CheckSize(ndCur->Data);
+		int sz = CheckSize(ndCur->Data, ndCur->Flags);
 		if (sz == -1)
 		{
 			lstrcpy(posOut, TEXT("!НЕ ВЛЕЗЛО!"));
-			return NULL;
+			posOut += 12;//потом нормально сделаю
+			return false;
 		}
 
 		Add(ndCur->Data, sz, ndCur->Flags, iLevel, isFirst, !ndCur->next);
@@ -464,7 +479,7 @@ public:
 	}
 	void OutputData(LPTSTR bufExport)
 	{
-		memcpy(bufExport + (OutputSize * sizeof(TCHAR)), bufOut, (posOut - bufOut) * sizeof(TCHAR));
+		memcpy(bufExport + OutputSize, bufOut, ((posOut - bufOut) + 1) * sizeof(TCHAR));
 		OutputSize += (posOut - bufOut);
 	}
 };

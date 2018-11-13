@@ -65,7 +65,7 @@ PhonemicAnalysis_GetAllOutput(LPTSTR bufIn, int nRows, LPTSTR bufOut, int)
 		ndDistr[FT_CONSONANT] = trOut.Add(L"Списки по согласному перед гласным первого слога", /*NULL,*/ IT_COLUMN | IT_EMPTYLINEBEFORE);
 		dic.BuildDistributionLists(ndDistr, &trOut);
 
-		OutputString output(szOutput, 45); //Dictionary::OutputString катит!!!
+		OutputString output(szOutput, 70); //Dictionary::OutputString катит!!!
 		output.Build(trOut.ndRoot);
 
 		lstrcpy(bufOut, output.bufOut);
@@ -90,7 +90,7 @@ CognateAnalysis_GetAllOutput(LPTSTR bufIn, int nCols, int nRows, LPTSTR bufOut, 
 	if (nCols < 1 || nCols > 1000)
 		return -1;
 
-	int szOutput = nRows * nCols * 60 + 1000;
+	int szOutput = nRows * nCols * 60 + 100000;
 
 	if (!bufIn)
 		return szOutput;
@@ -124,7 +124,8 @@ CognateAnalysis_GetAllOutput(LPTSTR bufIn, int nCols, int nRows, LPTSTR bufOut, 
 		OutputString output(szOutput, 20, nCols * 2, isBinary);
 		output.Build(trOut.ndRoot);
 
-		output.OutputTableSizes(bufOut);
+		if (isBinary)
+			output.OutputTableSizes(bufOut);
 		output.OutputData(bufOut);
 
 		return output.OutputSize;
@@ -149,7 +150,7 @@ CognateAcousticAnalysis_GetAllOutput(LPTSTR bufIn, int nCols, int nRows, LPTSTR 
 	if (nCols < 1 || nCols > 1000)
 		return -1;
 
-	int szOutput = nRows * nCols * 60 + 1000;
+	int szOutput = nRows * nCols * 60 + 100000;
 
 	if (!bufIn)
 		return szOutput;
@@ -182,7 +183,8 @@ CognateAcousticAnalysis_GetAllOutput(LPTSTR bufIn, int nCols, int nRows, LPTSTR 
 		OutputString output(szOutput, 20, nCols * 2, isBinary);
 		output.Build(trOut.ndRoot);
 
-		output.OutputTableSizes(bufOut);
+		if (isBinary)
+			output.OutputTableSizes(bufOut);
 		output.OutputData(bufOut);
 
 		return output.OutputSize;

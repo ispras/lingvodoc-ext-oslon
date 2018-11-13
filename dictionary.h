@@ -13,27 +13,11 @@ public:
 		formIPA = _formIPA;
 		wordTranslation = _wordTranslation;
 	}
-	/*
-		Word	wName;
-		WordForm(wchar_t* data)
-		{
-			wName.posUC = StoreString(data);
-			wName.size = wcslen(data) * sizeof(wchar_t);
-		}
-		~WordForm()
-		{
-		}
-	*/
 };
 
 class WordFormTree : public BTree
 {
 public:
-
-	//WordFormTree()
-	//{
-		//int ___i=0xabcd;
-	//}
 
 	int CompareNodes(BNode* _nd1, BNode* _nd2, void*_)
 	{
@@ -41,23 +25,6 @@ public:
 		WordForm* nd2 = (WordForm*)_nd2;
 		//надо свой порядок вести, см. в Вербе
 		return wcscmp(nd1->formIPA, nd2->formIPA);
-		/*
-				int sz = nd1->wName.size;
-
-				if (sz > nd2->wName.size)
-					sz = nd2->wName.size;
-
-				int dir = memcmp(nd1->wName.pos, nd2->wName.pos, sz);
-
-				if (dir == 0)
-				{
-					if (nd2->wName.size > nd1->wName.size)
-						dir = -1;
-					else if (nd2->wName.size < nd1->wName.size)
-						dir = 1;
-				}
-				return dir;
-				*/
 	}
 };
 ///////////////////////////////////////////////////////////////////////////////////////////////////
