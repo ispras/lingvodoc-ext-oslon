@@ -65,7 +65,7 @@ PhonemicAnalysis_GetAllOutput(LPTSTR bufIn, int nRows, LPTSTR bufOut, int)
 		ndDistr[FT_CONSONANT] = trOut.Add(L"Списки по согласному перед гласным первого слога", /*NULL,*/ IT_COLUMN | IT_EMPTYLINEBEFORE);
 		dic.BuildDistributionLists(ndDistr, &trOut);
 
-		OutputString output(szOutput, 70); //Dictionary::OutputString катит!!!
+		OutputString output(szOutput, 45); //Dictionary::OutputString катит!!!
 		output.Build(trOut.ndRoot);
 
 		lstrcpy(bufOut, output.bufOut);
@@ -132,7 +132,7 @@ CognateAnalysis_GetAllOutput(LPTSTR bufIn, int nCols, int nRows, LPTSTR bufOut, 
 	}
 	catch (...)
 	{
-		return 2;
+		return -2;
 	}
 }
 #ifdef __linux__ 
@@ -191,7 +191,7 @@ CognateAcousticAnalysis_GetAllOutput(LPTSTR bufIn, int nCols, int nRows, LPTSTR 
 	}
 	catch (...)
 	{
-		return 2;
+		return -2;
 	}
 }
 #ifdef __linux__ 
@@ -222,7 +222,7 @@ Retranscribe(LPTSTR bufIn, LPTSTR bufOut, LPTSTR langIn, LPTSTR langOut, int fla
 	}
 	catch (...)
 	{
-		return 2;
+		return -2;
 	}
 }
 #ifdef __linux__ 

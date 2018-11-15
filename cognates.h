@@ -124,19 +124,43 @@ public:
 		class Iterator : public BTree::Walker
 		{
 			bool			isInGroup;
+			bool			skipInsideGroup;
 			Correspondence*	crspCurrInGroup;
 		public:
-			Iterator(CorrespondenceTree* _tree) : Walker(_tree)
+			Iterator(CorrespondenceTree* _tree, bool _skipInsideGroup = false) : Walker(_tree)
 			{
+				skipInsideGroup = _skipInsideGroup;
 				isInGroup = false;
 				crspCurrInGroup = NULL;
 			}
 
+			bool TryEnterGroup()
+			{
+				if (!isInGroup)
+				{
+					Correspondence* crspCurr = (Correspondence*)Current();
+					if (crspCurr->crspNextSame)
+					{
+						isInGroup = true;
+						crspCurrInGroup = crspCurr;
+					}
+				}
+				return isInGroup;
+			}
+
 			bool IsStartOfGroup()
 			{
-				if (!isInGroup) return false;
-
-				return (crspCurrInGroup == Current());
+				if (skipInsideGroup)
+				{
+					Correspondence* crspCurr = (Correspondence*)Current();
+					if (!crspCurr)
+						return false;
+					return (crspCurr->crspNextSame);
+				}
+				else
+				{
+					return (crspCurrInGroup == Current());
+				}
 			}
 			bool IsEndOfGroup()
 			{
@@ -155,13 +179,9 @@ public:
 
 				Correspondence* crspCurr = (Correspondence*)Current();
 
-				if (!isInGroup)
+				if (!skipInsideGroup)
 				{
-					if (crspCurr->crspNextSame)
-					{
-						isInGroup = true;
-						crspCurrInGroup = crspCurr;
-					}
+					TryEnterGroup();
 				}
 			}
 			Correspondence* Next()
@@ -313,6 +333,8 @@ public:
 					{
 						if (!corresps[iRow].comparanda[iCol].formIPA)
 							continue;
+						//if(!lstrcmp(L"о́улю̂нг̄ъ",corresps[iRow].comparanda[iCol].formOrig)		)			
+						//iRow=iRow;
 
 						if (!wasNotEmpty)
 						{
@@ -321,11 +343,11 @@ public:
 							wasNotEmpty = true;
 							corresps[iRow].nSoundsSame = 1;
 						}
-						else if (soundSame)
+						else if (soundSameExact)
 						{
-							if (soundSame == corresps[iRow].comparanda[iCol].sound)
+							if (soundSameExact == corresps[iRow].comparanda[iCol].sound)
 								corresps[iRow].nSoundsSame++;
-							else
+							else if (soundSame && soundSame != corresps[iRow].comparanda[iCol].sound)
 							{
 								Sound* sdBaseWas = dic.ipa->GetBaseSound(soundSame);
 								Sound* sdBaseThis = dic.ipa->GetBaseSound(corresps[iRow].comparanda[iCol].sound);
@@ -350,7 +372,6 @@ public:
 								corresps[iRow].comparanda[iCol].sound = soundSame;
 						}
 					}
-
 					//corresps[iRow].rankAllSoundsSame = rankAllSoundsSame;
 
 					Correspondence* cFound = (Correspondence*)tCorrespondences.Add(&corresps[iRow]);
@@ -419,7 +440,7 @@ public:
 		trOut->Add(NULL, IT_HORLINE, ndTo);
 	}
 
-	void OutputSoundsHeader(Correspondence* c, InfoTree* trOut, InfoNode* inTo, bool skipTransl, int fSep, int fLine)
+	void OutputSoundsHeader(Correspondence* c, InfoTree* trOut, InfoNode* inTo, bool skipTransl, bool onlyWithForms, int fSep, int fLine)
 	{
 		for (int iCol = 0; iCol < nDicts; iCol++)
 		{
@@ -431,7 +452,13 @@ public:
 			else
 				fAdd = 0;
 
-			if (c->comparanda[iCol].isSoundInCognates)
+			bool isSoundOK;
+			if (onlyWithForms)
+				isSoundOK = !!c->comparanda[iCol].formIPA;
+			else
+				isSoundOK = c->comparanda[iCol].isSoundInCognates;
+
+			if (isSoundOK)
 			{
 				fAdd |= IT_SQRBRK;
 				word = c->comparanda[iCol].sound->Symbol;
@@ -446,39 +473,80 @@ public:
 		}
 		trOut->Add(NULL, fLine, inTo);
 	}
+	void OutputCognates(Correspondence* c, InfoTree* trOut, InfoNode* inTo, int fLine)
+	{
+		for (int iCol = 0; iCol < nDicts; iCol++)
+		{
+			trOut->Add(c->comparanda[iCol].formOrig, IT_TAB, inTo);
+			trOut->Add(c->comparanda[iCol].translation, IT_MARRQUOTES | IT_TAB, inTo);
+		}
+		if (fLine)
+			trOut->Add(NULL, fLine, inTo);
+	}
 
 	void OutputDeviationsWithMaterial(Condition* cnd, InfoTree* trOut)
 	{
-		InfoNode* inCnd, *inMult, *inOnce, *inMultList;
+		InfoNode* inCnd, *inMult;//, *inOnce, *inMultList;
 
 		inCnd = trOut->Add(cnd->title, IT_COLUMN | IT_LINEBRKBEFORE, NULL, false, cnd);
-		inMultList = trOut->Add(L"Оглавление (отклонения только в одном соответствии)", IT_COLUMN | IT_EMPTYLINEBEFORE | IT_LINEBRKAFTER, inCnd);
-		inMult = trOut->Add(L"Материал — отклонения", IT_COLUMN | IT_EMPTYLINEBEFORE | IT_LINEBRKAFTER, inCnd);
+		inMult = trOut->Add(L"Материал", IT_COLUMN | IT_EMPTYLINEBEFORE | IT_LINEBRKAFTER, inCnd);
 		OutputHeader(trOut, inMult);
 
-		InfoNode* inTo;
-		Correspondence* c;
-		for (CorrespondenceTree::Iterator it(&tCorrespondences); c = it.Next();)
+		Correspondence* cGroup;
+		for (CorrespondenceTree::Iterator itGroup(&tCorrespondences, true); cGroup = itGroup.Next();)
 		{
-			if (c->nSoundsEmpty + c->nSoundsSame == nDicts - 1)
+			if (!itGroup.IsStartOfGroup())
+				continue;
+
+			bool isDeviations = false;
+
+			Correspondence* cOther;
+			for (CorrespondenceTree::Iterator itOther(&tCorrespondences, true); cOther = itOther.Next();)
 			{
-				if (!it.AreWeInsideGroup() || it.IsStartOfGroup())
+				int nDiff = 0;
+				for (int iCol = 0; (iCol < nDicts) && nDiff <= 1; iCol++)
 				{
-					OutputSoundsHeader(c, trOut, inMultList, false, IT_DASH, IT_LINEBRK);
+					if (cGroup->comparanda[iCol].sound != cOther->comparanda[iCol].sound)
+					{
+						nDiff++;
+					}
 
-					inTo = inMult;
-					OutputSoundsHeader(c, trOut, inTo, true, IT_TAB, IT_HORLINE);
 				}
-
-				for (int iCol = 0; iCol < nDicts; iCol++)
+				if (nDiff == 1)
 				{
-					trOut->Add(c->comparanda[iCol].formOrig, IT_TAB, inTo);
-					trOut->Add(c->comparanda[iCol].translation, IT_MARRQUOTES | IT_TAB, inTo);
+					if (!isDeviations)
+					{
+						isDeviations = true;
+
+						trOut->Add(L"Регулярный ряд", IT_COLUMN | IT_TAB, inMult);
+						OutputSoundsHeader(cGroup, trOut, inMult, false, false, IT_DASH, IT_HORLINE);
+						OutputSoundsHeader(cGroup, trOut, inMult, true, false, IT_TAB, IT_HORLINE);
+
+						//единичные не берём
+						for (itGroup.TryEnterGroup();;)
+						{
+							OutputCognates(cGroup, trOut, inMult, 0);
+
+							if (itGroup.IsEndOfGroup())
+								break;
+
+							cGroup = itGroup.Next();
+						};
+
+						trOut->Add(NULL, IT_HORLINE, inMult);
+					}
+
+					trOut->Add(L"Отклонение", IT_COLUMN | IT_TAB, inMult);
+					OutputSoundsHeader(cOther, trOut, inMult, false, true, IT_DASH, IT_HORLINE);
+					OutputSoundsHeader(cOther, trOut, inMult, true, true, IT_TAB, IT_HORLINE);
+
+					//trOut->Add(NULL, IT_HORLINE, inMult);
+					OutputCognates(cOther, trOut, inMult, 0);
+					trOut->Add(NULL, IT_HORLINE, inMult);
 				}
-				if (!it.AreWeInsideGroup() || it.IsEndOfGroup())
-					trOut->Add(NULL, IT_HORLINE, inTo);
 			}
-
+			//			if (isDeviations)
+			//				trOut->Add(NULL, IT_HORLINE, inMult);
 		}
 		trOut->Add(NULL, IT_HORLINE, inMult);
 		trOut->Add(NULL, IT_SECTIONBRK, inMult);
@@ -508,10 +576,10 @@ public:
 		{
 			if (it.IsStartOfGroup())
 			{
-				OutputSoundsHeader(c, trOut, inMultList, false, IT_DASH, IT_LINEBRK);
+				OutputSoundsHeader(c, trOut, inMultList, false, false, IT_DASH, IT_LINEBRK);
 
 				inTo = inMult;
-				OutputSoundsHeader(c, trOut, inTo, true, IT_TAB, IT_HORLINE);
+				OutputSoundsHeader(c, trOut, inTo, true, false, IT_TAB, IT_HORLINE);
 			}
 
 

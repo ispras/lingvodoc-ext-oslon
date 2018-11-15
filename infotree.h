@@ -244,13 +244,11 @@ public:
 		if (noDouble && wasLnBrk)
 			return;
 
-		while (iColCur < nCols)
-			Tab();
-
-		iColCur = 0;
-
 		if (isBinary)
 		{
+			while (iColCur < nCols)
+				Tab();
+
 			posOut[0] = '\0';
 			posOut += 1;
 		}
@@ -259,6 +257,7 @@ public:
 			lstrcpy(posOut, TEXT("\r\n"));
 			posOut += 2;
 		}
+		iColCur = 0;
 		nRows++;
 	}
 	void Tab()
@@ -278,7 +277,6 @@ public:
 			LineBreak(true);
 
 			Section* sect = new (pSections.New()) Section(nCols, nRows);
-
 			nSections++;
 		}
 		else

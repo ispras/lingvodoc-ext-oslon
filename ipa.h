@@ -58,6 +58,20 @@ int CompareFeaturesAnd(int* f1, int* f2)
 	}
 	return 0;
 }
+
+int CompareFeaturesNumberOfDifferences(int* f1, int* f2)
+{
+	int nDiff = 0;
+	for (int iFType = 0; iFType < FT_NFEATURETYPES; iFType++)
+	{
+		if (f1[iFType] > f2[iFType])
+			nDiff++;
+		if (f1[iFType] < f2[iFType])
+			nDiff++;
+	}
+	return nDiff;
+}
+
 int CompareFeaturesOr(int* f1, int* f2, int max = FT_NFEATURETYPES - 1)
 {
 	for (int iFType = 0; iFType <= max; iFType++)
@@ -70,6 +84,7 @@ int CompareFeaturesOr(int* f1, int* f2, int max = FT_NFEATURETYPES - 1)
 	}
 	return 0;
 }
+
 class FeatureTree : public BTree
 {
 public:
