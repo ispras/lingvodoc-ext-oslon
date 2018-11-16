@@ -1,4 +1,9 @@
 #pragma once
+
+#include <stdio.h>
+#include <wchar.h>
+#include <cstdlib>
+
 LPTSTR StrCpyWMax(LPTSTR dest, LPTSTR src, int len)
 {
 	if (lstrlen(src) < len)
@@ -38,4 +43,18 @@ void _ltow(int n, wchar_t s[], int radix) //здесь radix всегда = 10
 	s[i] = '\0';
 	reverse(s);
 }
+
+void* _addcalc(float*d,LPTSTR s)
+{
+	*d += wcstod(s,NULL);
+}
+LPTSTR _donecalc(float*d,LPTSTR s, int _n)
+{
+	float mean = *d / _n;
+
+	wprintf(s, "%.3f", mean);
+
+	return s;
+}
+
 #endif

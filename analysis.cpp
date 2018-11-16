@@ -105,7 +105,7 @@ CognateAnalysis_GetAllOutput(LPTSTR bufIn, int nCols, int nRows, LPTSTR bufOut, 
 		if (!isBinary) title = L"ЭТИМОЛОГИЧЕСКИЙ АНАЛИЗ"; else title = NULL;
 		InfoTree trOut(title);
 
-		cmp.AddCognateList(bufIn);
+		cmp.AddCognateList(bufIn, false);
 
 		Query qry;
 		qry.AddCondition(L"Г", L"#", NULL, 0, L"Соответствия по начальному гласному");
@@ -113,7 +113,7 @@ CognateAnalysis_GetAllOutput(LPTSTR bufIn, int nCols, int nRows, LPTSTR bufOut, 
 		qry.AddCondition(L"С", L"#", NULL, 0, L"Соответствия по начальному согласному");
 
 		if (!isBinary)
-			cmp.OutputLanguageNames(&trOut);
+			cmp.OutputLanguageList(&trOut);
 
 		for (Condition* cnd = qry.FirstCondition(); cnd; cnd = qry.NextCondition())
 		{
@@ -150,7 +150,7 @@ CognateAcousticAnalysis_GetAllOutput(LPTSTR bufIn, int nCols, int nRows, LPTSTR 
 	if (nCols < 1 || nCols > 1000)
 		return -1;
 
-	int szOutput = nRows * nCols * 60 + 100000;
+	int szOutput = nRows * nCols * 200 + 100000;
 
 	if (!bufIn)
 		return szOutput;
@@ -165,14 +165,14 @@ CognateAcousticAnalysis_GetAllOutput(LPTSTR bufIn, int nCols, int nRows, LPTSTR 
 		if (!isBinary) title = L"АКУСТИЧЕСКИЙ АНАЛИЗ ОТКЛОНЕНИЙ"; else title = NULL;
 		InfoTree trOut(title);
 
-		cmp.AddCognateList(bufIn);
+		cmp.AddCognateList(bufIn, true);
 
 		Query qry;
 		qry.AddCondition(L"Г", L"#", NULL, 0, L"Отклонения по начальному гласному");
 		qry.AddCondition(L"Г", L"С", NULL, QF_OBJECTONLYONCE, L"Отклонения по гласному после первого согласного");
 
 		if (!isBinary)
-			cmp.OutputLanguageNames(&trOut);
+			cmp.OutputLanguageList(&trOut);
 
 		for (Condition* cnd = qry.FirstCondition(); cnd; cnd = qry.NextCondition())
 		{
@@ -180,7 +180,7 @@ CognateAcousticAnalysis_GetAllOutput(LPTSTR bufIn, int nCols, int nRows, LPTSTR 
 			cmp.OutputDeviationsWithMaterial(cnd, &trOut);
 		}
 
-		OutputString output(szOutput, 20, nCols * 2, isBinary);
+		OutputString output(szOutput, 20, 6, isBinary); //шесть столбцов, см. OutputPhoneticHeader
 		output.Build(trOut.ndRoot);
 
 		if (isBinary)

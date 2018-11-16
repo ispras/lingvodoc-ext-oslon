@@ -3,6 +3,17 @@
 #include "parser.h"
 #include "ipa.h"
 
+#ifndef __linux__ 
+void __declspec(dllexport) _initcalc(void*);
+void __declspec(dllexport) _addcalc(void*, LPTSTR);
+LPTSTR __declspec(dllexport) _donecalc(void*, LPTSTR, int);
+
+//void __declspec(dllexport) _initcalc();
+//void __declspec(dllexport) _addcalc(LPTSTR);
+//LPTSTR __declspec(dllexport) _donecalc(LPTSTR);
+#endif
+
+
 class Comparison
 {
 public:
@@ -19,15 +30,20 @@ public:
 		LPTSTR 		formIPA;
 		LPTSTR 		formOrig;
 		LPTSTR 		translation;
+		LPTSTR		wLength, wF1, wF2, wF3;
 		Sound*		sound;
 		bool		isSoundInCognates;
-		Comparandum(LPTSTR _formIPA, LPTSTR _formOrig, LPTSTR _translation)
+		Comparandum(LPTSTR _formIPA, LPTSTR _formOrig, LPTSTR _translation, LPTSTR _wLength = NULL, LPTSTR _wF1 = NULL, LPTSTR _wF2 = NULL, LPTSTR _wF3 = NULL)
 		{
 			formIPA = _formIPA;
 			formOrig = _formOrig;
 			translation = _translation;
 			sound = NULL;
 			isSoundInCognates = false;
+			wF1 = _wF1;
+			wF2 = _wF2;
+			wF3 = _wF3;
+			wLength = _wLength;
 		}
 		void Reset_()
 		{
@@ -45,6 +61,7 @@ public:
 		int				rankAllSoundsSame;
 		int				nSoundsSame;
 		int				nSoundsEmpty;
+		void*			dataExtra;
 
 		Correspondence(int nDicts, int _iRow)
 		{
@@ -56,6 +73,8 @@ public:
 			rankAllSoundsSame = 0;
 			nSoundsSame = 0;
 			nSoundsEmpty = 0;
+
+			dataExtra = NULL;
 		}
 		~Correspondence()
 		{
@@ -242,6 +261,7 @@ public:
 		if (isProcessed)
 		{
 			tCorrespondences.Empty();
+
 			for (int iRow = 0; iRow < nCorresp; iRow++)
 			{
 				corresps[iRow].crspNextSame = NULL;
@@ -251,14 +271,16 @@ public:
 				corresps[iRow].rankAllSoundsSame = 0;
 				corresps[iRow].nSoundsSame = 0;
 				corresps[iRow].nSoundsEmpty = 0;
+
+				corresps[iRow].dataExtra = NULL;
 			}
 			isProcessed = false;
 		}
 	}
-	void AddCognateList(LPTSTR sIn)
+	void AddCognateList(LPTSTR sIn, bool hasPhonData)
 	{
 		Parser parser(sIn, L"\0", PARSER_NONNULLEND);
-		LPTSTR wordOrig, wordIPA, wordTranslation;
+		LPTSTR wordOrig, wordIPA, wordTranslation, wLength, wF1, wF2, wF3;
 
 		int iRow = -1, iCol = -1;
 		while (parser.Next())
@@ -269,11 +291,11 @@ public:
 				dic.GetDictInfo(parser, dictinfos[iCol]);
 			else
 			{
-				dic.GetOrigIPAAndTranslation(parser, wordOrig, wordIPA, wordTranslation, dictinfos[iCol]);
+				dic.GetOrigIPAAndTranslation(parser, wordOrig, wordIPA, wordTranslation, dictinfos[iCol], hasPhonData, wLength, wF1, wF2, wF3);
 				if (iCol == 0)
 					new (&corresps[iRow]) Correspondence(nDicts, iRow);
 
-				new (&corresps[iRow].comparanda[iCol]) Comparandum(wordIPA, wordOrig, wordTranslation);
+				new (&corresps[iRow].comparanda[iCol]) Comparandum(wordIPA, wordOrig, wordTranslation, wLength, wF1, wF2, wF3);
 			}
 		}
 	}
@@ -333,8 +355,6 @@ public:
 					{
 						if (!corresps[iRow].comparanda[iCol].formIPA)
 							continue;
-						//if(!lstrcmp(L"о́улю̂нг̄ъ",corresps[iRow].comparanda[iCol].formOrig)		)			
-						//iRow=iRow;
 
 						if (!wasNotEmpty)
 						{
@@ -405,7 +425,7 @@ public:
 	}
 
 
-	void OutputLanguageNames(InfoTree* trOut)
+	void OutputLanguageList(InfoTree* trOut)
 	{
 		TCHAR buf[500];
 		int f = 0;//IT_EMPTYLINEBEFORE;
@@ -422,7 +442,7 @@ public:
 		}
 		trOut->Add(NULL, IT_HORLINE);
 	}
-	void OutputHeader(InfoTree* trOut, InfoNode* ndTo)
+	void OutputLanguageHeader(InfoTree* trOut, InfoNode* ndTo)
 	{
 		LPTSTR word;
 		//int fAdd = IT_TAB;
@@ -439,7 +459,17 @@ public:
 		}
 		trOut->Add(NULL, IT_HORLINE, ndTo);
 	}
-
+	void OutputPhoneticHeader(InfoTree* trOut, InfoNode* ndTo)
+	{
+		trOut->Add(NULL, IT_HORLINE, ndTo);
+		trOut->Add(L"словоформа", IT_TAB, ndTo);
+		trOut->Add(L"перевод", IT_TAB, ndTo);
+		trOut->Add(L"t", IT_TAB, ndTo);
+		trOut->Add(L"f₁", IT_TAB, ndTo);
+		trOut->Add(L"f₂", IT_TAB, ndTo);
+		trOut->Add(L"f₃", IT_TAB, ndTo);
+		trOut->Add(NULL, IT_HORLINE, ndTo);
+	}
 	void OutputSoundsHeader(Correspondence* c, InfoTree* trOut, InfoNode* inTo, bool skipTransl, bool onlyWithForms, int fSep, int fLine)
 	{
 		for (int iCol = 0; iCol < nDicts; iCol++)
@@ -473,82 +503,256 @@ public:
 		}
 		trOut->Add(NULL, fLine, inTo);
 	}
-	void OutputCognates(Correspondence* c, InfoTree* trOut, InfoNode* inTo, int fLine)
+	void OutputCognatesRow(Correspondence* c, InfoTree* trOut, InfoNode* inTo, bool isPhonData, int fLine)
 	{
 		for (int iCol = 0; iCol < nDicts; iCol++)
 		{
-			trOut->Add(c->comparanda[iCol].formOrig, IT_TAB, inTo);
-			trOut->Add(c->comparanda[iCol].translation, IT_MARRQUOTES | IT_TAB, inTo);
+			OutputCognate(&c->comparanda[iCol], trOut, inTo, isPhonData, fLine, NULL);
 		}
 		if (fLine)
 			trOut->Add(NULL, fLine, inTo);
 	}
+	class CognateList
+	{
+	public:
+		float l_, f1_, f2_, f3_;
+		TCHAR L[30];
+		TCHAR F1[30];
+		TCHAR F2[30];
+		TCHAR F3[30];
+		int n;
+
+		CognateList()
+		{
+			l_ = f1_ = f2_ = f3_ = 0;
+			n = 0;
+		}
+		void Add(LPTSTR l, LPTSTR f1, LPTSTR f2, LPTSTR f3)
+		{
+			if (!l || !f1 || !f2 | !f3)
+				return;
+
+			_addcalc(&l_, l);
+			_addcalc(&f1_, f1);
+			_addcalc(&f2_, f2);
+			_addcalc(&f3_, f3);
+
+			n++;
+		}
+		void Done()
+		{
+			_donecalc(&l_, L, n);
+			_donecalc(&f1_, F1, n);
+			_donecalc(&f2_, F2, n);
+			_donecalc(&f3_, F3, n);
+		}
+		void Output(InfoTree* trOut, InfoNode *inMult)
+		{
+			Done();
+			trOut->Add(L"Средние", IT_COLUMN | IT_TAB, inMult);
+			trOut->Add(NULL, IT_TAB, inMult);
+			trOut->Add(L, IT_TAB, inMult);
+			trOut->Add(F1, IT_TAB, inMult);
+			trOut->Add(F2, IT_TAB, inMult);
+			trOut->Add(F3, IT_TAB, inMult);
+		}
+	};
+	void OutputCognate(Comparandum* cmp, InfoTree* trOut, InfoNode* inTo, bool isPhonData, int fLine, CognateList* cl)
+	{
+		trOut->Add(cmp->formOrig, IT_TAB, inTo);
+		trOut->Add(cmp->translation, IT_MARRQUOTES | IT_TAB, inTo);
+
+		if (isPhonData)
+		{
+			trOut->Add(cmp->wLength, IT_TAB, inTo);
+			trOut->Add(cmp->wF1, IT_TAB, inTo);
+			trOut->Add(cmp->wF2, IT_TAB, inTo);
+			trOut->Add(cmp->wF3, IT_TAB, inTo);
+
+			if (cl)
+			{
+				cl->Add(cmp->wLength, cmp->wF1, cmp->wF2, cmp->wF3);
+			}
+		}
+
+		if (fLine)
+			trOut->Add(NULL, fLine, inTo);
+	}
+	void OutputCognatesBySound(Correspondence* cGroupTop, Correspondence* cOther, int iColDiff, InfoTree* trOut, InfoNode* inMult, Correspondence* cEqual)
+	{
+		bool isRegExtra = false;
+
+		Correspondence* cExtra;
+		for (CorrespondenceTree::Iterator itExtra(&tCorrespondences, true); cExtra = itExtra.Next();) //всё верно
+		{
+			if (cExtra == cGroupTop)
+				continue;
+			if (cExtra == cOther)
+				continue;
+
+			if (cExtra->comparanda[iColDiff].sound == cEqual->comparanda[iColDiff].sound)
+			{
+				isRegExtra = false;
+
+				if (itExtra.IsStartOfGroup())
+				{
+					CognateList cl;
+					for (itExtra.TryEnterGroup(); cExtra; cExtra = itExtra.Next())
+					{
+						if (cExtra->comparanda[iColDiff].formOrig)
+						{
+							if (!isRegExtra)
+							{
+								isRegExtra = true;
+
+								trOut->Add(cEqual->comparanda[iColDiff].sound->Symbol, IT_SQRBRK | IT_SPACE, inMult);
+								trOut->Add(L"также в ряду", IT_COLUMN | IT_TAB, inMult);
+								OutputSoundsHeader(cExtra, trOut, inMult, false, false, IT_DASH, IT_HORLINE);
+							}
+
+							OutputCognate(&cExtra->comparanda[iColDiff], trOut, inMult, true, IT_LINEBRK, &cl);
+						}
+						if (itExtra.IsEndOfGroup())
+							break;
+					};
+					if (isRegExtra)
+					{
+						trOut->Add(NULL, IT_HORLINE, inMult);
+						if (cl.n > 1)
+						{
+							cl.Output(trOut, inMult);
+							trOut->Add(NULL, IT_HORLINE, inMult);
+						}
+					}
+				}
+			}
+
+			//			if (it.IsEndOfGroup())
+			//			{
+			//				trOut->Add(NULL, IT_HORLINE, inMult);
+			//				inTo = inOnce;
+			//			}
+		}
+
+		//		trOut->Add(NULL, IT_HORLINE, inMult);
+	}
 
 	void OutputDeviationsWithMaterial(Condition* cnd, InfoTree* trOut)
 	{
-		InfoNode* inCnd, *inMult;//, *inOnce, *inMultList;
+		InfoNode* inCnd, *inMult;//, *inTo;//, *inOnce, *inMultList;
 
-		inCnd = trOut->Add(cnd->title, IT_COLUMN | IT_LINEBRKBEFORE, NULL, false, cnd);
-		inMult = trOut->Add(L"Материал", IT_COLUMN | IT_EMPTYLINEBEFORE | IT_LINEBRKAFTER, inCnd);
-		OutputHeader(trOut, inMult);
+		inMult = inCnd = trOut->Add(cnd->title, IT_COLUMN | IT_LINEBRKBEFORE | IT_LINEBRKAFTER, NULL, false, cnd);
+		//trOut->Add(NULL, IT_HORLINE, inMult);
+		//inMult = trOut->Add(L"Материал", IT_COLUMN | IT_EMPTYLINEBEFORE |IT_LINEBRKAFTER, inCnd);
+		//OutputHeader(trOut, inMult);
+		OutputPhoneticHeader(trOut, inMult);
 
-		Correspondence* cGroup;
-		for (CorrespondenceTree::Iterator itGroup(&tCorrespondences, true); cGroup = itGroup.Next();)
+		Correspondence* cGroup, *cGroupTop;
+		for (CorrespondenceTree::Iterator itGroup(&tCorrespondences, true); cGroupTop = cGroup = itGroup.Next();) //всё верно, надо сразу на следующий прыгать (он сразу будет первым)
 		{
+			if (cGroup->dataExtra)//уже был в отклонениях (т.е. в ряду №2)
+				continue;
 			if (!itGroup.IsStartOfGroup())
 				continue;
 
 			bool isDeviations = false;
 
+
 			Correspondence* cOther;
-			for (CorrespondenceTree::Iterator itOther(&tCorrespondences, true); cOther = itOther.Next();)
+			for (CorrespondenceTree::Iterator itOther(&tCorrespondences, true); cOther = itOther.Next();) //всё верно
 			{
-				int nDiff = 0;
+
+				int nDiff = 0, iColDiff;
 				for (int iCol = 0; (iCol < nDicts) && nDiff <= 1; iCol++)
 				{
-					if (cGroup->comparanda[iCol].sound != cOther->comparanda[iCol].sound)
+					if (cOther->comparanda[iCol].formIPA)
 					{
-						nDiff++;
+						if (cGroupTop->comparanda[iCol].sound != cOther->comparanda[iCol].sound)
+						{
+							nDiff++;
+							iColDiff = iCol;
+						}
 					}
-
 				}
+
 				if (nDiff == 1)
 				{
-					if (!isDeviations)
+					if (cGroupTop->comparanda[iColDiff].sound)
 					{
-						isDeviations = true;
-
-						trOut->Add(L"Регулярный ряд", IT_COLUMN | IT_TAB, inMult);
-						OutputSoundsHeader(cGroup, trOut, inMult, false, false, IT_DASH, IT_HORLINE);
-						OutputSoundsHeader(cGroup, trOut, inMult, true, false, IT_TAB, IT_HORLINE);
-
-						//единичные не берём
-						for (itGroup.TryEnterGroup();;)
+						if (!isDeviations)
 						{
-							OutputCognates(cGroup, trOut, inMult, 0);
+							isDeviations = true;
 
-							if (itGroup.IsEndOfGroup())
+							trOut->Add(L"Простейший ряд", IT_COLUMN | IT_TAB, inMult);
+							OutputSoundsHeader(cGroup, trOut, inMult, false, false, IT_DASH, IT_HORLINE);
+
+							//единичные не берём
+
+							CognateList cl;
+
+							for (itGroup.TryEnterGroup(); cGroup; cGroup = itGroup.Next())
+							{
+								if (cGroup->comparanda[iColDiff].formOrig)
+								{
+									OutputCognate(&cGroup->comparanda[iColDiff], trOut, inMult, true, IT_LINEBRK, &cl);
+								}
+								if (itGroup.IsEndOfGroup())
+									break;
+							};
+
+							trOut->Add(NULL, IT_HORLINE, inMult);
+
+							if (cl.n > 1)
+							{
+								cl.Output(trOut, inMult);
+								trOut->Add(NULL, IT_HORLINE, inMult);
+							}
+						}
+
+						trOut->Add(L"Словарь", IT_COLUMN | IT_SPACE, inMult);
+						trOut->Add(dictinfos[iColDiff].name, IT_LINEBRKAFTER, inMult);
+
+						trOut->Add(L"Отклонение", IT_COLUMN | IT_SPACE, inMult);
+						trOut->Add(cGroupTop->comparanda[iColDiff].sound->Symbol, IT_SQRBRK, inMult);
+						trOut->Add(L" : ", 0, inMult);
+						trOut->Add(cOther->comparanda[iColDiff].sound->Symbol, IT_SQRBRK | IT_LINEBRKAFTER, inMult);
+
+						trOut->Add(NULL, IT_LINEBRK, inMult);
+
+						trOut->Add(L"Отклоняющийся ряд", IT_COLUMN | IT_TAB, inMult);
+						cOther->dataExtra = (void*)1;
+
+						OutputSoundsHeader(cOther, trOut, inMult, false, true, IT_DASH, IT_HORLINE);
+
+						CognateList cl;
+						for (itOther.TryEnterGroup(); cOther; cOther = itOther.Next())
+						{
+							if (cOther->comparanda[iColDiff].formOrig)
+							{
+								OutputCognate(&cOther->comparanda[iColDiff], trOut, inMult, true, IT_LINEBRK, &cl);
+							}
+							if (!itOther.AreWeInsideGroup() || itOther.IsEndOfGroup())
 								break;
+						}
 
-							cGroup = itGroup.Next();
-						};
 
 						trOut->Add(NULL, IT_HORLINE, inMult);
+						if (cl.n > 1)
+						{
+							cl.Output(trOut, inMult);
+							trOut->Add(NULL, IT_HORLINE, inMult);
+						}
+
+						OutputCognatesBySound(cGroupTop, cOther, iColDiff, trOut, inMult, cGroupTop);
+						OutputCognatesBySound(cGroupTop, cOther, iColDiff, trOut, inMult, cOther);
 					}
-
-					trOut->Add(L"Отклонение", IT_COLUMN | IT_TAB, inMult);
-					OutputSoundsHeader(cOther, trOut, inMult, false, true, IT_DASH, IT_HORLINE);
-					OutputSoundsHeader(cOther, trOut, inMult, true, true, IT_TAB, IT_HORLINE);
-
-					//trOut->Add(NULL, IT_HORLINE, inMult);
-					OutputCognates(cOther, trOut, inMult, 0);
-					trOut->Add(NULL, IT_HORLINE, inMult);
 				}
 			}
-			//			if (isDeviations)
-			//				trOut->Add(NULL, IT_HORLINE, inMult);
+			if (isDeviations)
+				trOut->Add(NULL, IT_HORLINE, inMult);
+			//			trOut->Add(L"@@@@@@@@", IT_LINEBRKAFTER, inMult);
 		}
-		trOut->Add(NULL, IT_HORLINE, inMult);
+		//		trOut->Add(NULL, IT_HORLINE, inMult);
 		trOut->Add(NULL, IT_SECTIONBRK, inMult);
 	}
 
@@ -566,8 +770,8 @@ public:
 
 		int fAdd;
 
-		OutputHeader(trOut, inMult);
-		OutputHeader(trOut, inOnce);
+		OutputLanguageHeader(trOut, inMult);
+		OutputLanguageHeader(trOut, inOnce);
 
 		InfoNode* inTo = inOnce;
 
