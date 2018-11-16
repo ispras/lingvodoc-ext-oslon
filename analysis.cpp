@@ -65,7 +65,7 @@ PhonemicAnalysis_GetAllOutput(LPTSTR bufIn, int nRows, LPTSTR bufOut, int)
 		ndDistr[FT_CONSONANT] = trOut.Add(L"Списки по согласному перед гласным первого слога", /*NULL,*/ IT_COLUMN | IT_EMPTYLINEBEFORE);
 		dic.BuildDistributionLists(ndDistr, &trOut);
 
-		OutputString output(szOutput, 45); //Dictionary::OutputString катит!!!
+		OutputString output(szOutput, 100); //Dictionary::OutputString катит!!!
 		output.Build(trOut.ndRoot);
 
 		lstrcpy(bufOut, output.bufOut);
