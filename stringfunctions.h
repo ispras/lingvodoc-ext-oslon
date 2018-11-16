@@ -1,9 +1,5 @@
 #pragma once
 
-#include <stdio.h>
-#include <wchar.h>
-#include <cstdlib>
-
 LPTSTR StrCpyWMax(LPTSTR dest, LPTSTR src, int len)
 {
 	if (lstrlen(src) < len)
@@ -11,11 +7,17 @@ LPTSTR StrCpyWMax(LPTSTR dest, LPTSTR src, int len)
 	else
 	{
 		dest[len - 1] = '\0';
-		return (LPTSTR)memcpy(dest, src, 7 * sizeof(src[0]));
+		return (LPTSTR)memcpy(dest, src, (len - 1) * sizeof(TCHAR));
 	}
 }
 
+
 #ifdef __linux__ 
+
+#include <stdio.h>
+#include <wchar.h>
+#include <cstdlib>
+
 void reverse(wchar_t s[])
 {
 	int i, j;

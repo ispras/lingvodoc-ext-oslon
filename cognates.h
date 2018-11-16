@@ -32,8 +32,9 @@ public:
 		LPTSTR 		translation;
 		LPTSTR		wLength, wF1, wF2, wF3;
 		Sound*		sound;
+		TCHAR		chrTranscr[8];
 		bool		isSoundInCognates;
-		Comparandum(LPTSTR _formIPA, LPTSTR _formOrig, LPTSTR _translation, LPTSTR _wLength = NULL, LPTSTR _wF1 = NULL, LPTSTR _wF2 = NULL, LPTSTR _wF3 = NULL)
+		Comparandum(LPTSTR _formIPA, LPTSTR _formOrig, LPTSTR _translation, LPTSTR _chrTranscr = NULL, LPTSTR _wLength = NULL, LPTSTR _wF1 = NULL, LPTSTR _wF2 = NULL, LPTSTR _wF3 = NULL)
 		{
 			formIPA = _formIPA;
 			formOrig = _formOrig;
@@ -44,6 +45,10 @@ public:
 			wF2 = _wF2;
 			wF3 = _wF3;
 			wLength = _wLength;
+			if (_chrTranscr)
+				StrCpyWMax(chrTranscr, _chrTranscr, 8);
+			else
+				chrTranscr[0] = '\0';
 		}
 		void Reset_()
 		{
@@ -280,7 +285,7 @@ public:
 	void AddCognateList(LPTSTR sIn, bool hasPhonData)
 	{
 		Parser parser(sIn, L"\0", PARSER_NONNULLEND);
-		LPTSTR wordOrig, wordIPA, wordTranslation, wLength, wF1, wF2, wF3;
+		LPTSTR wordOrig, wordIPA, wordTranslation, wchrTranscr, wLength, wF1, wF2, wF3;
 
 		int iRow = -1, iCol = -1;
 		while (parser.Next())
@@ -291,11 +296,11 @@ public:
 				dic.GetDictInfo(parser, dictinfos[iCol]);
 			else
 			{
-				dic.GetOrigIPAAndTranslation(parser, wordOrig, wordIPA, wordTranslation, dictinfos[iCol], hasPhonData, wLength, wF1, wF2, wF3);
+				dic.GetOrigIPAAndTranslation(parser, wordOrig, wordIPA, wordTranslation, dictinfos[iCol], hasPhonData, wchrTranscr, wLength, wF1, wF2, wF3);
 				if (iCol == 0)
 					new (&corresps[iRow]) Correspondence(nDicts, iRow);
 
-				new (&corresps[iRow].comparanda[iCol]) Comparandum(wordIPA, wordOrig, wordTranslation, wLength, wF1, wF2, wF3);
+				new (&corresps[iRow].comparanda[iCol]) Comparandum(wordIPA, wordOrig, wordTranslation, wchrTranscr, wLength, wF1, wF2, wF3);
 			}
 		}
 	}
@@ -464,6 +469,7 @@ public:
 		trOut->Add(NULL, IT_HORLINE, ndTo);
 		trOut->Add(L"словоформа", IT_TAB, ndTo);
 		trOut->Add(L"перевод", IT_TAB, ndTo);
+		trOut->Add(L"гласный", IT_TAB, ndTo);
 		trOut->Add(L"t", IT_TAB, ndTo);
 		trOut->Add(L"f₁", IT_TAB, ndTo);
 		trOut->Add(L"f₂", IT_TAB, ndTo);
@@ -564,6 +570,7 @@ public:
 
 		if (isPhonData)
 		{
+			trOut->Add(cmp->chrTranscr, IT_TAB, inTo);
 			trOut->Add(cmp->wLength, IT_TAB, inTo);
 			trOut->Add(cmp->wF1, IT_TAB, inTo);
 			trOut->Add(cmp->wF2, IT_TAB, inTo);

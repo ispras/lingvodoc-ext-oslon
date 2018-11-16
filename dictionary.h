@@ -152,9 +152,10 @@ public:
 
 		return true;
 	}
-	void GetOrigIPAAndTranslation(Parser& parser, LPTSTR& wordOrig, LPTSTR& wordIPA, LPTSTR& wordTranslation, DictInfo& dinfo, bool isPhonData, LPTSTR& wLen, LPTSTR& wF1, LPTSTR& wF2, LPTSTR& wF3)
+	void GetOrigIPAAndTranslation(Parser& parser, LPTSTR& wordOrig, LPTSTR& wordIPA, LPTSTR& wordTranslation, DictInfo& dinfo, bool isPhonData, LPTSTR& chrTranscr, LPTSTR& wLen, LPTSTR& wF1, LPTSTR& wF2, LPTSTR& wF3)
 	{
 		wordOrig = StoreString(parser.Current(), parser.LengthOfCurrentWord());
+
 		TCHAR buf[1000];
 		if (!wordOrig)
 			wordIPA = NULL;
@@ -173,6 +174,8 @@ public:
 
 		if (isPhonData)
 		{
+			chrTranscr = parser.Next();
+			chrTranscr = StoreString(chrTranscr, parser.LengthOfCurrentWord());
 			wLen = parser.Next();
 			wLen = StoreString(wLen, parser.LengthOfCurrentWord());
 			wF1 = parser.Next();
@@ -194,7 +197,7 @@ public:
 	void AddWordList(LPTSTR sIn, int nRows)
 	{
 		Parser parser(sIn, L"\0", PARSER_NONNULLEND);
-		LPTSTR wordOrig, wordIPA, wordTranslation, /*надо бы избавиться*/ wLength, wF1, wF2, wF3;
+		LPTSTR wordOrig, wordIPA, wordTranslation, /*надо бы избавиться*/ wchrTranscr, wLength, wF1, wF2, wF3;
 
 
 		int nDicts = 1;
@@ -209,7 +212,7 @@ public:
 			}
 			else
 			{
-				GetOrigIPAAndTranslation(parser, wordOrig, wordIPA, wordTranslation, dictinfo, false, wLength, wF1, wF2, wF3);
+				GetOrigIPAAndTranslation(parser, wordOrig, wordIPA, wordTranslation, dictinfo, false, wchrTranscr, wLength, wF1, wF2, wF3);
 
 				WordForm* wfNew = new (pWordForms.New()) WordForm(wordIPA, wordOrig, wordTranslation); //создаются дубли-сироты этих объектов, если уже в дереве есть
 				WordForm* wfFound = (WordForm*)trWordForms.Add(wfNew);

@@ -150,7 +150,7 @@ CognateAcousticAnalysis_GetAllOutput(LPTSTR bufIn, int nCols, int nRows, LPTSTR 
 	if (nCols < 1 || nCols > 1000)
 		return -1;
 
-	int szOutput = nRows * nCols * 200 + 100000;
+	int szOutput = nRows * nCols * 600 + 100000;
 
 	if (!bufIn)
 		return szOutput;
@@ -180,7 +180,7 @@ CognateAcousticAnalysis_GetAllOutput(LPTSTR bufIn, int nCols, int nRows, LPTSTR 
 			cmp.OutputDeviationsWithMaterial(cnd, &trOut);
 		}
 
-		OutputString output(szOutput, 20, 6, isBinary); //шесть столбцов, см. OutputPhoneticHeader
+		OutputString output(szOutput, 20, 7, isBinary); //семь столбцов, см. OutputPhoneticHeader
 		output.Build(trOut.ndRoot);
 
 		if (isBinary)
