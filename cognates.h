@@ -285,7 +285,7 @@ public:
 	void AddCognateList(LPTSTR sIn, bool hasPhonData)
 	{
 		Parser parser(sIn, L"\0", PARSER_NONNULLEND);
-		LPTSTR wordOrig, wordIPA, wordTranslation, wchrTranscr, wLength, wF1, wF2, wF3;
+		LPTSTR wordOrig, wordIPA, wordTranslation, wchrTranscr = NULL, wLength = NULL, wF1 = NULL, wF2 = NULL, wF3 = NULL;
 
 		int iRow = -1, iCol = -1;
 		while (parser.Next())

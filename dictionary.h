@@ -197,7 +197,7 @@ public:
 	void AddWordList(LPTSTR sIn, int nRows)
 	{
 		Parser parser(sIn, L"\0", PARSER_NONNULLEND);
-		LPTSTR wordOrig, wordIPA, wordTranslation, /*надо бы избавиться*/ wchrTranscr, wLength, wF1, wF2, wF3;
+		LPTSTR wordOrig, wordIPA, wordTranslation, /*надо бы избавиться*/ wchrTranscr = NULL, wLength = NULL, wF1 = NULL, wF2 = NULL, wF3 = NULL;
 
 
 		int nDicts = 1;
