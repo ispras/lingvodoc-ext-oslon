@@ -54,7 +54,7 @@ LPTSTR _donecalc(float*d,LPTSTR s, int _n)
 {
 	float mean = *d / _n;
 
-	wprintf(s, "%.3f", mean);
+	swprintf(s, 20, L"%.3f", mean);
 
 	return s;
 }
