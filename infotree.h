@@ -426,7 +426,10 @@ public:
 	bool Build(InfoNode* ndCur, bool isFirst = true, int iLevel = 0)
 	{
 		if (iLevel == 0)
+		{
+			OutputSize = 0;
 			posOut = bufOut;
+		}
 
 		int sz = CheckSize(ndCur->Data, ndCur->Flags);
 		if (sz == -1)
@@ -472,7 +475,7 @@ public:
 				lstrcat(bufExport, L",");
 		}
 
-		OutputSize = lstrlen(bufExport);
+		OutputSize += lstrlen(bufExport);
 		if (OutputSize) OutputSize += 1;
 	}
 	void OutputData(LPTSTR bufExport)

@@ -998,7 +998,8 @@ public:
 		//		bool isMatch = !!(sdAdjacent->feature[feature->iType] & feature->value);
 
 		//		return isMatch;
-		return false;
+		return true;
+		//return false;
 	}
 };
 

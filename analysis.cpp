@@ -150,7 +150,7 @@ CognateAcousticAnalysis_GetAllOutput(LPTSTR bufIn, int nCols, int nRows, LPTSTR 
 	if (nCols < 1 || nCols > 1000)
 		return -1;
 
-	int szOutput = nRows * nCols * 600 + 100000;
+	int szOutput = nRows * nCols * 1000 + 100000;
 
 	if (!bufIn)
 		return szOutput;
@@ -164,12 +164,15 @@ CognateAcousticAnalysis_GetAllOutput(LPTSTR bufIn, int nCols, int nRows, LPTSTR 
 		LPTSTR title;
 		if (!isBinary) title = L"АКУСТИЧЕСКИЙ АНАЛИЗ ОТКЛОНЕНИЙ"; else title = NULL;
 		InfoTree trOut(title);
+		InfoTree trCld(NULL);
 
 		cmp.AddCognateList(bufIn, true);
 
 		Query qry;
-		qry.AddCondition(L"Г", L"#", NULL, 0, L"Отклонения по начальному гласному");
-		qry.AddCondition(L"Г", L"С", NULL, QF_OBJECTONLYONCE, L"Отклонения по гласному после первого согласного");
+		//qry.AddCondition(L"Г", L"#", NULL, 0, 					L"Отклонения по начальному гласному");
+		//qry.AddCondition(L"Г", L"С", NULL, QF_OBJECTONLYONCE, 	L"Отклонения по гласному после первого согласного");
+
+		qry.AddCondition(L"Г", NULL, NULL, QF_OBJECTONLYONCE, L"Отклонения по первому гласному в слове");
 
 		if (!isBinary)
 			cmp.OutputLanguageList(&trOut);
@@ -177,17 +180,28 @@ CognateAcousticAnalysis_GetAllOutput(LPTSTR bufIn, int nCols, int nRows, LPTSTR 
 		for (Condition* cnd = qry.FirstCondition(); cnd; cnd = qry.NextCondition())
 		{
 			cmp.Process(cnd);
-			cmp.OutputDeviationsWithMaterial(cnd, &trOut);
+			cmp.OutputDeviationsWithMaterial(cnd, &trOut, &trCld);
 		}
 
-		OutputString output(szOutput, 20, 7, isBinary); //семь столбцов, см. OutputPhoneticHeader
-		output.Build(trOut.ndRoot);
+		OutputString outputText(szOutput, 20, 7, isBinary); //7 столбцов, см. OutputPhoneticHeader
+		OutputString outputClouds(szOutput, 20, 4, isBinary); //4 столбца, токмо дѣля цыфирієвъ
+
+		outputText.Build(trOut.ndRoot);
+		outputClouds.Build(trCld.ndRoot);
 
 		if (isBinary)
-			output.OutputTableSizes(bufOut);
-		output.OutputData(bufOut);
+			outputText.OutputTableSizes(bufOut);
 
-		return output.OutputSize;
+		outputText.OutputData(bufOut);
+
+		LPTSTR posOutClouds = bufOut + outputText.OutputSize + 1 * isBinary;
+
+		if (isBinary)
+			outputClouds.OutputTableSizes(posOutClouds);
+
+		outputClouds.OutputData(posOutClouds);
+
+		return outputText.OutputSize + 1 + outputClouds.OutputSize;
 	}
 	catch (...)
 	{

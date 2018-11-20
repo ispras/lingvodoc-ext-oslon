@@ -321,7 +321,7 @@ public:
 						nEmpty++;
 				}
 
-				if (i_nEmtpy == nEmpty)
+				if (i_nEmtpy == nEmpty)//глупость!! надо просто сортировать с учётом числа пустых
 				{
 					corresps[iRow].nSoundsEmpty = nEmpty;
 
@@ -527,21 +527,35 @@ public:
 		TCHAR F2[30];
 		TCHAR F3[30];
 		int n;
+		InfoTree* trOut;
+		InfoNode *inMult;
+		InfoTree* trCld;
 
-		CognateList()
+		CognateList(InfoTree* _trOut, InfoNode *_inMult, InfoTree* _trCld = NULL)
 		{
+			trOut = _trOut;
+			inMult = _inMult;
+			trCld = _trCld;
 			l_ = f1_ = f2_ = f3_ = 0;
 			n = 0;
 		}
 		void Add(LPTSTR l, LPTSTR f1, LPTSTR f2, LPTSTR f3)
 		{
-			if (!l || !f1 || !f2 | !f3)
+			if (!l || !f1 || !f2 || !f3)
 				return;
 
 			_addcalc(&l_, l);
 			_addcalc(&f1_, f1);
 			_addcalc(&f2_, f2);
 			_addcalc(&f3_, f3);
+
+			if (trCld)
+			{
+				trCld->Add(l, IT_TAB);
+				trCld->Add(f1, IT_TAB);
+				trCld->Add(f2, IT_TAB);
+				trCld->Add(f3, IT_TAB);
+			}
 
 			n++;
 		}
@@ -552,10 +566,11 @@ public:
 			_donecalc(&f2_, F2, n);
 			_donecalc(&f3_, F3, n);
 		}
-		void Output(InfoTree* trOut, InfoNode *inMult)
+		void Output()
 		{
 			Done();
 			trOut->Add(L"Средние", IT_COLUMN | IT_TAB, inMult);
+			trOut->Add(NULL, IT_TAB, inMult);
 			trOut->Add(NULL, IT_TAB, inMult);
 			trOut->Add(L, IT_TAB, inMult);
 			trOut->Add(F1, IT_TAB, inMult);
@@ -585,9 +600,22 @@ public:
 		if (fLine)
 			trOut->Add(NULL, fLine, inTo);
 	}
-	void OutputCognatesBySound(Correspondence* cGroupTop, Correspondence* cOther, int iColDiff, InfoTree* trOut, InfoNode* inMult, Correspondence* cEqual)
+
+	void OutputCognatesBySound(Correspondence* cGroupTop, Correspondence* cOther, int iColDiff, InfoTree* trOut, InfoNode* inMult, InfoTree* trCld, Correspondence* cEqual)
 	{
+		if (trCld)
+		{
+
+			if (!cEqual->comparanda[iColDiff].sound)
+				trCld->Add(L"?", IT_SPACE);
+			else
+				trCld->Add(cEqual->comparanda[iColDiff].sound->Symbol, IT_SQRBRK | IT_SPACE);
+			trCld->Add(L"в других рядах", IT_LINEBRKAFTER);
+		}
+
+
 		bool isRegExtra = false;
+		bool isRows = false;
 
 		Correspondence* cExtra;
 		for (CorrespondenceTree::Iterator itExtra(&tCorrespondences, true); cExtra = itExtra.Next();) //всё верно
@@ -603,7 +631,7 @@ public:
 
 				if (itExtra.IsStartOfGroup())
 				{
-					CognateList cl;
+					CognateList cl(trOut, inMult, trCld);
 					for (itExtra.TryEnterGroup(); cExtra; cExtra = itExtra.Next())
 					{
 						if (cExtra->comparanda[iColDiff].formOrig)
@@ -627,9 +655,11 @@ public:
 						trOut->Add(NULL, IT_HORLINE, inMult);
 						if (cl.n > 1)
 						{
-							cl.Output(trOut, inMult);
+							cl.Output();
 							trOut->Add(NULL, IT_HORLINE, inMult);
 						}
+						if (cl.n > 0)
+							isRows = true;
 					}
 				}
 			}
@@ -642,9 +672,13 @@ public:
 		}
 
 		//		trOut->Add(NULL, IT_HORLINE, inMult);
+
+		if (trCld && !isRows)
+			trCld->Add(NULL, IT_EMPTYLINEBEFORE);
+
 	}
 
-	void OutputDeviationsWithMaterial(Condition* cnd, InfoTree* trOut)
+	void OutputDeviationsWithMaterial(Condition* cnd, InfoTree* trOut, InfoTree* trCld)
 	{
 		InfoNode* inCnd, *inMult;//, *inTo;//, *inOnce, *inMultList;
 
@@ -653,6 +687,10 @@ public:
 		//inMult = trOut->Add(L"Материал", IT_COLUMN | IT_EMPTYLINEBEFORE |IT_LINEBRKAFTER, inCnd);
 		//OutputHeader(trOut, inMult);
 		OutputPhoneticHeader(trOut, inMult);
+
+		int nDeviationGroups = 0;
+		int nDeviations;
+		TCHAR bufn[300];
 
 		Correspondence* cGroup, *cGroupTop;
 		for (CorrespondenceTree::Iterator itGroup(&tCorrespondences, true); cGroupTop = cGroup = itGroup.Next();) //всё верно, надо сразу на следующий прыгать (он сразу будет первым)
@@ -663,7 +701,6 @@ public:
 				continue;
 
 			bool isDeviations = false;
-
 
 			Correspondence* cOther;
 			for (CorrespondenceTree::Iterator itOther(&tCorrespondences, true); cOther = itOther.Next();) //всё верно
@@ -690,12 +727,55 @@ public:
 						{
 							isDeviations = true;
 
-							trOut->Add(L"Простейший ряд", IT_COLUMN | IT_TAB, inMult);
-							OutputSoundsHeader(cGroup, trOut, inMult, false, false, IT_DASH, IT_HORLINE);
+							nDeviationGroups++;
 
-							//единичные не берём
+							nDeviations = L'A';
+						}
+						_ltow(nDeviationGroups, bufn, 10);
 
-							CognateList cl;
+						lstrcat(bufn, L".");
+						strcatb(bufn, nDeviations);
+
+						lstrcat(bufn, L" ►►►");
+						trOut->Add(bufn, IT_EMPTYLINEBEFORE | IT_LINEBRKAFTER, inMult);
+						trOut->Add(NULL, IT_HORLINE, inMult);
+
+						nDeviations++;
+
+
+
+						trOut->Add(L"Простейший ряд", IT_COLUMN | IT_TAB, inMult);
+						OutputSoundsHeader(cGroupTop, trOut, inMult, false, false, IT_DASH, IT_LINEBRKAFTER);
+
+						trOut->Add(L"Словарь", IT_COLUMN | IT_SPACE, inMult);
+						trOut->Add(dictinfos[iColDiff].name, IT_LINEBRKAFTER, inMult);
+						trOut->Add(NULL, IT_HORLINE, inMult);
+
+
+
+						lstrcpy(bufn, L"График ");
+						strcati(bufn, nDeviationGroups);
+						lstrcat(bufn, L".");
+						strcatb(bufn, nDeviations);
+						trCld->Add(bufn, IT_COLUMN | IT_SPACE);//лучше разными вызовами Add и убрать к чёрту bufn
+
+						trCld->Add(cGroupTop->comparanda[iColDiff].sound->Symbol, IT_SQRBRK | IT_SPACE);
+						trCld->Add(L":", IT_SPACE);
+						trCld->Add(cOther->comparanda[iColDiff].sound->Symbol, IT_SQRBRK | IT_LINEBRKAFTER);
+
+
+
+
+						trCld->Add(cGroupTop->comparanda[iColDiff].sound->Symbol, IT_SQRBRK | IT_SPACE);
+						trCld->Add(L"в простейшем ряду", IT_COLUMN | IT_SPACE);
+						OutputSoundsHeader(cGroupTop, trCld, NULL, false, true, IT_DASH, IT_LINEBRKAFTER);
+
+
+
+						//единичные не берём
+
+						{
+							CognateList cl(trOut, inMult, trCld);
 
 							for (itGroup.TryEnterGroup(); cGroup; cGroup = itGroup.Next())
 							{
@@ -711,13 +791,16 @@ public:
 
 							if (cl.n > 1)
 							{
-								cl.Output(trOut, inMult);
+								cl.Output();
 								trOut->Add(NULL, IT_HORLINE, inMult);
 							}
+							else if (cl.n == 0)
+								trCld->Add(NULL, IT_EMPTYLINEBEFORE);
 						}
 
-						trOut->Add(L"Словарь", IT_COLUMN | IT_SPACE, inMult);
-						trOut->Add(dictinfos[iColDiff].name, IT_LINEBRKAFTER, inMult);
+
+
+
 
 						trOut->Add(L"Отклонение", IT_COLUMN | IT_SPACE, inMult);
 						trOut->Add(cGroupTop->comparanda[iColDiff].sound->Symbol, IT_SQRBRK, inMult);
@@ -728,36 +811,47 @@ public:
 
 						trOut->Add(L"Отклоняющийся ряд", IT_COLUMN | IT_TAB, inMult);
 						cOther->dataExtra = (void*)1;
-
 						OutputSoundsHeader(cOther, trOut, inMult, false, true, IT_DASH, IT_HORLINE);
 
-						CognateList cl;
-						for (itOther.TryEnterGroup(); cOther; cOther = itOther.Next())
+
+
+						trCld->Add(cOther->comparanda[iColDiff].sound->Symbol, IT_SQRBRK | IT_SPACE);
+						trCld->Add(L"в отклоняющемся ряду", IT_COLUMN | IT_SPACE);
+						OutputSoundsHeader(cOther, trCld, NULL, false, true, IT_DASH, IT_LINEBRKAFTER);
+
+
+
 						{
-							if (cOther->comparanda[iColDiff].formOrig)
+							bool isRows = false;
+							CognateList cl(trOut, inMult, trCld);
+							for (itOther.TryEnterGroup(); cOther; cOther = itOther.Next())
 							{
-								OutputCognate(&cOther->comparanda[iColDiff], trOut, inMult, true, IT_LINEBRK, &cl);
+								if (cOther->comparanda[iColDiff].formOrig)
+								{
+									OutputCognate(&cOther->comparanda[iColDiff], trOut, inMult, true, IT_LINEBRK, &cl);
+								}
+								if (!itOther.AreWeInsideGroup() || itOther.IsEndOfGroup())
+									break;
 							}
-							if (!itOther.AreWeInsideGroup() || itOther.IsEndOfGroup())
-								break;
-						}
 
 
-						trOut->Add(NULL, IT_HORLINE, inMult);
-						if (cl.n > 1)
-						{
-							cl.Output(trOut, inMult);
 							trOut->Add(NULL, IT_HORLINE, inMult);
-						}
+							if (cl.n > 1)
+							{
+								cl.Output();
+								trOut->Add(NULL, IT_HORLINE, inMult);
+							}
+							if (cl.n == 0) trCld->Add(NULL, IT_EMPTYLINEBEFORE);
 
-						OutputCognatesBySound(cGroupTop, cOther, iColDiff, trOut, inMult, cGroupTop);
-						OutputCognatesBySound(cGroupTop, cOther, iColDiff, trOut, inMult, cOther);
+							OutputCognatesBySound(cGroupTop, cOther, iColDiff, trOut, inMult, trCld, cGroupTop);
+							OutputCognatesBySound(cGroupTop, cOther, iColDiff, trOut, inMult, trCld, cOther);
+						}
 					}
 				}
 			}
 			if (isDeviations)
 				trOut->Add(NULL, IT_HORLINE, inMult);
-			//			trOut->Add(L"@@@@@@@@", IT_LINEBRKAFTER, inMult);
+
 		}
 		//		trOut->Add(NULL, IT_HORLINE, inMult);
 		trOut->Add(NULL, IT_SECTIONBRK, inMult);
