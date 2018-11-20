@@ -846,6 +846,7 @@ public:
 							OutputCognatesBySound(cGroupTop, cOther, iColDiff, trOut, inMult, trCld, cGroupTop);
 							OutputCognatesBySound(cGroupTop, cOther, iColDiff, trOut, inMult, trCld, cOther);
 						}
+						trCld->Add(NULL, IT_SECTIONBRK);
 					}
 				}
 			}
