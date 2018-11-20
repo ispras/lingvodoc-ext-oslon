@@ -193,11 +193,15 @@ CognateAcousticAnalysis_GetAllOutput(LPTSTR bufIn, int nCols, int nRows, LPTSTR 
 			outputText.OutputTableSizes(bufOut);
 
 		outputText.OutputData(bufOut);
+		bufOut[outputText.OutputSize] = L'\0';
 
 		LPTSTR posOutClouds = bufOut + outputText.OutputSize + 1 * isBinary;
 
 		if (isBinary)
+		{
+			bufOut[outputText.OutputSize + 1] = L'\0';
 			outputClouds.OutputTableSizes(posOutClouds);
+		}
 
 		outputClouds.OutputData(posOutClouds);
 
