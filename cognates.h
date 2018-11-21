@@ -740,9 +740,6 @@ public:
 						trOut->Add(bufn, IT_EMPTYLINEBEFORE | IT_LINEBRKAFTER, inMult);
 						trOut->Add(NULL, IT_HORLINE, inMult);
 
-						nDeviations++;
-
-
 
 						trOut->Add(L"Простейший ряд", IT_COLUMN | IT_TAB, inMult);
 						OutputSoundsHeader(cGroupTop, trOut, inMult, false, false, IT_DASH, IT_LINEBRKAFTER);
@@ -770,6 +767,7 @@ public:
 						trCld->Add(L"в простейшем ряду", IT_COLUMN | IT_SPACE);
 						OutputSoundsHeader(cGroupTop, trCld, NULL, false, true, IT_DASH, IT_LINEBRKAFTER);
 
+						nDeviations++;
 
 
 						//единичные не берём
@@ -846,6 +844,7 @@ public:
 							OutputCognatesBySound(cGroupTop, cOther, iColDiff, trOut, inMult, trCld, cGroupTop);
 							OutputCognatesBySound(cGroupTop, cOther, iColDiff, trOut, inMult, trCld, cOther);
 						}
+
 						trCld->Add(NULL, IT_SECTIONBRK);
 					}
 				}
