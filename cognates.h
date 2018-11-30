@@ -171,7 +171,11 @@ public:
 				}
 				return isInGroup;
 			}
-
+			void TryExitGroup()
+			{
+				isInGroup = false;
+				crspCurrInGroup = NULL;
+			}
 			bool IsStartOfGroup()
 			{
 				if (skipInsideGroup)
@@ -784,6 +788,7 @@ public:
 								if (itGroup.IsEndOfGroup())
 									break;
 							};
+							itGroup.TryExitGroup();
 
 							trOut->Add(NULL, IT_HORLINE, inMult);
 
