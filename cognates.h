@@ -39,16 +39,18 @@ public:
 			formIPA = _formIPA;
 			formOrig = _formOrig;
 			translation = _translation;
-			sound = NULL;
-			isSoundInCognates = false;
+
 			wF1 = _wF1;
 			wF2 = _wF2;
 			wF3 = _wF3;
 			wLength = _wLength;
+
 			if (_chrTranscr)
 				StrCpyWMax(chrTranscr, _chrTranscr, 8);
 			else
 				chrTranscr[0] = L'\0';
+
+			Reset_();
 		}
 		void Reset_()
 		{
@@ -289,7 +291,7 @@ public:
 	void AddCognateList(LPTSTR sIn, bool hasPhonData)
 	{
 		Parser parser(sIn, L"\0", PARSER_NONNULLEND);
-		LPTSTR wordOrig, wordIPA, wordTranslation, wchrTranscr = NULL, wLength = NULL, wF1 = NULL, wF2 = NULL, wF3 = NULL;
+		LPTSTR wordOrig = NULL, wordIPA = NULL, wordTranslation = NULL, wchrTranscr = NULL, wLength = NULL, wF1 = NULL, wF2 = NULL, wF3 = NULL;
 
 		int iRow = -1, iCol = -1;
 		while (parser.Next())
@@ -318,7 +320,7 @@ public:
 		{
 			for (int iRow = 0; iRow < nCorresp; iRow++)
 			{
-				bool nEmpty = 0;
+				int nEmpty = 0;
 				for (int iCol = 0; iCol < nDicts; iCol++)
 				{
 					if (!corresps[iRow].comparanda[iCol].formIPA)

@@ -130,15 +130,18 @@ public:
 
 	LPTSTR StoreString(LPTSTR str, int sz = -1)
 	{
-		if (!str[0])
+		if (str[0] == L'\0' || sz == 0)
 			return NULL;
-		else
+
+		if (sz == -1)
 		{
-			if (sz == -1)
-				sz = wcslen(str);
-			return pString.New(str, sz + 1);
+			sz = wcslen(str);
+			if (sz == 0)
+				return NULL;
 		}
+		return pString.New(str, sz + 1);
 	}
+
 	bool NextCol(int& iCol, int& iRow, int nCols, int nRows)
 	{
 		if (iCol == nCols - 1)
