@@ -48,7 +48,7 @@ public:
 			if (_chrTranscr)
 				StrCpyWMax(chrTranscr, _chrTranscr, 8);
 			else
-				chrTranscr[0] = '\0';
+				chrTranscr[0] = L'\0';
 		}
 		void Reset_()
 		{
@@ -308,7 +308,7 @@ public:
 			}
 		}
 	}
-	int Process(Condition* cnd)
+	void Process(Condition* cnd)
 	{
 		Reset();
 
@@ -873,8 +873,6 @@ public:
 		inMultList = trOut->Add(L"Оглавление (только неединичные соответствия)", IT_COLUMN | IT_EMPTYLINEBEFORE | IT_LINEBRKAFTER, inCnd);
 		inMult = trOut->Add(L"Материал — неединичные соответствия", IT_COLUMN | IT_EMPTYLINEBEFORE | IT_LINEBRKAFTER, inCnd);
 		inOnce = trOut->Add(L"Материал — единичные соответствия", IT_COLUMN | IT_EMPTYLINEBEFORE | IT_LINEBRKAFTER, inCnd);
-
-		int fAdd;
 
 		OutputLanguageHeader(trOut, inMult);
 		OutputLanguageHeader(trOut, inOnce);

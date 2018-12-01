@@ -235,7 +235,7 @@ public:
 				szHLine = nCols * wCol;
 			bufHLine = new TCHAR[szHLine + 1];
 			for (int i = 0; i < szHLine; i++) bufHLine[i] = L'—';
-			bufHLine[szHLine] = '\0';
+			bufHLine[szHLine] = L'\0';
 		}
 		return bufHLine;
 	}
@@ -249,7 +249,7 @@ public:
 			while (iColCur < nCols)
 				Tab();
 
-			posOut[0] = '\0';
+			posOut[0] = L'\0';
 			posOut += 1;
 		}
 		else
@@ -263,7 +263,7 @@ public:
 	void Tab()
 	{
 		if (isBinary)
-			posOut[0] = '\0';
+			posOut[0] = L'\0';
 		else
 			lstrcpy(posOut, TEXT("	"));
 		posOut++;
@@ -396,7 +396,7 @@ public:
 					{
 						sz = wCol;
 						posOutOld[sz - 1] = L'…';
-						posOutOld[sz] = '\0';
+						posOutOld[sz] = L'\0';
 						posOut = posOutOld + sz;
 					}
 				}
@@ -458,7 +458,7 @@ public:
 	}
 	void OutputTableSizes(LPTSTR bufExport)
 	{
-		bufExport[0] = '\0';
+		bufExport[0] = L'\0';
 
 		TCHAR bufNum[20];
 		for (int i = 0; i < nSections; i++)

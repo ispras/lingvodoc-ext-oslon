@@ -143,7 +143,7 @@ public:
 			else
 				canExist = false;
 
-			//symbolToReplaceBy[0] = '\0';
+			//symbolToReplaceBy[0] = L'\0';
 			exists = false;
 			dataExtra = nextModified = NULL;
 
@@ -160,7 +160,7 @@ public:
 		Sound(int _code, Row** rows = NULL)//, bool _isPreModifier = false, bool _isPostModifier = false)
 		{
 			Symbol[0] = _code;
-			Symbol[1] = '\0';
+			Symbol[1] = L'\0';
 
 			dataExtra = nextModified = NULL;
 			canExist = true;
@@ -544,7 +544,7 @@ public:
 			pInWord++;
 		}
 
-		chrWithMod[nPostModifiers + 1] = '\0';
+		chrWithMod[nPostModifiers + 1] = L'\0';
 
 		return nPostModifiers;
 	}
@@ -562,7 +562,7 @@ public:
 	}
 
 
-	bool SubmitWordForm(LPTSTR word)//будет меняться подстановками!
+	void SubmitWordForm(LPTSTR word)//будет меняться подстановками!
 	{
 		for (LPTSTR pInWord = word; *pInWord; pInWord++)
 		{
@@ -1076,8 +1076,8 @@ public:
 		{
 			condition = NULL;
 			nextSame = NULL;
-			symbolToReplace[0] = '\0';
-			symbolToReplaceBy[0] = '\0';
+			symbolToReplace[0] = L'\0';
+			symbolToReplaceBy[0] = L'\0';
 		}
 	};
 	IPA*				ipa;
@@ -1123,7 +1123,7 @@ public:
 		}
 
 		rule->symbolToReplace[0] = replaceWhat;
-		rule->symbolToReplace[1] = '\0';//пока только один знак
+		rule->symbolToReplace[1] = L'\0';//пока только один знак
 		StrCpyWMax(rule->symbolToReplaceBy, replaceBy, 8);
 		return rule;
 	}
@@ -1142,18 +1142,18 @@ public:
 		{
 			switch (parser.Separator())
 			{
-			case '>':
+			case L'>':
 				break;
-			case '|':
+			case L'|':
 				isCond = true;
 				rule = CreateRule(word[0], word + 1);
 				break;
-			case '_':
+			case L'_':
 				fPrev = word;
 				break;
-			case ',':
-			case '\r':
-			case '\0'://конец
+			case L',':
+			case L'\r':
+			case L'\0'://конец
 				if (isCond)
 				{
 					fNext = word;
@@ -1170,7 +1170,7 @@ public:
 	}
 	bool IsCharInTable(TCHAR chr)
 	{
-		return rules[chr].symbolToReplace[0] != '\0';
+		return rules[chr].symbolToReplace[0] != L'\0';
 	}
 	int Convert(LPTSTR bInBeg, LPTSTR bOutBeg)
 	{
@@ -1222,12 +1222,12 @@ public:
 			Replace:
 				switch (rule->symbolToReplaceBy[0])
 				{
-				case '\0':
+				case L'\0':
 				JustCopy:
 					*bOut = chr;
 					bOut++;
 					break;
-				case '@':
+				case L'@':
 					break;
 				default:
 					sz = wcslen(rule->symbolToReplaceBy);
@@ -1235,7 +1235,7 @@ public:
 					bOut += sz;
 				}
 			}
-			*bOut = '\0';
+			*bOut = L'\0';
 			if (iPass == 1)
 			{
 				if (!isCondition)

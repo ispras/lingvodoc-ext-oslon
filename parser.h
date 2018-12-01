@@ -17,7 +17,7 @@ public:
 	Parser(LPTSTR _text, LPTSTR _seps, int _flags = 0, int _size = 0)
 		//: text(_text)/*ничего не делает*/, flags(_flags), seps(_seps)
 	{
-		separatorLast = '\0';
+		separatorLast = L'\0';
 		flags = _flags;
 		seps = _seps;
 		old = NULL;
@@ -26,7 +26,7 @@ public:
 	}
 	bool IsItemEmpty()
 	{
-		return *old == '\0';
+		return *old == L'\0';
 	}
 	TCHAR Separator()
 	{
@@ -43,7 +43,7 @@ public:
 		//else
 		if (old == text)
 			return true;
-		else if (old[-1] == '\n')
+		else if (old[-1] == L'\n')
 			return true;
 		else
 			return false;
@@ -56,7 +56,7 @@ public:
 	{
 		if (!(flags & PARSER_NONNULLEND))
 		{
-			if (*pos == '\0')
+			if (*pos == L'\0')
 				return NULL;
 		}
 
@@ -81,7 +81,7 @@ public:
 						old = pos + 1;
 						goto EndSepCycle;
 					}
-					else if (!(flags & PARSER_NONNULLEND) && *pos == '\0')
+					else if (!(flags & PARSER_NONNULLEND) && *pos == L'\0')
 					{
 						separatorLast = *pos;
 						return old;
@@ -89,7 +89,7 @@ public:
 					else
 					{
 						separatorLast = *pos;
-						*pos = '\0';
+						*pos = L'\0';
 						pos++;
 						return old;
 					}

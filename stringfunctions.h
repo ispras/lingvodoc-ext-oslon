@@ -10,7 +10,7 @@
 void reverse(wchar_t s[])
 {
 	int i, j;
-	char c;
+	wchar_t c;
 
 	for (i = 0, j = lstrlen(s) - 1; i < j; i++, j--) {
 		c = s[i];
@@ -31,7 +31,7 @@ void _ltow(int n, wchar_t s[], int radix) //здесь radix всегда = 10
 	} while ((n /= 10) > 0);     /* delete it */
 	if (sign < 0)
 		s[i++] = '-';
-	s[i] = '\0';
+	s[i] = L'\0';
 	reverse(s);
 }
 
@@ -62,7 +62,7 @@ void strcatb(LPTSTR a, int b)
 {
 	int _sz = lstrlen(a);
 	a[_sz] = b;
-	a[_sz + 1] = '\0';
+	a[_sz + 1] = L'\0';
 }
 
 
@@ -73,7 +73,7 @@ LPTSTR StrCpyWMax(LPTSTR dest, LPTSTR src, int len)
 		return wcscpy(dest, src);
 	else
 	{
-		dest[len - 1] = '\0';
+		dest[len - 1] = L'\0';
 		return (LPTSTR)memcpy(dest, src, (len - 1) * sizeof(TCHAR));
 	}
 }
