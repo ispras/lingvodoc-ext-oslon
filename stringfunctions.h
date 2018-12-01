@@ -1,5 +1,6 @@
 #pragma once
 
+
 #ifdef __linux__ 
 #include <cstdlib>
 #include <stdio.h>
@@ -50,6 +51,7 @@ LPTSTR _donecalc(float*d, LPTSTR s, int _n)
 #endif
 
 
+
 void strcati(LPTSTR a, int i)
 {
 	int sz = lstrlen(a);
@@ -64,6 +66,7 @@ void strcatb(LPTSTR a, int b)
 }
 
 
+
 LPTSTR StrCpyWMax(LPTSTR dest, LPTSTR src, int len)
 {
 	if (lstrlen(src) < len)
@@ -74,4 +77,3 @@ LPTSTR StrCpyWMax(LPTSTR dest, LPTSTR src, int len)
 		return (LPTSTR)memcpy(dest, src, (len - 1) * sizeof(TCHAR));
 	}
 }
-

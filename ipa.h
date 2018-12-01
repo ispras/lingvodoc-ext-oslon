@@ -522,7 +522,7 @@ public:
 
 		while (true)
 		{
-			Sound* soundMod = &ipaAll[pInWord[1]];//GetSoundWithReplacement(pInWord+1);;//&ipaAll[chrMod];
+			Sound* soundMod = &ipaAll[pInWord[1]];
 
 			if (soundMod->feature[FT_CLASS] == FT_MODIFIER)
 			{
@@ -606,7 +606,6 @@ public:
 	}
 	bool EndSubmitWordForms()
 	{
-		//out(tblSounds[FT_CONSONANT].llRows[FT_PLACE].first->isEmpty);
 		for (int i = 0; i < FT_NSOUNDCLASSES; i++)
 		{
 			tblSounds[i].CountRows();
