@@ -689,9 +689,7 @@ public:
 		InfoNode* inCnd, *inMult;//, *inTo;//, *inOnce, *inMultList;
 
 		inMult = inCnd = trOut->Add(cnd->title, IT_COLUMN | IT_LINEBRKBEFORE | IT_LINEBRKAFTER, NULL, false, cnd);
-		//trOut->Add(NULL, IT_HORLINE, inMult);
-		//inMult = trOut->Add(L"Материал", IT_COLUMN | IT_EMPTYLINEBEFORE |IT_LINEBRKAFTER, inCnd);
-		//OutputHeader(trOut, inMult);
+
 		OutputPhoneticHeader(trOut, inMult);
 
 		int nDeviationGroups = 0;
@@ -729,6 +727,24 @@ public:
 				{
 					if (cGroupTop->comparanda[iColDiff].sound)
 					{
+						bool isSomethingInGroup = false;
+						for (itGroup.TryEnterGroup(); cGroup; cGroup = itGroup.Next())
+						{
+							if (cGroup->comparanda[iColDiff].formOrig)
+							{
+								isSomethingInGroup = true;
+								break;
+							}
+							if (itGroup.IsEndOfGroup())
+								break;
+						}
+						itGroup.TryExitGroup();
+
+
+						if (!isSomethingInGroup)
+							continue;
+
+
 						if (!isDeviations)
 						{
 							isDeviations = true;
@@ -746,12 +762,13 @@ public:
 						trOut->Add(bufn, IT_EMPTYLINEBEFORE | IT_LINEBRKAFTER, inMult);
 						trOut->Add(NULL, IT_HORLINE, inMult);
 
+						trOut->Add(L"Словарь", IT_COLUMN | IT_SPACE, inMult);
+						trOut->Add(dictinfos[iColDiff].name, IT_LINEBRKAFTER, inMult);
+						trOut->Add(NULL, IT_HORLINE, inMult);
 
 						trOut->Add(L"Простейший ряд", IT_COLUMN | IT_TAB, inMult);
 						OutputSoundsHeader(cGroupTop, trOut, inMult, false, false, IT_DASH, IT_LINEBRKAFTER);
 
-						trOut->Add(L"Словарь", IT_COLUMN | IT_SPACE, inMult);
-						trOut->Add(dictinfos[iColDiff].name, IT_LINEBRKAFTER, inMult);
 						trOut->Add(NULL, IT_HORLINE, inMult);
 
 
@@ -789,7 +806,7 @@ public:
 								}
 								if (itGroup.IsEndOfGroup())
 									break;
-							};
+							}
 							itGroup.TryExitGroup();
 
 							trOut->Add(NULL, IT_HORLINE, inMult);
