@@ -1172,11 +1172,12 @@ public:
 	{
 		return rules[chr].symbolToReplace[0] != L'\0';
 	}
-	int Convert(LPTSTR bInBeg, LPTSTR bOutBeg)
+	int Convert(LPTSTR bInBeg, LPTSTR bOutBeg)//, int szOut)
 	{
 		Segmentizer sgmntzr(ipa, bInBeg, false);
 
-		TCHAR buf[200];
+		TCHAR buf[2000];//где-то выше проверять длину; длину буфера где-то задавать; или динамически то выделять
+
 		bool isCondition = false;
 		//for (; *bIn; bIn++)
 
