@@ -471,6 +471,7 @@ public://временно вм. friend
 	int 			curFeatureValue[FT_NSOUNDCLASSES];
 	SoundTable		tblSounds[FT_NSOUNDCLASSES];
 	Pool<TCHAR>		pString;
+	LPTSTR			nameFeature[FT_NSOUNDCLASSES];
 
 public:
 	LPTSTR tblPostModifiers, tblConsonants, tblVowels;//, tblReplaceLat, tblReplaceCyr;
@@ -496,7 +497,14 @@ public:
 		BuildPotentialSoundTable(FT_CONSONANT, tblConsonants, FT_PLACE);
 		BuildPotentialSoundTable(FT_VOWEL, tblVowels, FT_PLACE);
 
-		tblSounds[FT_UNKNOWNSOUND].InitIPAMemory(&ipaAll);//плохо, что надо явно вызывать!!!		
+		tblSounds[FT_UNKNOWNSOUND].InitIPAMemory(&ipaAll);//плохо, что надо явно вызывать!!!
+
+
+
+		nameFeature[FT_CLASS] = L"класс";
+		nameFeature[FT_MANNER] = L"способ";
+		nameFeature[FT_PLACE] = L"место";
+		nameFeature[FT_COARTICULATION] = L"ко-ция";
 	}
 	~IPA()
 	{
@@ -628,6 +636,25 @@ public:
 			else
 				fTo[iFType] = fFrom[iFType];
 		}
+	}
+	LPTSTR GetFeatureNames(int* ftrs, int iFType, LPTSTR buf)
+	{
+		buf[0] = '\0';
+
+		Feature* f;
+		for (BTree::Walker w(&tFeatures); f = (Feature*)w.Next();)
+		{
+			if (f->iType == iFType && (f->iClass == ftrs[FT_CLASS] || f->iClass == FT_COARTICULATION)) //FT_COARTICULATION — общее для С и Г?
+			{
+				if (f->value & ftrs[iFType])
+				{
+					lstrcat(buf, f->abbr);
+					lstrcat(buf, L" ");
+				}
+			}
+		}
+
+		return buf;
 	}
 	bool SoundExists(int iChr)
 	{
@@ -857,6 +884,7 @@ class Condition : public LinkedElement<Condition>, public OwnNew
 {
 public:
 	LPTSTR		title;
+	void*		dataExtra;
 
 	class Segment
 	{
@@ -1024,11 +1052,13 @@ public:
 		sgmtzr = _sgmtzr;
 		ResetConditions();
 	}
-	void AddCondition(LPTSTR _ftThis, LPTSTR _ftPrev, LPTSTR _ftNext, int flags = 0, LPTSTR _title = NULL)
+	Condition* AddCondition(LPTSTR _ftThis, LPTSTR _ftPrev, LPTSTR _ftNext, int flags = 0, LPTSTR _title = NULL)
 	{
 		Condition* c = ::new Condition(_ftThis, _ftPrev, _ftNext, flags, _title);
 
 		llConditions.Add(c);
+
+		return c;
 	}
 	Condition* FirstCondition()
 	{

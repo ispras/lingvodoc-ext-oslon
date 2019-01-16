@@ -75,7 +75,7 @@ public:
 				iSep++;
 				if (*pos == seps[iSep])
 				{
-					if ((flags & PARSER_SKIPNEWLINE) && *pos == '\n')
+					if ((flags & PARSER_SKIPNEWLINE) && *pos == L'\n')
 					{
 						//	old = ++pos; //ЭТО НЕ СДЕЛАНО!!
 						old = pos + 1;

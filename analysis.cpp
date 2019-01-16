@@ -21,6 +21,7 @@
 
 #include "infotree.h"
 #include "dictionary.h"
+#include "distances.h"
 #include "cognates.h"
 
 //летит
@@ -140,6 +141,85 @@ CognateAnalysis_GetAllOutput(LPTSTR bufIn, int nCols, int nRows, LPTSTR bufOut, 
 #endif
 
 
+
+
+#ifdef __linux__ 
+extern "C" {int
+#else
+int __declspec(dllexport)
+#endif
+CognateDistanceAnalysis_GetAllOutput(LPTSTR bufIn, int nCols, int nRows, LPTSTR bufOut, int flags)
+{
+	if (nCols < 1 || nCols > 1000)
+		return -1;
+
+	int szOutput = nRows * nCols * 60 + 300;
+
+	if (!bufIn)
+		return szOutput;
+
+	try
+	{
+		bool isBinary = flags == 2;
+		nRows -= 1;// потому что там ещё и заголовок
+
+		Comparison cmp(nRows, nCols);
+		LPTSTR title;
+		if (!isBinary) title = L"ВЫЧИСЛЕНИЕ ПОПАРНЫХ РАССТОЯНИЙ"; else title = NULL;
+		InfoTree trOut(title);
+
+		cmp.AddCognateList(bufIn, false);
+
+		Query qry;
+
+		qry.AddCondition(L"Г", NULL, NULL, QF_OBJECTONLYONCE, L"Соответствия по первому гласному");
+		//		qry.AddCondition(L"Г", L"#", NULL, 0, 					L"Соответствия по начальному гласному");
+		//		qry.AddCondition(L"Г", L"С", NULL, QF_OBJECTONLYONCE, 	L"Соответствия по гласному после первого согласного");
+		qry.AddCondition(L"С", L"#", NULL, 0, L"Соответствия по начальному согласному");
+
+		if (!isBinary)
+			cmp.OutputLanguageList(&trOut);
+
+
+		DistanceMatrix mtxSum(cmp.nDicts);
+
+		for (Condition* cnd = qry.FirstCondition(); cnd; cnd = qry.NextCondition())
+		{
+			cmp.Process(cnd);
+
+			DistanceMatrix mtx(cmp.nDicts);
+
+
+			cmp.CalculateDistances(&mtxSum);
+
+			cmp.CalculateDistances(&mtx);
+			cmp.OutputDistances(cnd, &mtx, &trOut);
+		}
+
+
+		Condition* cnd = qry.AddCondition(NULL, NULL, NULL, 0, L"Суммарная матрица");
+		cmp.OutputDistances(cnd, &mtxSum, &trOut);
+
+
+		OutputString output(szOutput, 20, nCols * 2, isBinary);
+		output.Build(trOut.ndRoot);
+
+		if (isBinary)
+			output.OutputTableSizes(bufOut);
+		output.OutputData(bufOut);
+
+		return output.OutputSize;
+	}
+	catch (...)
+	{
+		return -2;
+	}
+}
+#ifdef __linux__ 
+}
+#endif
+
+
 #ifdef __linux__ 
 extern "C" {int
 #else
@@ -232,7 +312,7 @@ Retranscribe(LPTSTR bufIn, LPTSTR bufOut, LPTSTR langIn, LPTSTR langOut, int fla
 	{
 		Dictionary dic;
 
-		dic.ReplaceSymbols(bufIn, bufOut, dic.GuessReplacer(bufIn));
+		dic.ReplaceSymbols(bufIn, bufOut/*, 200*/, dic.GuessReplacer(bufIn));
 
 
 		//lstrcpy(bufOut, bufIn);
@@ -247,7 +327,97 @@ Retranscribe(LPTSTR bufIn, LPTSTR bufOut, LPTSTR langIn, LPTSTR langOut, int fla
 }
 #endif
 
+#ifdef __linux__ 
+extern "C" {int
+#else
+int __declspec(dllexport)
+#endif
+GetPhonemeDifference(LPTSTR bufIn, LPTSTR bufOut)
+{
+	try
+	{
+		InfoTree trOut(L"МЕЖФОНЕМНОЕ РАССТОЯНИЕ");
+		Dictionary dic;
 
+		TCHAR bufIPA[1000];
+		dic.ReplaceSymbols(bufIn, bufIPA, dic.GuessReplacer(bufIn));
+
+		Parser parser(bufIPA, L" ");
+		Sound* s[2];
+		s[0] = s[1] = NULL;
+
+		dic.ipa->SubmitWordForm(bufIPA);
+		dic.ipa->EndSubmitWordForms();
+
+		for (int i = 0; parser.Next() && i <= 1; i++)
+		{
+			Segmentizer sgmntzr(dic.ipa, parser.Current());
+
+			s[i] = sgmntzr.GetNext();
+		}
+
+		DistanceMatrix mtx(2);
+
+
+		//trOut.Add(NULL, IT_LINEBRK);
+		//trOut.Add(NULL, IT_LINEBRK);
+
+		InfoNode* in;
+		TCHAR buf[1000];
+
+		trOut.Add(NULL, IT_HORLINE);
+		for (int i = 0; i <= 1; i++)
+		{
+			if (s[i])
+			{
+				in = trOut.Add(s[i]->Symbol, IT_SQRBRK | IT_LINEBRKAFTER);
+
+				for (int iFType = 0; iFType < FT_NFEATURETYPES; iFType++)
+				{
+					trOut.Add(dic.ipa->nameFeature[iFType], IT_COLUMN | IT_TAB);
+					trOut.Add(strcpyh(buf, s[i]->feature[iFType], 8), IT_COLUMN | IT_TAB);
+
+					dic.ipa->GetFeatureNames(s[i]->feature, iFType, buf);
+					trOut.Add(buf, IT_LINEBRKAFTER);
+				}
+
+				//trOut.Add(NULL, IT_LINEBRK);
+				trOut.Add(NULL, IT_HORLINE);
+			}
+		}
+
+
+		//trOut.Add(NULL, IT_LINEBRK);
+		//trOut.Add(NULL, IT_LINEBRK);
+
+		for (int i = 0; i <= 1; i++)
+		{
+			if (s[i])
+				trOut.Add(s[i]->Symbol, 0);
+			else
+				trOut.Add(L"?", 0);
+			if (i == 0)
+				trOut.Add(L" : ", 0);
+		}
+
+		trOut.Add(L" → ", 0);
+		trOut.Add(strcpyi(bufOut, mtx.GetDistance(0, 1, s[0], s[1])), 0);
+
+		OutputString output(2000, 100); //Dictionary::OutputString катит!!!
+		output.Build(trOut.ndRoot);
+
+		lstrcpy(bufOut, output.bufOut);
+
+		return 1;
+	}
+	catch (...)
+	{
+		return -2;
+	}
+}
+#ifdef __linux__ 
+}
+#endif
 
 
 /*

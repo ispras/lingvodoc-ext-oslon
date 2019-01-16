@@ -309,6 +309,7 @@ public:
 				new (&corresps[iRow].comparanda[iCol]) Comparandum(wordIPA, wordOrig, wordTranslation, wchrTranscr, wLength, wF1, wF2, wF3);
 			}
 		}
+		dic.ipa->EndSubmitWordForms();
 	}
 	void Process(Condition* cnd)
 	{
@@ -456,15 +457,9 @@ public:
 	void OutputLanguageHeader(InfoTree* trOut, InfoNode* ndTo)
 	{
 		LPTSTR word;
-		//int fAdd = IT_TAB;
 		trOut->Add(NULL, IT_HORLINE, ndTo);
 		for (int iCol = 0; iCol < nDicts; iCol++)
 		{
-			//if (iCol != 0) fAdd = IT_TAB;
-			//TCHAR buf[1000];
-			//_ltow(iCol + 1, buf, 10);
-			//word = buf;
-			//trOut->Add(word, fAdd, ndTo);
 			trOut->Add(dictinfos[iCol].name, IT_TAB, ndTo);
 			trOut->Add(L"", IT_TAB, ndTo);
 		}
@@ -926,4 +921,59 @@ public:
 		trOut->Add(NULL, IT_HORLINE, inOnce);
 		trOut->Add(NULL, IT_SECTIONBRK, inOnce);
 	}
+
+	void CalculateDistances(DistanceMatrix* mtx)
+	{
+		Correspondence* c;
+		for (CorrespondenceTree::Iterator it(&tCorrespondences); c = it.Next();)
+		{
+			if (it.IsStartOfGroup())
+			{
+				for (int iRow = 0; iRow < nDicts; iRow++)
+				{
+					for (int iCol = 0; iCol < nDicts; iCol++)
+					{
+						mtx->GetDistance(iRow, iCol, c->comparanda[iRow].sound, c->comparanda[iCol].sound, true);
+					}
+				}
+			}
+			//if (it.IsEndOfGroup())
+			//{
+			//}
+		}
+	}
+
+	void OutputDistances(Condition* cnd, DistanceMatrix* mtx, InfoTree* trOut)
+	{
+		LPTSTR word;
+		Sound* sound;
+
+		InfoNode* inCnd, *inMtx;
+
+		inCnd = trOut->Add(cnd->title, IT_COLUMN | IT_LINEBRKBEFORE | IT_LINEBRKAFTER, NULL, false, cnd);
+		trOut->Add(NULL, IT_LINEBRK, inCnd);
+		trOut->Add(NULL, IT_LINEBRK, inCnd);
+
+		trOut->Add(NULL, IT_TAB, inCnd);
+		for (int iCol = 0; iCol < nDicts; iCol++)
+			trOut->Add(dictinfos[iCol].name, IT_TAB, inCnd);
+		inMtx = trOut->Add(NULL, IT_LINEBRK, inCnd);
+
+		for (int iRow = 0; iRow < nDicts; iRow++)
+		{
+			trOut->Add(dictinfos[iRow].name, IT_TAB, inMtx);
+
+			for (int iCol = 0; iCol < nDicts;/*iRow;*/ iCol++)
+			{
+				TCHAR bufn[20];
+				trOut->Add(strcpyi(bufn, mtx->langs[iRow].dist[iCol]), IT_TAB, inMtx);
+			}
+
+			trOut->Add(NULL, IT_LINEBRK, inMtx);
+		}
+
+		trOut->Add(NULL, IT_HORLINE, inCnd);
+		trOut->Add(NULL, IT_SECTIONBRK, inCnd);
+	}
+
 };

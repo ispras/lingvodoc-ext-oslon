@@ -85,7 +85,7 @@ public:
 		delete ipa;
 	}
 
-	int ReplaceSymbols(LPTSTR bIn, LPTSTR bOut, int iReplacerToUse = RT_DEFAULT)//, LPTSTR lang = NULL)
+	int ReplaceSymbols(LPTSTR bIn, LPTSTR bOut/*, int szOut*/, int iReplacerToUse = RT_DEFAULT)//, LPTSTR lang = NULL)
 	{
 		switch (iReplacerToUse)
 		{
@@ -100,7 +100,7 @@ public:
 			return 0;
 		}
 
-		return replacers[iReplacerToUse].Convert(bIn, bOut);
+		return replacers[iReplacerToUse].Convert(bIn, bOut);//, szOut);
 	}
 
 
@@ -167,7 +167,7 @@ public:
 			if (dinfo.iReplacer == RT_NONE)
 				dinfo.iReplacer = GuessReplacer(wordOrig);
 
-			int szIPA = ReplaceSymbols(wordOrig, buf, dinfo.iReplacer);
+			int szIPA = ReplaceSymbols(wordOrig, buf/*, 1000*/, dinfo.iReplacer);
 			wordIPA = pString.New(buf, szIPA + 1);
 			ipa->SubmitWordForm(wordIPA);
 		}

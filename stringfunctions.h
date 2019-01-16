@@ -50,8 +50,42 @@ LPTSTR _donecalc(float*d, LPTSTR s, int _n)
 
 #endif
 
+int mod(int i)
+{
+	if (i < 0) return -i;
+	return i;
+}
 
 
+LPTSTR strcpyi(LPTSTR a, int i)
+{
+	_ltow(i, a, 10);
+	return a;
+}
+LPTSTR strcpyh(LPTSTR a, int i, int szpad = 0)
+{
+	if (!szpad)
+	{
+		_ltow(i, a, 16);
+	}
+	else
+	{
+		TCHAR _buf[20];
+		//string chup=_strupr(_ltoa(i,_buf,16));
+		_ltow(i, _buf, 16);
+		int sz = lstrlen(_buf);
+
+		for (int i = 0; i < szpad - sz; i++)
+			a[i] = L'0';
+
+		int end = szpad - sz;
+
+		a[end] = '\0';
+		lstrcpy(a + end, _buf);
+	}
+
+	return a;
+}
 void strcati(LPTSTR a, int i)
 {
 	int sz = lstrlen(a);

@@ -392,9 +392,9 @@ public:
 			{
 				if (!isBinary && nCols > 0)
 				{
-					if (posOut - posOutOld > wCol)		//if (nCols && (posOut -  posOutOld > wCol))//так не прёт
+					if (posOut - posOutOld >= wCol)		//if (nCols && (posOut -  posOutOld > wCol))//так не прёт
 					{
-						sz = wCol;
+						sz = wCol - 1;
 						posOutOld[sz - 1] = L'…';
 						posOutOld[sz] = L'\0';
 						posOut = posOutOld + sz;
