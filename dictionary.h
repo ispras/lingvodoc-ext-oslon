@@ -267,21 +267,21 @@ public:
 		SoundTable::Iterator* it = ipa->Iterator(iClass);
 		while (sound = it->Next())
 		{
-			if (sound->RowNumber(FT_MANNER) > iRowPrev)
+			if (sound->Ordinal(FT_MANNER) > iRowPrev)
 			{
 				trOut->Add(NULL, IT_LINEBRK);
 				iColPrev = -1;
 			}
 
-			for (int i = iColPrev + 1; i < sound->RowNumber(FT_PLACE); i++)
+			for (int i = iColPrev + 1; i < sound->Ordinal(FT_PLACE); i++)
 			{
 				trOut->Add(L"", IT_TAB);
 			}
 
 			ndSound = trOut->Add(sound->Symbol, IT_TAB);
 
-			iColPrev = sound->RowNumber(FT_PLACE);
-			iRowPrev = sound->RowNumber(FT_MANNER);
+			iColPrev = sound->Ordinal(FT_PLACE);
+			iRowPrev = sound->Ordinal(FT_MANNER);
 		}
 		it->Done();
 

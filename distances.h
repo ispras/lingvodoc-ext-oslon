@@ -1,4 +1,4 @@
-class DistanceMatrix
+﻿class DistanceMatrix
 {
 public:
 	class MtxLang
@@ -65,10 +65,18 @@ public:
 					dist += diff;
 				}
 				*/
-				dist = mod(s1->RowNumber(FT_PLACE) - s2->RowNumber(FT_PLACE))
-					+ mod(s1->RowNumber(FT_MANNER) - s2->RowNumber(FT_MANNER))
-					+ mod(s1->RowNumber(FT_COARTICULATION) - s2->RowNumber(FT_COARTICULATION));
-				//dist /= 2;
+
+				dist = abs(s1->OrdinalInIPA(FT_PLACE) - s2->OrdinalInIPA(FT_PLACE))
+					+ abs(s1->OrdinalInIPA(FT_MANNER) - s2->OrdinalInIPA(FT_MANNER))
+					;//	 + abs(s1->OrdinalInIPA(FT_COARTICULATION) - s2->OrdinalInIPA(FT_COARTICULATION));
+
+
+				//ВРЕМЕННАЯ МЕРА ДЛЯ НЕПРАВИЛЬНОЙ МФА В СЛОВАРЯХ
+				if ((s1->Symbol[0] == L'x' && s2->Symbol[0] == L'χ') || (s2->Symbol[0] == L'x' && s1->Symbol[0] == L'?'))
+					dist = 0;
+				if ((s1->Symbol[0] == L'w' && s2->Symbol[0] == L'v') || (s2->Symbol[0] == L'v' && s1->Symbol[0] == L'w'))
+					dist = 0;
+				////////////////////////////////////////////////
 			}
 		}
 

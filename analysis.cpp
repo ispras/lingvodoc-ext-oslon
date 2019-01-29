@@ -299,8 +299,6 @@ CognateAcousticAnalysis_GetAllOutput(LPTSTR bufIn, int nCols, int nRows, LPTSTR 
 
 
 
-
-
 #ifdef __linux__ 
 extern "C" {int
 #else
@@ -337,6 +335,7 @@ GetPhonemeDifference(LPTSTR bufIn, LPTSTR bufOut)
 	try
 	{
 		InfoTree trOut(L"МЕЖФОНЕМНОЕ РАССТОЯНИЕ");
+
 		Dictionary dic;
 
 		TCHAR bufIPA[1000];
@@ -358,14 +357,11 @@ GetPhonemeDifference(LPTSTR bufIn, LPTSTR bufOut)
 
 		DistanceMatrix mtx(2);
 
-
-		//trOut.Add(NULL, IT_LINEBRK);
-		//trOut.Add(NULL, IT_LINEBRK);
-
 		InfoNode* in;
 		TCHAR buf[1000];
 
 		trOut.Add(NULL, IT_HORLINE);
+
 		for (int i = 0; i <= 1; i++)
 		{
 			if (s[i])
@@ -386,10 +382,6 @@ GetPhonemeDifference(LPTSTR bufIn, LPTSTR bufOut)
 			}
 		}
 
-
-		//trOut.Add(NULL, IT_LINEBRK);
-		//trOut.Add(NULL, IT_LINEBRK);
-
 		for (int i = 0; i <= 1; i++)
 		{
 			if (s[i])
@@ -407,7 +399,6 @@ GetPhonemeDifference(LPTSTR bufIn, LPTSTR bufOut)
 		output.Build(trOut.ndRoot);
 
 		lstrcpy(bufOut, output.bufOut);
-
 		return 1;
 	}
 	catch (...)
@@ -419,10 +410,10 @@ GetPhonemeDifference(LPTSTR bufIn, LPTSTR bufOut)
 }
 #endif
 
-
 /*
 BOOL WINAPI DllMain(_In_ HINSTANCE hinstDLL, _In_ DWORD fdwReason, _In_ LPVOID lpvReserved)
 {
-//	MsgBox(ipaVowels);
+	if (fdwReason == DLL_PROCESS_ATTACH)
+	MsgBox(L"Порядочек-с!");
 }
 */

@@ -112,11 +112,15 @@ public:
 		int			valBase;
 		int			valMod;
 		int			i;
-		Row()
+		int			iIPA;
+		Row(Row* rowPrev = NULL)
 		{
 			i = 0;
 			isEmpty = true;
 			valBase = valMod = 0;
+
+			if (rowPrev)
+				iIPA = rowPrev->iIPA;
 		}
 	};
 
@@ -191,11 +195,17 @@ public:
 				}
 			}
 		}
-		int RowNumber(int iFType)
+		int Ordinal(int iFType)
 		{
 			if (!row[iFType])
 				return -1;
 			return row[iFType]->i;
+		}
+		int OrdinalInIPA(int iFType)
+		{
+			if (!row[iFType])
+				return -1;
+			return row[iFType]->iIPA;
 		}
 	};
 
@@ -216,6 +226,7 @@ public:
 
 	LinkedList<Row> llRows[FT_NFEATURETYPES];
 	Row*			rowCurrent[FT_NFEATURETYPES];
+	//	int				iRowCurrent[FT_NFEATURETYPES];
 
 	class Iterator
 	{
@@ -309,11 +320,11 @@ public:
 					rowPrev = row;
 				}
 			AddRow:
-				row = new Row;
+				row = new Row(rowPrev);
 				llRows[iFType].Add(row, rowPrev);
+
 				AddRowValue(iFType, sound->feature[iFType], FT_SET, row);
 				AddRowValue(FT_COARTICULATION, sound->feature[FT_COARTICULATION], FT_SET, row);
-
 			FoundRow:
 				sound->row[iFType] = row;
 
@@ -397,24 +408,28 @@ public:
 	}
 	void NextRow(int iFType)
 	{
-		Row* row;
+		int iCur;
 		if (!llRows[iFType].first)
 		{
-			row = new Row;
-			llRows[iFType].Add(row);
+			iCur = -1;
+			goto AddNewRow;
 		}
 		else if (!rowCurrent[iFType])
-			row = llRows[iFType].first;
-		else if (!rowCurrent[iFType]->next) //то же самое действие
 		{
-			row = new Row;
-			llRows[iFType].Add(row);
+			rowCurrent[iFType] = llRows[iFType].first;
+		}
+		else if (!rowCurrent[iFType]->next)
+		{
+			iCur = rowCurrent[iFType]->iIPA;
+		AddNewRow:
+			rowCurrent[iFType] = new Row;
+			llRows[iFType].Add(rowCurrent[iFType]);
+			rowCurrent[iFType]->iIPA = iCur + 1;
 		}
 		else
 		{
-			row = rowCurrent[iFType]->next;
+			rowCurrent[iFType] = rowCurrent[iFType]->next;
 		}
-		rowCurrent[iFType] = row;
 	}
 	bool PutSoundInIPATable(int iChr)
 	{

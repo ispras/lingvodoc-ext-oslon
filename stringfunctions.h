@@ -50,7 +50,7 @@ LPTSTR _donecalc(float*d, LPTSTR s, int _n)
 
 #endif
 
-int mod(int i)
+int abs(int i)
 {
 	if (i < 0) return -i;
 	return i;
