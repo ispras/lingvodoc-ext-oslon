@@ -72,9 +72,9 @@ public:
 
 
 				//ВРЕМЕННАЯ МЕРА ДЛЯ НЕПРАВИЛЬНОЙ МФА В СЛОВАРЯХ
-				if ((s1->Symbol[0] == L'x' && s2->Symbol[0] == L'χ') || (s2->Symbol[0] == L'x' && s1->Symbol[0] == L'?'))
+				if ((s1->Symbol[0] == L'x' && s2->Symbol[0] == L'χ') || (s2->Symbol[0] == L'x' && s1->Symbol[0] == L'χ'))
 					dist = 0;
-				if ((s1->Symbol[0] == L'w' && s2->Symbol[0] == L'v') || (s2->Symbol[0] == L'v' && s1->Symbol[0] == L'w'))
+				if ((s1->Symbol[0] == L'w' && s2->Symbol[0] == L'v') || (s2->Symbol[0] == L'w' && s1->Symbol[0] == L'v'))
 					dist = 0;
 				////////////////////////////////////////////////
 			}
