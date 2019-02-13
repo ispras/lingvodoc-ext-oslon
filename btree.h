@@ -510,34 +510,19 @@ public:
 			return NULL;
 		}
 	}
-	/*	inline BNode* Remove(Word* word)
+	bool Remove(BNode* _ndToFind)
+	{
+		if (ndRoot)
 		{
 			ndFound = NULL;
-			if (ndRoot)
-			{
-				wSearch = *word;
-				remove(this->ndRoot);
-			}
-			return ndFound;
+			ndToFind = _ndToFind;
+			remove(this->ndRoot);
+			return !!ndFound;
 		}
+		else
+			return false;
+	}
 
-		inline BNode* Remove(BNode* node)
-		{
-
-		}
-
-		inline BNode* Find(char* word, int size)
-		{
-			if (this->ndRoot)
-			{
-				wSearch.pos = word;
-				wSearch.size = size;
-				return find(this->ndRoot);
-			}
-			else
-				return NULL;
-		}
-	*/
 
 	BNode* Find(BNode* _ndToFind)
 	{

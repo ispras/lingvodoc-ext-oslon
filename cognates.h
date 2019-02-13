@@ -69,6 +69,7 @@ public:
 		int				nSoundsSame;
 		int				nSoundsEmpty;
 		void*			dataExtra;
+		bool			degenerate;
 
 		Correspondence(int nDicts, int _iRow)
 		{
@@ -80,6 +81,7 @@ public:
 			rankAllSoundsSame = 0;
 			nSoundsSame = 0;
 			nSoundsEmpty = 0;
+			degenerate = false;
 
 			dataExtra = NULL;
 		}
@@ -204,10 +206,14 @@ public:
 			}
 			void NextAndCheck()
 			{
+			TryAgain:
 				if (!Walker::Next())
 					return;
 
 				Correspondence* crspCurr = (Correspondence*)Current();
+
+				if (crspCurr->degenerate)
+					goto TryAgain;
 
 				if (!skipInsideGroup)
 				{
@@ -282,6 +288,7 @@ public:
 				corresps[iRow].rankAllSoundsSame = 0;
 				corresps[iRow].nSoundsSame = 0;
 				corresps[iRow].nSoundsEmpty = 0;
+				corresps[iRow].degenerate = false;
 
 				corresps[iRow].dataExtra = NULL;
 			}
@@ -311,7 +318,7 @@ public:
 		}
 		dic.ipa->EndSubmitWordForms();
 	}
-	void Process(Condition* cnd)
+	void Process(Condition* cnd, bool doRemoveSingleWordsInColumns)
 	{
 		Reset();
 
@@ -432,6 +439,9 @@ public:
 			//if (isAddingWithEmpty) break;
 		}
 		delete sgmntzr;
+
+		if (doRemoveSingleWordsInColumns)
+			RemoveSingleWordsInColumns();
 
 		isProcessed = true;
 	}
@@ -976,4 +986,72 @@ public:
 		trOut->Add(NULL, IT_SECTIONBRK, inCnd);
 	}
 
+	void RemoveSingleWordsInColumns()
+	{
+		int nInCol[100];
+		Correspondence* cInCol[100];
+
+		Correspondence* c;
+		Correspondence* cStart;
+		for (CorrespondenceTree::Iterator it(&tCorrespondences); c = it.Next();)
+		{
+			if (it.IsStartOfGroup())
+			{
+				cStart = c;
+
+				//cToDel[ncToDel] = c;
+				//ncToDel++;
+
+				for (int iCol = 0; iCol < nDicts; iCol++)
+				{
+					nInCol[iCol] = 0;
+					cInCol[iCol] = NULL;
+				}
+			}
+
+			for (int iCol = 0; iCol < nDicts; iCol++)
+			{
+				if (c->comparanda[iCol].formIPA)
+				{
+					nInCol[iCol]++;
+					if (nInCol[iCol] == 1)
+						cInCol[iCol] = c;
+				}
+			}
+
+			if (it.IsEndOfGroup())
+			{
+				for (int iCol = 0; iCol < nDicts; iCol++)
+				{
+					if (nInCol[iCol] == 1)
+					{
+						cInCol[iCol]->comparanda[iCol].formOrig = NULL;
+						cInCol[iCol]->comparanda[iCol].formIPA = NULL;
+						cInCol[iCol]->comparanda[iCol].translation = NULL;
+
+						cStart->comparanda[iCol].isSoundInCognates = false;
+					}
+				}
+				int nInRow = 0;
+				for (int iCol = 0; iCol < nDicts; iCol++)
+				{
+					if (cStart->comparanda[iCol].formOrig)
+					{
+						nInRow++;
+						if (nInRow > 1)
+							break;
+					}
+				}
+				if (nInRow == 1)
+					cStart->degenerate = true;
+			}
+		}
+		/*
+				while (ncToDel > 0)
+				{
+					ncToDel--;
+					tCorrespondences.Remove(cToDel[ncToDel]);
+				}
+		*/
+	}
 };
