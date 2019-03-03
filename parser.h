@@ -15,7 +15,7 @@ class Parser
 	TCHAR	separatorLast;
 public:
 	Parser(LPTSTR _text, LPTSTR _seps, int _flags = 0, int _size = 0)
-		//: text(_text)/*ничего не делает*/, flags(_flags), seps(_seps)
+	  //: text(_text)/*ничего не делает*/, flags(_flags), seps(_seps)
 	{
 		separatorLast = L'\0';
 		flags = _flags;
@@ -26,7 +26,7 @@ public:
 	}
 	bool IsItemEmpty()
 	{
-		return *old == L'\0';
+		return *old== L'\0';
 	}
 	TCHAR Separator()
 	{
@@ -59,7 +59,7 @@ public:
 			if (*pos == L'\0')
 				return NULL;
 		}
-
+		
 		for (old = pos; ; pos++)
 		{
 
@@ -68,7 +68,7 @@ public:
 				if (pos >= text + size)
 					return NULL;
 			}
-
+	
 			int iSep = -1;
 			do
 			{
@@ -77,7 +77,7 @@ public:
 				{
 					if ((flags & PARSER_SKIPNEWLINE) && *pos == L'\n')
 					{
-						//	old = ++pos; //ЭТО НЕ СДЕЛАНО!!
+					//	old = ++pos; //ЭТО НЕ СДЕЛАНО!!
 						old = pos + 1;
 						goto EndSepCycle;
 					}
@@ -94,8 +94,9 @@ public:
 						return old;
 					}
 				}
-			} while (seps[iSep]);
-		EndSepCycle:;
+			}
+			while (seps[iSep]);
+EndSepCycle:;
 		}
 		return NULL;
 	}
