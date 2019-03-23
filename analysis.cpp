@@ -391,7 +391,7 @@ GetPhonemeDifference(LPTSTR bufIn, LPTSTR bufOut)
 		}
 
 		trOut.Add(L" → ", 0);
-		trOut.Add(strcpyi(bufOut, mtx.GetDistance(0, 1, s[0], s[1])), 0);
+		trOut.Add(strcpyi(bufOut, mtx.GetDistance(0, 1, s[0], true, s[1], true)), 0);
 
 		OutputString output(2000, 100); //Dictionary::OutputString катит!!!
 		output.Build(trOut.ndRoot);

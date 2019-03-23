@@ -943,7 +943,11 @@ public:
 				{
 					for (int iCol = 0; iCol < nDicts; iCol++)
 					{
-						mtx->GetDistance(iRow, iCol, c->comparanda[iRow].sound, c->comparanda[iCol].sound, true);
+						mtx->GetDistance(iRow, iCol, c->comparanda[iRow].sound,
+							c->comparanda[iRow].isSoundInCognates,
+							c->comparanda[iCol].sound,
+							c->comparanda[iCol].isSoundInCognates,
+							true);
 					}
 				}
 			}

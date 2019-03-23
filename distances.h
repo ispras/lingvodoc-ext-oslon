@@ -32,11 +32,11 @@ public:
 		delete langs;
 	}
 
-	int GetDistance(int iRow, int iCol, Sound* s1, Sound* s2, bool doAdd = false)
+	int GetDistance(int iRow, int iCol, Sound* s1, bool isS1, Sound* s2, bool isS2, bool doAdd = false)
 	{
 		int dist = 0;
 
-		if (s1 && s2)
+		if (s1 && isS1 && s2 && isS2)
 		{
 			if (s1 != s2)
 			{
