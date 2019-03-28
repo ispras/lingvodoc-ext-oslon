@@ -10,6 +10,7 @@ class Condition : public LinkedElement<Condition>, public OwnNew
 public:
 	LPTSTR		title;
 	void*		dataExtra;
+	int			intExtra;
 
 	class Segment
 	{
@@ -57,10 +58,11 @@ public:
 	Segment		sgNext;
 	int			flags;
 
-	Condition(LPTSTR _ftThis, LPTSTR _ftPrev, LPTSTR _ftNext, int _flags = 0, LPTSTR _title = NULL) : sgThis(_ftThis), sgPrev(_ftPrev), sgNext(_ftNext)
+	Condition(LPTSTR _ftThis, LPTSTR _ftPrev, LPTSTR _ftNext, int _flags = 0, LPTSTR _title = NULL, int _extraInt = 0) : sgThis(_ftThis), sgPrev(_ftPrev), sgNext(_ftNext)
 	{
 		title = _title;
 		flags = _flags;
+		intExtra = _extraInt;
 		//		condition = _condition;
 		//		iClass = _iClass;
 		//		feature = NULL;
@@ -177,9 +179,9 @@ public:
 		sgmtzr = _sgmtzr;
 		ResetConditions();
 	}
-	Condition* AddCondition(LPTSTR _ftThis, LPTSTR _ftPrev, LPTSTR _ftNext, int flags = 0, LPTSTR _title = NULL)
+	Condition* AddCondition(LPTSTR _ftThis, LPTSTR _ftPrev, LPTSTR _ftNext, int flags = 0, LPTSTR _title = NULL, int _extraInt = 0)
 	{
-		Condition* c = ::new Condition(_ftThis, _ftPrev, _ftNext, flags, _title);
+		Condition* c = ::new Condition(_ftThis, _ftPrev, _ftNext, flags, _title, _extraInt);
 
 		llConditions.Add(c);
 

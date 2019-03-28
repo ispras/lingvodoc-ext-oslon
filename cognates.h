@@ -244,12 +244,14 @@ public:
 
 	int					nDicts;
 	int 				nCorresp;
+	int					nSoundCorresp;
 
 
 	Comparison(int nRows, int nCols) : tCorrespondences(nCols)
 	{
 		nDicts = nCols;
 		nCorresp = nRows;
+		nSoundCorresp = 0;
 		//corresps = new Correspondence[nRows];
 		corresps = (Correspondence*)malloc(nRows * sizeof(Correspondence));
 
@@ -314,6 +316,9 @@ public:
 					new (&corresps[iRow]) Correspondence(nDicts, iRow);
 
 				new (&corresps[iRow].comparanda[iCol]) Comparandum(wordIPA, wordOrig, wordTranslation, wchrTranscr, wLength, wF1, wF2, wF3);
+
+				if (wordIPA)
+					dictinfos[iCol].nWords++;
 			}
 		}
 		dic.ipa->EndSubmitWordForms();
@@ -341,6 +346,10 @@ public:
 
 					for (int iCol = 0; iCol < nDicts; iCol++)
 					{
+						//if (corresps[iRow].comparanda[iCol].formOrig)
+						//if (!wcscmp(corresps[iRow].comparanda[iCol].formOrig,L"wódsche"))
+						//iCol=iCol;
+
 						new (&sgmntzr[iCol]) Segmentizer(dic.ipa, corresps[iRow].comparanda[iCol].formIPA);
 						Sound* sound;
 						cnd->Reset();
@@ -357,7 +366,12 @@ public:
 								if (isYes) break; //else if (!isYes && QR_FIRSTINWORD)
 							}
 
-							if (!isYes) goto NextCorrespondence;
+							if (!isYes)
+							{
+								//т.е. в этом ряду в каком-то члене нет такой позиции: значит, весь ряд игнорируем
+								//out(corresps[iRow].comparanda[iCol].formOrig);
+								goto NextCorrespondence;
+							}
 
 
 							sound = sgmntzr[iCol].Current();
@@ -443,6 +457,8 @@ public:
 		if (doRemoveSingleWordsInColumns)
 			RemoveSingleWordsInColumns();
 
+		CountFilledSoundCorrespondeces();
+
 		isProcessed = true;
 	}
 
@@ -458,11 +474,40 @@ public:
 			wcscat(buf, L": ");
 			if (dictinfos[i].name)
 				wcscat(buf, dictinfos[i].name);
+
+			if (nCorresp)
+			{
+				wcscat(buf, L" (");
+				strcati(buf, dictinfos[i].nWords);
+				wcscat(buf, L" форм = ");
+				strcati(buf, (dictinfos[i].nWords * 100) / nCorresp);
+				wcscat(buf, L"% от числа соотв.)");
+			}
+
 			trOut->Add(buf, IT_LINEBRKAFTER | f);
 			//trOut->Add(IT_LINEBRK, ndTo);
 			f = 0;
 		}
 		trOut->Add(NULL, IT_HORLINE);
+	}
+	void SoundCorrespondenceNumbers(InfoTree* trOut)
+	{
+		TCHAR buf[500];
+		for (int i = 0; i < nDicts; i++)
+		{
+			_ltow(i + 1, buf, 10);
+			wcscat(buf, L": ");
+
+			if (nSoundCorresp)
+			{
+				strcati(buf, dictinfos[i].nFilledSoundCorresp);
+				wcscat(buf, L" звуков в неед. рядах = ");
+				strcati(buf, (dictinfos[i].nFilledSoundCorresp * 100) / nSoundCorresp);
+				wcscat(buf, L"% от числа неед. рядов)");
+			}
+
+			trOut->Add(buf, IT_LINEBRKAFTER);
+		}
 	}
 	void OutputLanguageHeader(InfoTree* trOut, InfoNode* ndTo)
 	{
@@ -618,7 +663,12 @@ public:
 		{
 
 			if (!cEqual->comparanda[iColDiff].sound)
+			{
 				trCld->Add(L"?", IT_SPACE);
+				/////////////////////////////////////////////////
+				//out(cEqual->comparanda[iColDiff].formIPA);
+				/////////////////////////////////////////////////
+			}
 			else
 				trCld->Add(cEqual->comparanda[iColDiff].sound->Symbol, IT_SQRBRK | IT_SPACE);
 			trCld->Add(L"в других рядах", IT_LINEBRKAFTER);
@@ -932,7 +982,7 @@ public:
 		trOut->Add(NULL, IT_SECTIONBRK, inOnce);
 	}
 
-	void CalculateDistances(DistanceMatrix* mtx)
+	void CalculateDistances(DistanceMatrix* mtx, int factor)
 	{
 		Correspondence* c;
 		for (CorrespondenceTree::Iterator it(&tCorrespondences); c = it.Next();)
@@ -947,6 +997,7 @@ public:
 							c->comparanda[iRow].isSoundInCognates,
 							c->comparanda[iCol].sound,
 							c->comparanda[iCol].isSoundInCognates,
+							factor,
 							true);
 					}
 				}
@@ -990,6 +1041,44 @@ public:
 		trOut->Add(NULL, IT_SECTIONBRK, inCnd);
 	}
 
+	void CountFilledSoundCorrespondeces()
+	{
+		Correspondence* c;
+		for (CorrespondenceTree::Iterator it(&tCorrespondences); c = it.Next();)
+		{
+			if (it.IsStartOfGroup())
+			{
+				nSoundCorresp++;
+				for (int iCol = 0; iCol < nDicts; iCol++)
+				{
+					if (c->comparanda[iCol].isSoundInCognates)
+						dictinfos[iCol].nFilledSoundCorresp++;
+				}
+				it.TryExitGroup();
+			}
+		}
+	}
+	void RemoveDistancesIfTooFew(DistanceMatrix* mtx, int threshold)
+	{
+		for (int i = 0; i < nDicts; i++)
+		{
+			if (dictinfos[i].nFilledSoundCorresp);
+
+			int percent;
+			if (nSoundCorresp)
+				percent = (dictinfos[i].nFilledSoundCorresp * 100) / nSoundCorresp;
+			else
+				percent = 0;
+
+			if (percent < threshold)
+			{
+				for (int ii = 0; ii < nDicts; ii++)
+				{
+					mtx->langs[i].dist[ii] = -1;
+				}
+			}
+		}
+	}
 	void RemoveSingleWordsInColumns()
 	{
 		int nInCol[100];

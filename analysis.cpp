@@ -111,6 +111,8 @@ CognateAnalysis_GetAllOutput(LPTSTR bufIn, int nCols, int nRows, LPTSTR bufOut, 
 		Query qry;
 		qry.AddCondition(L"Г", L"#", NULL, 0, L"Соответствия по начальному гласному");
 		qry.AddCondition(L"Г", L"С", NULL, QF_OBJECTONLYONCE, L"Соответствия по гласному после первого согласного");
+		//		по Г после 1-го С исчезает ряд wodsche—uetsch, т.к. во 2-м из этих слов нет Г после С!
+		//		qry.AddCondition(L"Г", NULL, NULL, QF_OBJECTONLYONCE, 	L"Соответствия по первому гласному");
 		qry.AddCondition(L"С", L"#", NULL, 0, L"Соответствия по начальному согласному");
 
 		if (!isBinary)
@@ -172,8 +174,10 @@ CognateDistanceAnalysis_GetAllOutput(LPTSTR bufIn, int nCols, int nRows, LPTSTR 
 
 		Query qry;
 
-		qry.AddCondition(L"Г", NULL, NULL, QF_OBJECTONLYONCE, L"Соответствия по первому гласному");
-		qry.AddCondition(L"С", L"#", NULL, 0, L"Соответствия по начальному согласному");
+		qry.AddCondition(L"Г", L"#", NULL, 0, L"Соответствия по начальному гласному (вес: 1)", 1);
+		qry.AddCondition(L"Г", L"С", NULL, QF_OBJECTONLYONCE, L"Соответствия по гласному после первого согласного (вес: 1)", 1);
+		//		qry.AddCondition(L"Г", NULL, NULL, QF_OBJECTONLYONCE, 	L"Соответствия по первому гласному");
+		qry.AddCondition(L"С", L"#", NULL, 0, L"Соответствия по начальному согласному (вес: 5)", 5);
 
 		if (!isBinary)
 			cmp.OutputLanguageList(&trOut);
@@ -188,15 +192,22 @@ CognateDistanceAnalysis_GetAllOutput(LPTSTR bufIn, int nCols, int nRows, LPTSTR 
 			DistanceMatrix mtx(cmp.nDicts);
 
 
-			cmp.CalculateDistances(&mtxSum);
+			cmp.CalculateDistances(&mtxSum, cnd->intExtra);
 
-			cmp.CalculateDistances(&mtx);
+			cmp.CalculateDistances(&mtx, cnd->intExtra);
+
 			cmp.OutputDistances(cnd, &mtx, &trOut);
 		}
 
 
 		Condition* cnd = qry.AddCondition(NULL, NULL, NULL, 0, L"Суммарная матрица");
+		cmp.RemoveDistancesIfTooFew(&mtxSum, 30);
 		cmp.OutputDistances(cnd, &mtxSum, &trOut);
+
+		if (!isBinary)
+		{
+			cmp.SoundCorrespondenceNumbers(&trOut);
+		}
 
 
 		OutputString output(szOutput, 20, nCols * 2, isBinary);
@@ -391,7 +402,7 @@ GetPhonemeDifference(LPTSTR bufIn, LPTSTR bufOut)
 		}
 
 		trOut.Add(L" → ", 0);
-		trOut.Add(strcpyi(bufOut, mtx.GetDistance(0, 1, s[0], true, s[1], true)), 0);
+		trOut.Add(strcpyi(bufOut, mtx.GetDistance(0, 1, s[0], true, s[1], true, 1)), 0);
 
 		OutputString output(2000, 100); //Dictionary::OutputString катит!!!
 		output.Build(trOut.ndRoot);

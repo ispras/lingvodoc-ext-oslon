@@ -32,7 +32,7 @@ public:
 		delete langs;
 	}
 
-	int GetDistance(int iRow, int iCol, Sound* s1, bool isS1, Sound* s2, bool isS2, bool doAdd = false)
+	int GetDistance(int iRow, int iCol, Sound* s1, bool isS1, Sound* s2, bool isS2, int factor, bool doAdd = false)
 	{
 		int dist = 0;
 
@@ -71,14 +71,23 @@ public:
 					;//	 + abs(s1->OrdinalInIPA(FT_COARTICULATION) - s2->OrdinalInIPA(FT_COARTICULATION));
 
 
-					//ВРЕМЕННАЯ МЕРА ДЛЯ НЕПРАВИЛЬНОЙ МФА В СЛОВАРЯХ
-				if ((s1->Symbol[0] == L'x' && s2->Symbol[0] == L'χ') || (s2->Symbol[0] == L'x' && s1->Symbol[0] == L'χ'))
-					dist = 0;
-				if ((s1->Symbol[0] == L'w' && s2->Symbol[0] == L'v') || (s2->Symbol[0] == L'w' && s1->Symbol[0] == L'v'))
-					dist = 0;
-				////////////////////////////////////////////////
+					//РАЗЛИЧИЯ СО ШВОЙ — РАССТОЯНИЕ 1!!!
+
+				if (SpecDist(s1, s2, L'ə', &dist, 1));
+
+				//ВРЕМЕННАЯ МЕРА ДЛЯ НЕПРАВИЛЬНОЙ МФА В СЛОВАРЯХ
+
+				else if (SpecDist(s1, s2, L'x', L'χ', &dist, 0));
+				else if (SpecDist(s2, s2, L'w', L'v', &dist, 0));
+				else if (SpecDist(s1, s2, L'ʨ', L'ʧ', &dist, 0));
+
+				else if (SpecDist(s1, s2, L'e', L'ɛ', &dist, 0));
+				else if (SpecDist(s1, s2, L'o', L'ɔ', &dist, 0));
 			}
 		}
+
+
+		dist *= factor;
 
 
 		if (doAdd)
@@ -86,5 +95,23 @@ public:
 		else
 			langs[iRow].dist[iCol] = dist;
 		return dist;
+	}
+	bool SpecDist(Sound* s1, Sound* s2, TCHAR ch, int* dist, int distNew)
+	{
+		if ((s1->Symbol[0] == ch) || (s2->Symbol[0] == ch))
+		{
+			*dist = distNew;
+			return true;
+		}
+		return false;
+	}
+	bool SpecDist(Sound* s1, Sound* s2, TCHAR ch1, TCHAR ch2, int* dist, int distNew)
+	{
+		if ((s1->Symbol[0] == ch1 && s2->Symbol[0] == ch2) || (s2->Symbol[0] == ch1 && s1->Symbol[0] == ch2))
+		{
+			*dist = distNew;
+			return true;
+		}
+		return false;
 	}
 };

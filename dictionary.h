@@ -44,13 +44,19 @@ class DictInfo : public OwnNew//надо это вмонтировать в са
 public:
 	int			iReplacer;
 	LPTSTR		name;
+	int			nWords;
+	int			nFilledSoundCorresp;
 	DictInfo(LPTSTR _name)
 	{
+		nWords = 0;
+		nFilledSoundCorresp = 0;
 		name = _name;
 		iReplacer = RT_NONE;
 	}
 	DictInfo()
 	{
+		nWords = 0;
+		nFilledSoundCorresp = 0;
 		name = NULL;
 		iReplacer = RT_NONE;
 	}
@@ -121,7 +127,9 @@ public:
 					}
 				}
 				if (nMatch == 1)
+				{
 					return iMatch;
+				}
 			}
 			return RT_LAT;
 		}
