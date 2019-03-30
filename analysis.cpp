@@ -150,6 +150,7 @@ extern "C" {int
 #else
 int __declspec(dllexport)
 #endif
+
 CognateDistanceAnalysis_GetAllOutput(LPTSTR bufIn, int nCols, int nRows, LPTSTR bufOut, int flags)
 {
 	if (nCols < 1 || nCols > 1000)
@@ -174,9 +175,8 @@ CognateDistanceAnalysis_GetAllOutput(LPTSTR bufIn, int nCols, int nRows, LPTSTR 
 
 		Query qry;
 
-		qry.AddCondition(L"Г", L"#", NULL, 0, L"Соответствия по начальному гласному (вес: 1)", 1);
-		qry.AddCondition(L"Г", L"С", NULL, QF_OBJECTONLYONCE, L"Соответствия по гласному после первого согласного (вес: 1)", 1);
-		//		qry.AddCondition(L"Г", NULL, NULL, QF_OBJECTONLYONCE, 	L"Соответствия по первому гласному");
+		//		qry.AddCondition(L"Г", L"#", NULL, 0, 					L"Соответствия по начальному гласному (вес: 1)", 1);
+		//		qry.AddCondition(L"Г", L"С", NULL, QF_OBJECTONLYONCE, 	L"Соответствия по гласному после первого согласного (вес: 1)", 1);
 		qry.AddCondition(L"С", L"#", NULL, 0, L"Соответствия по начальному согласному (вес: 5)", 5);
 
 		if (!isBinary)
@@ -201,7 +201,7 @@ CognateDistanceAnalysis_GetAllOutput(LPTSTR bufIn, int nCols, int nRows, LPTSTR 
 
 
 		Condition* cnd = qry.AddCondition(NULL, NULL, NULL, 0, L"Суммарная матрица");
-		cmp.RemoveDistancesIfTooFew(&mtxSum, 30);
+		cmp.RemoveDistancesIfTooFew(&mtxSum, 20);
 		cmp.OutputDistances(cnd, &mtxSum, &trOut);
 
 		if (!isBinary)
