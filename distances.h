@@ -78,11 +78,14 @@ public:
 				//ВРЕМЕННАЯ МЕРА ДЛЯ НЕПРАВИЛЬНОЙ МФА В СЛОВАРЯХ
 
 				else if (SpecDist(s1, s2, L'x', L'χ', &dist, 0));
+				else if (SpecDist(s1, s2, L'x', L'h', &dist, 0));
+				else if (SpecDist(s1, s2, L'χ', L'h', &dist, 0));
 				else if (SpecDist(s2, s2, L'w', L'v', &dist, 0));
 				else if (SpecDist(s1, s2, L'ʨ', L'ʧ', &dist, 0));
 
 				else if (SpecDist(s1, s2, L'e', L'ɛ', &dist, 0));
 				else if (SpecDist(s1, s2, L'o', L'ɔ', &dist, 0));
+
 			}
 		}
 
