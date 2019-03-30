@@ -175,8 +175,8 @@ CognateDistanceAnalysis_GetAllOutput(LPTSTR bufIn, int nCols, int nRows, LPTSTR 
 
 		Query qry;
 
-		//		qry.AddCondition(L"Г", L"#", NULL, 0, 					L"Соответствия по начальному гласному (вес: 1)", 1);
-		//		qry.AddCondition(L"Г", L"С", NULL, QF_OBJECTONLYONCE, 	L"Соответствия по гласному после первого согласного (вес: 1)", 1);
+		qry.AddCondition(L"Г", L"#", NULL, 0, L"Соответствия по начальному гласному (вес: 1)", 1);
+		qry.AddCondition(L"Г", L"С", NULL, QF_OBJECTONLYONCE, L"Соответствия по гласному после первого согласного (вес: 1)", 1);
 		qry.AddCondition(L"С", L"#", NULL, 0, L"Соответствия по начальному согласному (вес: 5)", 5);
 
 		if (!isBinary)
