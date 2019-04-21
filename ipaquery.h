@@ -95,75 +95,7 @@ public:
 		if (sgThis.flag == QF_NOTHING) sgThis.Init(ipa);
 		return sgThis.feature[iFType] & val;
 	}
-	bool Check_ÑÒÀĞÛÉ(Segmentizer* sgmtzr)
-	{
-		if (sgThis.flag == QF_NOTHING) sgThis.Init(sgmtzr->ipa);
-		if (sgPrev.flag == QF_NOTHING) sgPrev.Init(sgmtzr->ipa);
-		if (sgNext.flag == QF_NOTHING) sgNext.Init(sgmtzr->ipa);
 
-		Sound* sdThis = sgmtzr->Current(),
-			*sdAdjacent;
-		if ((flags & QF_OBJECTONLYONCE) && (sgThis.wasAlready))
-			return false;
-
-		if ((flags & QF_CONTEXTONLYONCE) && ((sgPrev.wasAlready) || (sgNext.wasAlready)))
-			return false;
-		//		if ((flags & QF_OBJECTINCONTEXTONLYONCE) && wasObjectInContext)
-		//			return false;
-		if (sgPrev.flag != QF_NOTHING)
-		{
-			if (!CompareFeaturesOr(sdThis->feature, sgPrev.feature, FT_CLASS))//ò.å. òåêóùàÿ ãîäèòñÿ êàê êîíòåêñò â ïğèíöèïå, íî òîëüåî ïî êëàññó, ò.ñ. Ñ èëè Ã!!
-				sgPrev.wasAlready++;
-		}
-		if (sgNext.flag != QF_NOTHING)
-		{
-			if (!CompareFeaturesOr(sdThis->feature, sgNext.feature, FT_CLASS))//ò.å. òåêóùàÿ ãîäèòñÿ êàê êîíòåêñò â ïğèíöèïå
-				sgNext.wasAlready++;
-		}
-		if (sgThis.flag != QF_NOTHING)
-		{
-			if (!CompareFeaturesOr(sdThis->feature, sgThis.feature, FT_CLASS))//ò.å. òåêóùàÿ ãîäèòñÿ êàê çàÿâëåííîå «ıòî»
-				sgThis.wasAlready++;
-			else
-				return false;
-		}
-
-		if (sgPrev.flag & QF_BEGINNING)
-		{
-			if (sgmtzr->IsFirst())
-				return true;
-			else
-				return false;
-		}
-
-		if (sgPrev.flag != QF_NOTHING)
-		{
-			sdAdjacent = sgmtzr->PeekPrevious();
-			if (!sdAdjacent)
-				return false;
-			if (!CompareFeaturesOr(sdAdjacent->feature, sgPrev.feature))
-				return true;
-			else
-				return false;
-		}
-		if (sgNext.flag != QF_NOTHING)
-		{
-			sdAdjacent = sgmtzr->PeekNext();
-			if (!sdAdjacent)
-				return false;
-			if (!CompareFeaturesOr(sdAdjacent->feature, sgNext.feature))
-				return true;
-			else
-				return false;
-		}
-
-
-		//		bool isMatch = !!(sdAdjacent->feature[feature->iType] & feature->value);
-
-		//		return isMatch;
-		return true;
-		//return false;
-	}
 	bool Check(Segmentizer* sgmtzr)
 	{
 		if (sgThis.flag == QF_NOTHING) sgThis.Init(sgmtzr->ipa);
