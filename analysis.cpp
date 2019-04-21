@@ -423,6 +423,10 @@ ExtractCognateRows(LPTSTR bufIn, LPTSTR bufOut)
 	output.OutputData(bufOut);
 	return 1;
 }
+#ifdef __linux__ 
+}
+#endif
+
 
 /*
 BOOL WINAPI DllMain(_In_ HINSTANCE hinstDLL, _In_ DWORD fdwReason, _In_ LPVOID lpvReserved)
