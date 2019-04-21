@@ -474,7 +474,7 @@ void Comparison::OutputDeviationsWithMaterial(Condition* cnd, InfoTree* trOut, I
 	trOut->Add(NULL, IT_SECTIONBRK, inMult);
 }
 
-void Comparison::OutputCorresponcesWithMaterial(Condition* cnd, InfoTree* trOut, bool doMakeTableForSingles = false)
+void Comparison::OutputCorresponcesWithMaterial(Condition* cnd, InfoTree* trOut, bool doMakeTableForSingles)
 {
 	LPTSTR word;
 	Sound* sound;
