@@ -163,11 +163,10 @@ public:
 
 		return true;
 	}
-	void GetOrigIPAAndTranslation(Parser& parser, LPTSTR& wordOrig, LPTSTR& wordIPA, LPTSTR& wordTranslation, DictInfo& dinfo, bool isPhonData, LPTSTR& chrTranscr, LPTSTR& wLen, LPTSTR& wF1, LPTSTR& wF2, LPTSTR& wF3)
+	LPTSTR TranscribeWord(LPTSTR& wordOrig, DictInfo& dinfo)
 	{
-		wordOrig = StoreString(parser.Current(), parser.LengthOfCurrentWord());
-
 		TCHAR buf[1000];
+		LPTSTR wordIPA;
 		if (!wordOrig)
 			wordIPA = NULL;
 		else
@@ -179,6 +178,13 @@ public:
 			wordIPA = pString.New(buf, szIPA + 1);
 			ipa->SubmitWordForm(wordIPA);
 		}
+		return wordIPA;
+	}
+	void GetOrigIPAAndTranslation(Parser& parser, LPTSTR& wordOrig, LPTSTR& wordIPA, LPTSTR& wordTranslation, DictInfo& dinfo, bool isPhonData, LPTSTR& chrTranscr, LPTSTR& wLen, LPTSTR& wF1, LPTSTR& wF2, LPTSTR& wF3)
+	{
+		wordOrig = StoreString(parser.Current(), parser.LengthOfCurrentWord());
+
+		wordIPA = TranscribeWord(wordOrig, dinfo);
 
 		wordTranslation = parser.Next();
 		wordTranslation = StoreString(wordTranslation, parser.LengthOfCurrentWord());
@@ -359,7 +365,7 @@ public:
 			{
 				for (Condition* cnd = qry.FirstCondition(); cnd; cnd = qry.NextCondition())
 				{
-					if (qry.CheckCondition())
+					if (cnd->Check(&sgmntzr))
 					{
 						InfoNode* ndSoundInOutput = (InfoNode*)sdCur->dataExtra;
 						if (ndSoundInOutput)
@@ -382,7 +388,7 @@ public:
 								}
 							}
 						}
-						//break
+						//goto NextWord;
 					}
 				}
 			}

@@ -1,5 +1,4 @@
-﻿
-LPTSTR _tblPostModifiers =
+﻿LPTSTR _tblPostModifiers =
 L"	глх	губ	пал	прд	зпд	эгл	гло	эгд	зуб	крт	алв	тон	длг	пдг	нос	скр	огб	цнт	сцн	слг	нсл\r\n"
 "-	̥	ʷ	ʲ	ʰ	ʱ	ˤ	ˀ	ˁ	̪	̆	̠	ʼ	ː	ˑ	̃	̰	̊	̈	̽	̩	̯	";
 
@@ -32,5 +31,7 @@ L"	-	З	-	З	-	З	-	З	-	З	-	З	-	З	-	З	-	З	-	З	-	З	-	З	\r\n"
 "БАП						ɫ		l				ɭ		ʎ		ʟ									\r\n"
 "Б1У							ɺ																		";
 
-
 //а куда ɥ?
+
+LPTSTR _listExtraGlides = L"jwvʋⱱɣg";
+//LPTSTR _listExtraGlidesVowels 	= L"iuvʋⱱɣg";

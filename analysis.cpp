@@ -21,6 +21,7 @@
 
 #include "infotree.h"
 #include "dictionary.h"
+#include "comparanda.h"
 #include "distances.h"
 #include "cognates.h"
 
@@ -109,11 +110,9 @@ CognateAnalysis_GetAllOutput(LPTSTR bufIn, int nCols, int nRows, LPTSTR bufOut, 
 		cmp.AddCognateList(bufIn, false);
 
 		Query qry;
-		qry.AddCondition(L"Г", L"#", NULL, 0, L"Соответствия по начальному гласному");
-		qry.AddCondition(L"Г", L"С", NULL, QF_OBJECTONLYONCE, L"Соответствия по гласному после первого согласного");
-		//		по Г после 1-го С исчезает ряд wodsche—uetsch, т.к. во 2-м из этих слов нет Г после С!
-		//		qry.AddCondition(L"Г", NULL, NULL, QF_OBJECTONLYONCE, 	L"Соответствия по первому гласному");
-		qry.AddCondition(L"С", L"#", NULL, 0, L"Соответствия по начальному согласному");
+		qry.AddCondition(L"Г", L"#", NULL, QF_ITERATE, L"Соответствия по начальному гласному");
+		qry.AddCondition(L"Г", L"С", NULL, QF_OBJECTONLYONCE | QF_ITERATE, L"Соответствия по гласному после первого согласного");
+		qry.AddCondition(L"С", L"#", NULL, QF_ITERATE, L"Соответствия по начальному согласному");
 
 		if (!isBinary)
 			cmp.OutputLanguageList(&trOut);
@@ -175,21 +174,21 @@ CognateDistanceAnalysis_GetAllOutput(LPTSTR bufIn, int nCols, int nRows, LPTSTR 
 
 		Query qry;
 
-		qry.AddCondition(L"Г", L"#", NULL, 0, L"Соответствия по начальному гласному (вес: 1)", 1);
-		qry.AddCondition(L"Г", L"С", NULL, QF_OBJECTONLYONCE, L"Соответствия по гласному после первого согласного (вес: 1)", 1);
-		qry.AddCondition(L"С", L"#", NULL, 0, L"Соответствия по начальному согласному (вес: 5)", 5);
+		qry.AddCondition(L"Г", L"#", NULL, QF_ITERATE, L"Соответствия по начальному гласному (вес: 1)", 1);
+		qry.AddCondition(L"Г", L"С", NULL, QF_OBJECTONLYONCE | QF_ITERATE, L"Соответствия по гласному после первого согласного (вес: 1)", 1);
+		qry.AddCondition(L"С", L"#", NULL, QF_ITERATE, L"Соответствия по начальному согласному (вес: 5)", 5);
 
 		if (!isBinary)
 			cmp.OutputLanguageList(&trOut);
 
 
-		DistanceMatrix mtxSum(cmp.nDicts);
+		DistanceMatrix mtxSum(cmp.dic.ipa, cmp.nDicts);
 
 		for (Condition* cnd = qry.FirstCondition(); cnd; cnd = qry.NextCondition())
 		{
 			cmp.Process(cnd, true);
 
-			DistanceMatrix mtx(cmp.nDicts);
+			DistanceMatrix mtx(cmp.dic.ipa, cmp.nDicts);
 
 
 			cmp.CalculateDistances(&mtxSum, cnd->intExtra);
@@ -261,7 +260,7 @@ CognateAcousticAnalysis_GetAllOutput(LPTSTR bufIn, int nCols, int nRows, LPTSTR 
 		//qry.AddCondition(L"Г", L"#", NULL, 0, 					L"Отклонения по начальному гласному");
 		//qry.AddCondition(L"Г", L"С", NULL, QF_OBJECTONLYONCE, 	L"Отклонения по гласному после первого согласного");
 
-		qry.AddCondition(L"Г", NULL, NULL, QF_OBJECTONLYONCE, L"Отклонения по первому гласному в слове");
+		qry.AddCondition(L"Г", NULL, NULL, QF_OBJECTONLYONCE | QF_ITERATE, L"Отклонения по первому гласному в слове");
 
 		if (!isBinary)
 			cmp.OutputLanguageList(&trOut);
@@ -315,20 +314,13 @@ int __declspec(dllexport)
 #endif
 Retranscribe(LPTSTR bufIn, LPTSTR bufOut, LPTSTR langIn, LPTSTR langOut, int flags)
 {
-	try
-	{
-		Dictionary dic;
+	Dictionary dic;
 
-		dic.ReplaceSymbols(bufIn, bufOut/*, 200*/, dic.GuessReplacer(bufIn));
+	dic.ReplaceSymbols(bufIn, bufOut/*, 200*/, dic.GuessReplacer(bufIn));
 
 
-		//lstrcpy(bufOut, bufIn);
-		return 1;
-	}
-	catch (...)
-	{
-		return -2;
-	}
+	//lstrcpy(bufOut, bufIn);
+	return 1;
 }
 #ifdef __linux__ 
 }
@@ -341,83 +333,96 @@ int __declspec(dllexport)
 #endif
 GetPhonemeDifference(LPTSTR bufIn, LPTSTR bufOut)
 {
-	try
+	InfoTree trOut(L"МЕЖФОНЕМНОЕ РАССТОЯНИЕ");
+	Dictionary dic;
+	Comparandum cmp[2];
+	TCHAR bufIPA[1000];
+	DistanceMatrix mtx(dic.ipa, 2);
+	InfoNode* in;
+	TCHAR buf[1000];
+
+	dic.ReplaceSymbols(bufIn, bufIPA, dic.GuessReplacer(bufIn));
+	dic.ipa->SubmitWordForm(bufIPA);
+	dic.ipa->EndSubmitWordForms();
+
+	Parser parser(bufIPA, L" ");
+	for (int i = 0; parser.Next() && i <= 1; i++)
+		cmp[i].SetFragment(parser.Current());
+
+	trOut.Add(NULL, IT_HORLINE);
+
+	for (int i = 0; i <= 1; i++)
 	{
-		InfoTree trOut(L"МЕЖФОНЕМНОЕ РАССТОЯНИЕ");
+		Segmentizer sgmntzr(dic.ipa, cmp[i].Text());
 
-		Dictionary dic;
-
-		TCHAR bufIPA[1000];
-		dic.ReplaceSymbols(bufIn, bufIPA, dic.GuessReplacer(bufIn));
-
-		Parser parser(bufIPA, L" ");
-		Sound* s[2];
-		s[0] = s[1] = NULL;
-
-		dic.ipa->SubmitWordForm(bufIPA);
-		dic.ipa->EndSubmitWordForms();
-
-		for (int i = 0; parser.Next() && i <= 1; i++)
+		Sound* s;
+		while (s = sgmntzr.GetNext())
 		{
-			Segmentizer sgmntzr(dic.ipa, parser.Current());
-
-			s[i] = sgmntzr.GetNext();
-		}
-
-		DistanceMatrix mtx(2);
-
-		InfoNode* in;
-		TCHAR buf[1000];
-
-		trOut.Add(NULL, IT_HORLINE);
-
-		for (int i = 0; i <= 1; i++)
-		{
-			if (s[i])
+			in = trOut.Add(s->Symbol, IT_SQRBRK | IT_LINEBRKAFTER);
+			for (int iFType = 0; iFType < FT_NFEATURETYPES; iFType++)
 			{
-				in = trOut.Add(s[i]->Symbol, IT_SQRBRK | IT_LINEBRKAFTER);
+				trOut.Add(dic.ipa->nameFeature[iFType], IT_COLUMN | IT_TAB);
+				trOut.Add(strcpyh(buf, s->feature[iFType], 8), IT_COLUMN | IT_TAB);
 
-				for (int iFType = 0; iFType < FT_NFEATURETYPES; iFType++)
-				{
-					trOut.Add(dic.ipa->nameFeature[iFType], IT_COLUMN | IT_TAB);
-					trOut.Add(strcpyh(buf, s[i]->feature[iFType], 8), IT_COLUMN | IT_TAB);
-
-					dic.ipa->GetFeatureNames(s[i]->feature, iFType, buf);
-					trOut.Add(buf, IT_LINEBRKAFTER);
-				}
-
-				//trOut.Add(NULL, IT_LINEBRK);
-				trOut.Add(NULL, IT_HORLINE);
+				dic.ipa->GetFeatureNames(s->feature, iFType, buf);
+				trOut.Add(buf, IT_LINEBRKAFTER);
 			}
 		}
-
-		for (int i = 0; i <= 1; i++)
-		{
-			if (s[i])
-				trOut.Add(s[i]->Symbol, 0);
-			else
-				trOut.Add(L"?", 0);
-			if (i == 0)
-				trOut.Add(L" : ", 0);
-		}
-
-		trOut.Add(L" → ", 0);
-		trOut.Add(strcpyi(bufOut, mtx.GetDistance(0, 1, s[0], true, s[1], true, 1)), 0);
-
-		OutputString output(2000, 100); //Dictionary::OutputString катит!!!
-		output.Build(trOut.ndRoot);
-
-		lstrcpy(bufOut, output.bufOut);
-		return 1;
+		trOut.Add(NULL, IT_HORLINE);
 	}
-	catch (...)
+
+	for (int i = 0; i <= 1; i++)
 	{
-		return -2;
+		trOut.Add(cmp[i].Text(), IT_SQRBRK);
+		if (i == 0)
+			trOut.Add(L" : ", 0);
 	}
+
+	trOut.Add(L" → ", 0);
+	trOut.Add(strcpyi(bufOut, mtx.GetDistance(0, 1, &cmp[0], &cmp[1], 1)), 0);
+
+	OutputString output(2000, 100); //Dictionary::OutputString катит!!!
+	output.Build(trOut.ndRoot);
+
+	lstrcpy(bufOut, output.bufOut);
+	return 1;
 }
 #ifdef __linux__ 
 }
 #endif
+
+
+#ifdef __linux__ 
+extern "C" {int
+#else
+int __declspec(dllexport)
+#endif
+ExtractCognateRows(LPTSTR bufIn, LPTSTR bufOut)
+{
+	Dictionary dic;
+
+	Comparison cmp(0, 0);
+	InfoTree trOut(L"ЕДИНИЧНЫЙ РЯД");
+
+	cmp.AddCognateListText(bufIn);
+
+	Query qry;
+	qry.AddCondition(L"Г", L"#", NULL, QF_ITERATE, L"Соответствия по начальному гласному");
+	qry.AddCondition(L"Г", L"С", NULL, QF_ITERATE | QF_OBJECTONLYONCE, L"Соответствия по гласному после первого согласного");
+	qry.AddCondition(L"С", L"#", NULL, QF_ITERATE, L"Соответствия по начальному согласному");
+
+	for (Condition* cnd = qry.FirstCondition(); cnd; cnd = qry.NextCondition())
+	{
+		cmp.Process(cnd, false);
+		cmp.OutputCorresponcesWithMaterial(cnd, &trOut, true);
+	}
+
+	OutputString output(20000, 20, cmp.nDicts * 2, false);
+	output.Build(trOut.ndRoot);
+
+	output.OutputData(bufOut);
+	return 1;
+}
 
 /*
 BOOL WINAPI DllMain(_In_ HINSTANCE hinstDLL, _In_ DWORD fdwReason, _In_ LPVOID lpvReserved)

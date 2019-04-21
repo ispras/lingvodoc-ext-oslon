@@ -104,7 +104,6 @@ public:
 				return NULL;
 		}
 
-
 		if (data)	data = pString.New(data, wcslen(data) + 1);
 
 		InfoNode *nd = new (pNodes.New()) InfoNode(data, flags, dataExtra);

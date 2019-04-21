@@ -58,7 +58,7 @@ int CompareFeaturesAnd(int* f1, int* f2)
 	return 0;
 }
 
-int CompareFeaturesNumberOfDifferences(int* f1, int* f2)
+int CompareFeaturesNumberOfDifferences___(int* f1, int* f2)
 {
 	int nDiff = 0;
 	for (int iFType = 0; iFType < FT_NFEATURETYPES; iFType++)
