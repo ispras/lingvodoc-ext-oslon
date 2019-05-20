@@ -474,8 +474,9 @@ void Comparison::OutputDeviationsWithMaterial(Condition* cnd, InfoTree* trOut, I
 	trOut->Add(NULL, IT_SECTIONBRK, inMult);
 }
 
-void Comparison::OutputCorresponcesWithMaterial(Condition* cnd, InfoTree* trOut, bool doMakeTableForSingles)
+void Comparison::OutputCorrespondencesWithMaterial(Condition* cnd, InfoTree* trOut, bool doMakeTableForSingles)//нельзя тут повторять
 {
+	//int iii=0;
 	LPTSTR word;
 	Sound* sound;
 
@@ -518,7 +519,24 @@ void Comparison::OutputCorresponcesWithMaterial(Condition* cnd, InfoTree* trOut,
 			trOut->Add(c->comparanda[iCol].formOrig, IT_TAB, inTo);
 			trOut->Add(c->comparanda[iCol].translation, IT_MARRQUOTES | IT_TAB, inTo);
 		}
-
+		/*
+		Correspondence*c3,*c4;
+		if (inTo==inOnce)
+		{
+			iii++;
+			if (iii==3){
+				c3=c;
+				out(c->comparanda[1].formOrig);
+			}
+			if (iii==4){
+				c4=c;
+				out(c->comparanda[1].formOrig);
+			}
+			if (iii==4){
+				out(tCorrespondences.CompareNodes(c3,c4,0));
+			}
+		}
+		*/
 		if (it.IsEndOfGroup() || doMakeTableForSingles)
 		{
 			trOut->Add(NULL, IT_HORLINE, inTo);

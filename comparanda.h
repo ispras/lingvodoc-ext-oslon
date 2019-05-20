@@ -10,6 +10,7 @@ public:
 	TCHAR		chrFragment[8];
 	TCHAR		chrTranscr[8];
 	bool		isSoundInCognates;
+	bool		isSingleInGroup;
 
 	Comparandum()
 	{
@@ -39,11 +40,12 @@ public:
 		typeOfSegment == ST_NONE;
 		chrFragment[0] = L'\0';
 		isSoundInCognates = false;
+		isSingleInGroup = false;
 	}
 	void SetFragment(LPTSTR text)
 	{
 		wcscpy(chrFragment, text);
-		typeOfSegment = ST_FRAGMENT;//но при этом sound = NULL, что ненормально
+		typeOfSegment = ST_FRAGMENT;
 		isSoundInCognates = true;//надо переименовать
 	}
 	LPTSTR Text()
@@ -93,30 +95,48 @@ class Correspondence : public BNode
 {
 public:
 	int				iRow;
-	Correspondence*	crspNextSame;
+	//Correspondence*	crspNextSame;
+	//Correspondence*	crspPrevSame;
+	union
+	{
+		Correspondence*	last;
+		Correspondence*	prev;
+	};
+	union
+	{
+		Correspondence*	first;
+		Correspondence*	next;
+	};
+	Correspondence*	crspMain;
+
 	Comparandum*	comparanda;
 	int				rankAllSoundsSame;
 	int				nSoundsSame;
 	int				nSoundsEmpty;
 	void*			dataExtra;
-	bool			degenerate;
+	int				iUnique;
+	bool			isBeingChanged;
 
 	Correspondence(int nDicts, int _iRow)
 	{
 		iRow = _iRow;
-		crspNextSame = NULL;
 
 		comparanda = (Comparandum*)malloc(nDicts * sizeof(Comparandum));//new Comparandum[nDicts];
 		memset(comparanda, '\0', nDicts * sizeof(Comparandum));
 
+		_Reset();
+	}
+
+	void _Reset()
+	{
 		rankAllSoundsSame = 0;
 		nSoundsSame = 0;
 		nSoundsEmpty = 0;
-		degenerate = false;
-
+		iUnique = 0;
+		next = last = crspMain = NULL;
+		isBeingChanged = false;
 		dataExtra = NULL;
 	}
-
 	~Correspondence()
 	{
 		if (comparanda)
@@ -124,58 +144,125 @@ public:
 			free(comparanda);//delete[] comparanda;
 		}
 	}
+	void AddToGroup(Correspondence* _cMain)
+	{
+		crspMain = _cMain;
+
+		Correspondence* _cPrev = crspMain->last;
+
+
+		if (first)//т.е. это заголовок
+		{
+			crspMain->last = last;
+			for (Correspondence* cNext = first; cNext; cNext = cNext->next)
+				cNext->crspMain = crspMain;
+		}
+		else
+			crspMain->last = this;
+
+
+		prev = _cPrev;
+
+		if (prev)
+			prev->next = this;
+
+		if (!crspMain->first)
+			crspMain->first = this;
+	}
+	void RemoveFromGroup()
+	{
+		if (prev)
+			prev->next = next;
+		else
+			crspMain->first = next;
+		if (next)
+			next->prev = prev;
+		else
+			crspMain->last = prev;
+
+		next = prev = crspMain = NULL;
+	}
 };
 
 //////////////////////////////////////////////////////////////
 
 class CorrespondenceTree : public BTree
 {
+	int idUnique;
 public:
 	int nDicts;
 	CorrespondenceTree(int _nDicts)
 	{
+		idUnique = 0;
 		nDicts = _nDicts;
 	}
-	int CompareNodes(BNode* _nd1, BNode* _nd2, void*_)
+
+	struct COMPAREFLAGS
 	{
+		bool skipEmpty;
+		bool ignoreRankSame;
+		bool ignoreUniqueID;
+	};
+
+	int CompareNodes(BNode* _nd1, BNode* _nd2, void* _struct)
+	{
+		COMPAREFLAGS* cf = (COMPAREFLAGS*)_struct;
+		COMPAREFLAGS _cf;
+
+		if (!cf)
+		{
+			_cf.skipEmpty = false;
+			_cf.ignoreRankSame = false;
+			_cf.ignoreUniqueID = false;
+			cf = &_cf;
+		}
+
+
 		Correspondence* c1 = (Correspondence*)_nd1;//поэтому надо шаблонно!!
 		Correspondence* c2 = (Correspondence*)_nd2;
 
-		if (c1->rankAllSoundsSame > c2->rankAllSoundsSame)
-			return -1;
-		if (c1->rankAllSoundsSame < c2->rankAllSoundsSame)
-			return 1;
+		if (!cf->ignoreRankSame)
+		{
+			if (c1->rankAllSoundsSame > c2->rankAllSoundsSame)
+				return -1;
+			if (c1->rankAllSoundsSame < c2->rankAllSoundsSame)
+				return 1;
+		}
 
 		bool isNonNull = false;
+		//int nSame = 0;
 		for (int iCol = 0; iCol < nDicts; iCol++)
 		{
 			Comparandum* cmp1 = &c1->comparanda[iCol];
 			Comparandum* cmp2 = &c2->comparanda[iCol];
 			int res;
-			if (cmp1->sound && cmp2->sound)
+
+			bool isCanCompare;
+			if (cf->skipEmpty)
+				isCanCompare = (cmp1->sound && cmp1->typeOfSegment != ST_EMPTYAUTOFILL && cmp2->sound && cmp2->typeOfSegment != ST_EMPTYAUTOFILL);
+			else
+				isCanCompare = true;
+
+			if (isCanCompare)
 			{
-				//if (!cmp1sound && c2->comparanda[iCol].sound)
-				//	return 1;
-				//if (cmp1 && !c2->comparanda[iCol].sound)
-				//	return -1;
-
 				isNonNull = true;
-
 				if (cmp1->typeOfSegment == ST_FRAGMENT && cmp2->typeOfSegment == ST_FRAGMENT)
 				{
 					if (res = cmp1->CompareFragmentWith(cmp2))
 						return res;
 				}
 				else if (cmp1->typeOfSegment == ST_FRAGMENT)
-					return -1;
-				else if (cmp2->typeOfSegment == ST_FRAGMENT)
 					return 1;
+				else if (cmp2->typeOfSegment == ST_FRAGMENT)
+					return -1;
 				else if (res = CompareFeaturesAnd(cmp1->sound->feature, cmp2->sound->feature))
 					return res;
+
+				//nSame++;
 			}
 		}
 		/*
-				for (int iCol = 0; iCol < nDicts ; iCol++)
+				for (int iCol = 0; iCol < nDicts; iCol++)
 				{
 					int res;
 					if (!cmp1->sound && cmp2->sound)
@@ -184,6 +271,7 @@ public:
 						return 1;
 				}
 		*/
+
 		if (!isNonNull)//т.е. если ни по одному столбцу не сравнили
 		{
 			if (c1->iRow < c2->iRow)
@@ -192,9 +280,24 @@ public:
 				return -1;
 		}
 
+		if (!cf->ignoreUniqueID)
+		{
+			if (c1->iUnique || c2->iUnique)
+			{
+				if (c1->iUnique > c2->iUnique)
+					return 1;
+				else if (c1->iUnique < c2->iUnique)
+					return -1;
+			}
+		}
+
 		return 0;
 	}
-
+	int GetUniqueID()
+	{
+		idUnique++;
+		return idUnique;
+	}
 	class Iterator : public BTree::Walker
 	{
 		bool			isInGroup;
@@ -213,7 +316,7 @@ public:
 			if (!isInGroup)
 			{
 				Correspondence* crspCurr = (Correspondence*)Current();
-				if (crspCurr->crspNextSame)
+				if (crspCurr->next)
 				{
 					isInGroup = true;
 					crspCurrInGroup = crspCurr;
@@ -233,7 +336,7 @@ public:
 				Correspondence* crspCurr = (Correspondence*)Current();
 				if (!crspCurr)
 					return false;
-				return (crspCurr->crspNextSame);
+				return (crspCurr->next);
 			}
 			else
 			{
@@ -244,7 +347,7 @@ public:
 		{
 			if (!isInGroup) return false;
 
-			return (crspCurrInGroup->crspNextSame == NULL);
+			return (crspCurrInGroup->next == NULL);
 		}
 		bool AreWeInsideGroup()
 		{
@@ -252,14 +355,14 @@ public:
 		}
 		void NextAndCheck()
 		{
-		TryAgain:
+			//TryAgain:
 			if (!Walker::Next())
 				return;
 
 			Correspondence* crspCurr = (Correspondence*)Current();
 
-			if (crspCurr->degenerate)
-				goto TryAgain;
+			//if (crspCurr->degenerate)
+			//	goto TryAgain;
 
 			if (!skipInsideGroup)
 			{
@@ -272,7 +375,7 @@ public:
 			{
 				NextAndCheck();
 			}
-			else if (!(crspCurrInGroup = crspCurrInGroup->crspNextSame))
+			else if (!(crspCurrInGroup = crspCurrInGroup->next))
 			{
 				isInGroup = false;
 				NextAndCheck();

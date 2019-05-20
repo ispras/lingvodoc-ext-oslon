@@ -7,9 +7,10 @@
 
 #define ST_ERROR				-1
 #define ST_NONE					0
-#define ST_SOUND				1
-#define ST_FRAGMENT				2
-#define ST_FRAGMENTMAYBE		3
+#define ST_EMPTYAUTOFILL		10
+#define ST_SOUND				11
+#define ST_FRAGMENT				12
+#define ST_FRAGMENTMAYBE		13
 
 class Condition;//надо без этого!
 class Condition : public LinkedElement<Condition>, public OwnNew
@@ -95,7 +96,7 @@ public:
 		if (sgThis.flag == QF_NOTHING) sgThis.Init(ipa);
 		return sgThis.feature[iFType] & val;
 	}
-
+	
 	bool Check(Segmentizer* sgmtzr)
 	{
 		if (sgThis.flag == QF_NOTHING) sgThis.Init(sgmtzr->ipa);
@@ -184,7 +185,6 @@ public:
 	int GetFirstMatchingFragment(IPA* ipa, Sound** sound, LPTSTR wIn, LPTSTR wOut)
 	{
 		Segmentizer sgmntzr(ipa, wIn);
-
 		Reset();
 
 		if (!wIn)

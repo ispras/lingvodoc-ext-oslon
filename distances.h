@@ -59,26 +59,21 @@ public:
 		Sound* s2 = NULL;
 		while (true)
 		{
-			if (cmp1->typeOfSegment == ST_FRAGMENT)
-				s1 = sgmntzr1.GetNext();
-			else if (!s1)
-				s1 = cmp1->sound;
-			else
-				s1 = NULL;
+			if (cmp1->typeOfSegment == ST_FRAGMENT)				s1 = sgmntzr1.GetNext();
+			else if (!s1)										s1 = cmp1->sound;
+			else												s1 = NULL;
 
-			if (cmp2->typeOfSegment == ST_FRAGMENT)
-				s2 = sgmntzr2.GetNext();
-			else if (!s2)
-				s2 = cmp2->sound;
-			else
-				s2 = NULL;
+			if (cmp2->typeOfSegment == ST_FRAGMENT)				s2 = sgmntzr2.GetNext();
+			else if (!s2) 										s2 = cmp2->sound;
+			else												s2 = NULL;
 
 			if (!s1 && !s2)
 				break;
 
 			int dist = 0;
 
-			bool isSameType = (cmp1->typeOfSegment == cmp2->typeOfSegment);
+			bool isNotSameType = (cmp1->typeOfSegment == ST_SOUND && cmp2->typeOfSegment == ST_FRAGMENT)
+				|| (cmp2->typeOfSegment == ST_SOUND && cmp1->typeOfSegment == ST_FRAGMENT);
 			bool isSound1 = !!s1 && isS1;//isS1 — входной, но лучше от него избавиться
 			bool isSound2 = !!s2 && isS2;
 
@@ -109,10 +104,10 @@ public:
 
 				}
 			}
-			else if (isSameType)//какой-то один есть или никакого нет
+			else if (isNotSameType)
 				dist = 0;
 			else
-				dist = 0; //пока оставляем так, но это сильно углубляет
+				dist = 0;
 
 
 			dist *= factor;

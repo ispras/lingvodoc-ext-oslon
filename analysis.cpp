@@ -119,8 +119,9 @@ CognateAnalysis_GetAllOutput(LPTSTR bufIn, int nCols, int nRows, LPTSTR bufOut, 
 
 		for (Condition* cnd = qry.FirstCondition(); cnd; cnd = qry.NextCondition())
 		{
-			cmp.Process(cnd, true);
-			cmp.OutputCorresponcesWithMaterial(cnd, &trOut);
+			//			cmp.Process(cnd, false, false);
+			cmp.Process(cnd, true, true);
+			cmp.OutputCorrespondencesWithMaterial(cnd, &trOut);
 		}
 
 		OutputString output(szOutput, 20, nCols * 2, isBinary);
@@ -186,7 +187,7 @@ CognateDistanceAnalysis_GetAllOutput(LPTSTR bufIn, int nCols, int nRows, LPTSTR 
 
 		for (Condition* cnd = qry.FirstCondition(); cnd; cnd = qry.NextCondition())
 		{
-			cmp.Process(cnd, true);
+			cmp.Process(cnd, true, true);
 
 			DistanceMatrix mtx(cmp.dic.ipa, cmp.nDicts);
 
@@ -267,7 +268,7 @@ CognateAcousticAnalysis_GetAllOutput(LPTSTR bufIn, int nCols, int nRows, LPTSTR 
 
 		for (Condition* cnd = qry.FirstCondition(); cnd; cnd = qry.NextCondition())
 		{
-			cmp.Process(cnd, true);
+			cmp.Process(cnd, true, true);
 			cmp.OutputDeviationsWithMaterial(cnd, &trOut, &trCld);
 		}
 
@@ -413,8 +414,8 @@ ExtractCognateRows(LPTSTR bufIn, LPTSTR bufOut)
 
 	for (Condition* cnd = qry.FirstCondition(); cnd; cnd = qry.NextCondition())
 	{
-		cmp.Process(cnd, false);
-		cmp.OutputCorresponcesWithMaterial(cnd, &trOut, true);
+		cmp.Process(cnd, false, false);
+		cmp.OutputCorrespondencesWithMaterial(cnd, &trOut, true);
 	}
 
 	OutputString output(20000, 20, cmp.nDicts * 2, false);

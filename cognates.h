@@ -12,7 +12,7 @@ LPTSTR __declspec(dllexport) _donecalc(void*, LPTSTR, int);
 //void __declspec(dllexport) _addcalc(LPTSTR);
 //LPTSTR __declspec(dllexport) _donecalc(LPTSTR);
 #endif
-
+Correspondence* cSHUANA;
 class CognateList;
 
 class Comparison
@@ -73,16 +73,10 @@ public:
 
 			for (int iRow = 0; iRow < nCorresp; iRow++)
 			{
-				corresps[iRow].crspNextSame = NULL;
+				corresps[iRow]._Reset();
+
 				for (int iCol = 0; iCol < nDicts; iCol++)
 					corresps[iRow].comparanda[iCol].Reset_();//почему-то Reset — неоднозначно
-
-				corresps[iRow].rankAllSoundsSame = 0;
-				corresps[iRow].nSoundsSame = 0;
-				corresps[iRow].nSoundsEmpty = 0;
-				corresps[iRow].degenerate = false;
-
-				corresps[iRow].dataExtra = NULL;
 			}
 			isProcessed = false;
 		}
@@ -148,19 +142,36 @@ public:
 		}
 		dic.ipa->EndSubmitWordForms();
 	}
-	void FindSameSoundsInRow(Correspondence* crsp)
+	bool FillEmptySoundsInRow(Correspondence* crsp)//, bool isReadding = false)
 	{
 		//в этой ф-ции назначаются rankAllSoundsSame и nSoundsSame
 		//а потом распространяется потенциальный одинаковый звук на все
+		//если нет одинакового, то суётся первый
 
+/*
+		if (isReadding)
+		{
+			for (int iCol = 0; iCol < nDicts; iCol++)
+			{
+				//if (crsp->comparanda[iCol].typeOfSegment == ST_EMPTYAUTOFILL)
+				//	crsp->comparanda[iCol].sound = NULL;
+			}
+		}
+*/
 		bool wasNotEmpty = false;
 		Sound* soundSame = NULL,
-			*soundSameExact = NULL;
+			*soundSameExact = NULL,
+			*soundFirst = NULL;
 
 		for (int iCol = 0; iCol < nDicts; iCol++)
 		{
-			if (crsp->comparanda[iCol].formIPA)
+			if (!crsp->comparanda[iCol].sound)
 				continue;
+			//			if (!crsp->comparanda[iCol].formIPA)
+			//				continue;
+
+			if (!soundFirst)
+				soundFirst = crsp->comparanda[iCol].sound;
 
 			if (!wasNotEmpty)
 			{
@@ -177,6 +188,7 @@ public:
 				{
 					Sound* sdBaseWas = dic.ipa->GetBaseSound(soundSame);
 					Sound* sdBaseThis = dic.ipa->GetBaseSound(crsp->comparanda[iCol].sound);
+
 					if (sdBaseWas == sdBaseThis)
 					{
 						crsp->rankAllSoundsSame = 5;
@@ -191,14 +203,26 @@ public:
 			}
 		}
 
-		if (crsp->nSoundsEmpty && soundSame)
+		if (crsp->nSoundsEmpty)
 		{
+			if (!soundSame)
+				soundSame = soundFirst;
+
+			if (!soundSame)//строка выродилась
+			{
+				return false;
+			}
+
 			for (int iCol = 0; iCol < nDicts; iCol++)
 			{
-				if (!crsp->comparanda[iCol].formIPA)
+				if (!crsp->comparanda[iCol].sound/*formIPA*/)
+				{
 					crsp->comparanda[iCol].sound = soundSame;
+					crsp->comparanda[iCol].typeOfSegment = ST_EMPTYAUTOFILL;
+				}
 			}
 		}
+		return true;
 	}
 	int CountEmptyColsInRow(Correspondence* crsp)
 	{
@@ -210,21 +234,6 @@ public:
 		}
 		return crsp->nSoundsEmpty;
 	}
-
-	void ConfirmOrAnnullMaybeDiphthongs(Correspondence* crsp, bool wasFragment)
-	{
-		for (int iCol = 0; iCol < nDicts; iCol++)
-		{
-			if (crsp->comparanda[iCol].typeOfSegment == ST_FRAGMENTMAYBE)
-			{
-				if (wasFragment)
-					crsp->comparanda[iCol].typeOfSegment = ST_FRAGMENT;
-				else
-					crsp->comparanda[iCol].typeOfSegment = ST_SOUND;
-			}
-		}
-	}
-
 	bool ExtractSoundsFromCognates(Correspondence* crsp, Condition* cnd)
 	{
 		bool wasFragment = false,
@@ -254,28 +263,62 @@ public:
 	}
 	void AcceptAndInsertRow(Correspondence* crsp)
 	{
-		Correspondence* cFound = (Correspondence*)tCorrespondences.Add(crsp);
-
-		if (cFound)
-		{
-			crsp->crspNextSame = cFound->crspNextSame;
-			cFound->crspNextSame = crsp;
-		}
 		for (int iCol = 0; iCol < nDicts; iCol++)
 		{
-			//						corresps[iRow].comparanda[iCol].isSoundInCognates = false;
-			if (crsp->comparanda[iCol].formIPA && crsp->comparanda[iCol].sound)
-			{
+			if (crsp->comparanda[iCol].sound && crsp->comparanda[iCol].typeOfSegment != ST_EMPTYAUTOFILL)
 				crsp->comparanda[iCol].isSoundInCognates = true;
-				if (cFound)
+		}
+
+		//		if (crsp->crspMain = (Correspondence*)tCorrespondences.Add(crsp))
+		//			crsp->AddToGroup();
+
+		Correspondence* c;
+		CorrespondenceTree::COMPAREFLAGS cf = { true, false, false };
+
+		for (CorrespondenceTree::Iterator it(&tCorrespondences); c = it.Next();)
+		{
+			if (tCorrespondences.CompareNodes(c, crsp, &cf))
+				it.TryExitGroup();
+			else
+			{
+				crsp->AddToGroup(c);
+				break;
+			}
+		}
+
+		if (!crsp->crspMain)
+			tCorrespondences.Add(crsp);
+		else
+			FillMainRowWithMissingSounds(crsp);//
+	}
+	void FillMainRowWithMissingSounds(Correspondence* crsp)
+	{
+		bool wasChange = false;
+		for (int iCol = 0; iCol < nDicts; iCol++)
+		{
+			Comparandum* cThis = &crsp->comparanda[iCol];
+			if (/*cThis->formIPA &&*/ cThis->sound && cThis->typeOfSegment != ST_EMPTYAUTOFILL)
+			{
+				Comparandum* cMain = &crsp->crspMain->comparanda[iCol];
+				if (!cMain->sound || cMain->typeOfSegment == ST_EMPTYAUTOFILL)
 				{
-					cFound->comparanda[iCol].sound = crsp->comparanda[iCol].sound;
-					cFound->comparanda[iCol].isSoundInCognates = true;
+					if (!wasChange)
+					{
+						wasChange = true;
+						tCorrespondences.Remove(crsp->crspMain);
+					}
+					cMain->sound = cThis->sound;
+					cMain->typeOfSegment = cThis->typeOfSegment;
+					wcscpy(cMain->chrFragment, cThis->chrFragment);
+
+					cMain->isSoundInCognates = true;
 				}
 			}
 		}
+		if (wasChange)
+			ReaddRow(crsp->crspMain, false);
 	}
-	void Process(Condition* cnd, bool doRemoveSingleWordsInColumns)
+	void Process(Condition* cnd, bool doRemoveSingleWordsInColumns, bool doConflate)
 	{
 		Reset();
 
@@ -286,10 +329,11 @@ public:
 				if (i_nEmtpy != CountEmptyColsInRow(&corresps[iRow]))
 					continue;//вроде это не глупость, т.к. сперва надо добавить более полные
 
+
 				if (!ExtractSoundsFromCognates(&corresps[iRow], cnd))
 					continue;
 
-				FindSameSoundsInRow(&corresps[iRow]);
+				FillEmptySoundsInRow(&corresps[iRow]);
 
 				AcceptAndInsertRow(&corresps[iRow]);
 			}
@@ -297,12 +341,13 @@ public:
 
 		if (doRemoveSingleWordsInColumns)
 			RemoveSingleWordsInColumns();
+		if (doConflate)
+			ConflateRows();
 
 		CountFilledSoundCorrespondeces();
 
 		isProcessed = true;
 	}
-
 
 	void CalculateDistances(DistanceMatrix* mtx, int factor)
 	{
@@ -341,6 +386,29 @@ public:
 			}
 		}
 	}
+	void ReaddRow(Correspondence* crsp, bool isUnique)
+	{
+		if (isUnique)
+			crsp->iUnique = tCorrespondences.GetUniqueID();
+
+		if (!FillEmptySoundsInRow(crsp))//, true))
+		{
+			//out(L"выродилось!");
+			//outrow(crsp, false, true);
+			return;
+		}
+
+		Correspondence* cFound = (Correspondence*)tCorrespondences.Add(crsp);
+		if (cFound) {
+			//out(L"не передобавилось!");
+			//outrow(crsp);
+			//outrow(cFound);
+		}
+		//а лучше сразу добавлять их как-то правильно, а потом ещё раз, что ль, фильтровать???
+	//иначе все звуки стали нулями — но это временно! надо не ...
+	}
+	
+
 	void RemoveDistancesIfTooFew(DistanceMatrix* mtx, int threshold)
 	{
 		for (int i = 0; i < nDicts; i++)
@@ -362,10 +430,98 @@ public:
 			}
 		}
 	}
+	void ConfirmOrAnnullMaybeDiphthongs(Correspondence* crsp, bool wasFragment)
+	{
+		for (int iCol = 0; iCol < nDicts; iCol++)
+		{
+			if (crsp->comparanda[iCol].typeOfSegment == ST_FRAGMENTMAYBE)
+			{
+				if (wasFragment)
+					crsp->comparanda[iCol].typeOfSegment = ST_FRAGMENT;
+				else
+					crsp->comparanda[iCol].typeOfSegment = ST_SOUND;
+			}
+		}
+	}
+	/*
+		void UnsetSameSoundsInRow(Correspondence* crsp)
+		{
+			for (int iCol = 0; iCol < nDicts; iCol++)
+			{
+				if (crsp->comparanda[iCol].typeOfSegment == ST_EMPTYAUTOFILL)
+				{
+					crsp->comparanda[iCol].typeOfSegment = ST_NONE;
+					crsp->comparanda[iCol].sound = NULL;
+				}
+			}
+		}
+	*/
+	void CopySoundsToRow(Correspondence* cFrom, Correspondence* cTo)
+	{
+		for (int iCol = 0; iCol < nDicts; iCol++)
+		{
+			cTo->comparanda[iCol].isSoundInCognates = cFrom->comparanda[iCol].isSoundInCognates;
+			if (!cTo->comparanda[iCol].isSoundInCognates && !cTo->comparanda[iCol].formOrig)
+			{
+				cTo->comparanda[iCol].sound = NULL;
+				cTo->comparanda[iCol].typeOfSegment = ST_NONE;
+			}
+			//cTo->comparanda[iCol].sound = cFrom->comparanda[iCol].sound;
+			//cTo->comparanda[iCol].typeOfSegment = cFrom->comparanda[iCol].typeOfSegment;
+			//cTo->comparanda[iCol].isSingleInGroup = cFrom->comparanda[iCol].isSingleInGroup;
+			//wcscpy(cTo->comparanda[iCol].chrFragment, cFrom->comparanda[iCol].chrFragment);
+		}
+	}
+	void SetSingleColsToNull(Correspondence* cMain)
+	{
+		//tCorrespondences.Remove(cMain);
+
+		for (int iCol = 0; iCol < nDicts; iCol++)
+		{
+			if (cMain->comparanda[iCol].isSingleInGroup)
+			{
+				cMain->comparanda[iCol].isSoundInCognates = false;
+
+				if (!cMain->comparanda[iCol].formIPA)
+				{//т.е. обнуляем только те, что были добавлены ниже
+					cMain->comparanda[iCol].sound = NULL;
+					cMain->comparanda[iCol].typeOfSegment = ST_NONE;
+				}
+			}
+		}
+		//tCorrespondences.Add(cMain);
+	}
+	void SetNextRowAsGroupHead(Correspondence* cMain)
+	{
+		Correspondence* cFirst = cMain->first;
+
+		tCorrespondences.Remove(cMain);
+
+		SetSingleColsToNull(cMain);
+
+		CopySoundsToRow(cMain, cFirst);
+
+		for (Correspondence* cNext = cFirst->next; cNext; cNext = cNext->next)
+			cNext->crspMain = cFirst;
+
+		cFirst->first = cFirst->next;
+		cFirst->last = cMain->last;
+		cMain->first = cMain->last = NULL;
+		cFirst->crspMain = NULL;
+
+		ReaddRow(cMain, true);
+		ReaddRow(cFirst, true);
+	}
 	void RemoveSingleWordsInColumns()
 	{
-		int nInCol[100];
-		Correspondence* cInCol[100];
+		while (RemoveSingleWordsInColumnsOnce());
+	}
+	int RemoveSingleWordsInColumnsOnce()
+	{
+		int* nInCol = new int[nDicts];
+		Correspondence** cInCol = new Correspondence*[nDicts];
+		Correspondence** cToDel = new Correspondence*[nCorresp];
+		int ncToDel = 0;
 
 		Correspondence* c;
 		Correspondence* cStart;
@@ -374,9 +530,6 @@ public:
 			if (it.IsStartOfGroup())
 			{
 				cStart = c;
-
-				//cToDel[ncToDel] = c;
-				//ncToDel++;
 
 				for (int iCol = 0; iCol < nDicts; iCol++)
 				{
@@ -390,8 +543,7 @@ public:
 				if (c->comparanda[iCol].formIPA)
 				{
 					nInCol[iCol]++;
-					if (nInCol[iCol] == 1)
-						cInCol[iCol] = c;
+					cInCol[iCol] = c;
 				}
 			}
 
@@ -401,34 +553,129 @@ public:
 				{
 					if (nInCol[iCol] == 1)
 					{
-						cInCol[iCol]->comparanda[iCol].formOrig = NULL;
-						cInCol[iCol]->comparanda[iCol].formIPA = NULL;
-						cInCol[iCol]->comparanda[iCol].translation = NULL;
+						bool isAlreadyAddedForDelete = false;
+						for (int iiCol = 0; iiCol < nDicts; iiCol++)
+						{
+							if (cStart->comparanda[iiCol].isSingleInGroup)
+							{
+								isAlreadyAddedForDelete = true;
+								break;
+							}
+						}
 
-						cStart->comparanda[iCol].isSoundInCognates = false;
+						cStart->comparanda[iCol].isSingleInGroup = true;
+
+						if (!isAlreadyAddedForDelete)
+						{
+							cToDel[ncToDel] = cInCol[iCol];
+							ncToDel++;
+						}
 					}
 				}
-				int nInRow = 0;
-				for (int iCol = 0; iCol < nDicts; iCol++)
-				{
-					if (cStart->comparanda[iCol].formOrig)
-					{
-						nInRow++;
-						if (nInRow > 1)
-							break;
-					}
-				}
-				if (nInRow == 1)
-					cStart->degenerate = true;
 			}
 		}
-		/*
-				while (ncToDel > 0)
+
+		for (int i = 0; i < ncToDel; i++)
+		{
+			Correspondence* cMain = cToDel[i]->crspMain;
+			if (cMain) //т.е. в группе
+			{
+				cToDel[i]->RemoveFromGroup();
+				cToDel[i]->iUnique = tCorrespondences.GetUniqueID();
+				tCorrespondences.Add(cToDel[i]);
+
+				if (!cMain->isBeingChanged)
 				{
-					ncToDel--;
-					tCorrespondences.Remove(cToDel[ncToDel]);
+					//out(L"меняем заголовок ИЗ группы!");
+					//outrow(cMain);
+					cMain->isBeingChanged = true;//чтобы в этой группе не дважды
+					tCorrespondences.Remove(cMain);
+					SetSingleColsToNull(cMain);
+
+					ReaddRow(cMain, false);
 				}
-		*/
+			}
+			else  //т.е. заголовок группы
+			{
+				cMain = cToDel[i];
+				if (!cMain->first)
+					;//ничего не делать, она сама теперь не заголовок, т.к. вся группа ушла
+				else
+				{
+					//out(L"убираем САМ заголовок");
+					//outrow(cMain);
+					SetNextRowAsGroupHead(cMain);
+				}
+			}
+		}
+
+		for (CorrespondenceTree::Iterator it(&tCorrespondences); c = it.Next();)
+		{
+			//if (it.IsStartOfGroup())
+			c->isBeingChanged = false;
+			for (int iCol = 0; iCol < nDicts; iCol++)
+				c->comparanda[iCol].isSingleInGroup = false;
+		}
+
+
+		delete[] nInCol;
+		delete[] cInCol;
+		delete[] cToDel;
+
+		return ncToDel;
+	}
+	void ConflateRows()
+	{
+		//		Correspondence** cToDel = new Correspondence*[nCorresp];
+		//		int ncToDel = 0;
+		Correspondence* c1,
+			*c2;
+		CorrespondenceTree::COMPAREFLAGS cf = { true, true, true };
+	Anew:
+		for (CorrespondenceTree::Iterator it1(&tCorrespondences); c1 = it1.Next();)
+		{
+			if (it1.IsStartOfGroup())
+			{
+				if (!c1->isBeingChanged)
+				{
+					bool wasThis = false;
+					for (CorrespondenceTree::Iterator it2(&tCorrespondences); c2 = it2.Next();)
+					{
+						if (it2.IsStartOfGroup())
+						{
+							if (!wasThis)
+								wasThis = (c1 == c2);
+							else
+							{
+								if (!tCorrespondences.CompareNodes(c1, c2, &cf))
+								{
+									tCorrespondences.Remove(c1);
+									c1->AddToGroup(c2);
+									FillMainRowWithMissingSounds(c1);
+									//cToDel[ncToDel] = c1;
+									//ncToDel++;
+									goto Anew;
+								}
+							}
+							it2.TryExitGroup();
+						}
+					}
+					//не нашли, помечаем как отработанное
+					c1->isBeingChanged = true;
+				}
+				//	NextC1:;
+				it1.TryExitGroup();
+			}
+		}
+
+		//		for (int i = 0; i < ncToDel; i++)
+		//		{
+		//			tCorrespondences.Remove(cToDel[i]);
+		//		}
+
+		//		delete[] cToDel;
+		for (CorrespondenceTree::Iterator it(&tCorrespondences); c1 = it.Next();)
+			c1->isBeingChanged = false;
 	}
 
 	void OutputLanguageList(InfoTree* trOut);
@@ -440,7 +687,7 @@ public:
 	void OutputCognate(Comparandum* cmp, InfoTree* trOut, InfoNode* inTo, bool isPhonData, int fLine, CognateList* cl);
 	void OutputCognatesBySound(Correspondence* cGroupTop, Correspondence* cOther, int iColDiff, InfoTree* trOut, InfoNode* inMult, InfoTree* trCld, Correspondence* cEqual);
 	void OutputDeviationsWithMaterial(Condition* cnd, InfoTree* trOut, InfoTree* trCld);
-	void OutputCorresponcesWithMaterial(Condition* cnd, InfoTree* trOut, bool doMakeTableForSingles = false);
+	void OutputCorrespondencesWithMaterial(Condition* cnd, InfoTree* trOut, bool doMakeTableForSingles = false);
 	void OutputDistances(Condition* cnd, DistanceMatrix* mtx, InfoTree* trOut);
 };
 

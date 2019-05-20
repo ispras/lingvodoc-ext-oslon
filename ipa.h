@@ -19,7 +19,7 @@ enum
 
 enum
 {
-	FT_CLASS,
+	FT_CLASS = 0,
 	FT_MANNER,
 	FT_PLACE,
 	FT_COARTICULATION,
@@ -225,7 +225,6 @@ public:
 
 	LinkedList<Row> llRows[FT_NFEATURETYPES];
 	Row*			rowCurrent[FT_NFEATURETYPES];
-	//	int				iRowCurrent[FT_NFEATURETYPES];
 
 	class Iterator
 	{
@@ -582,8 +581,6 @@ public:
 	{
 		return GetSound(sound->Symbol[0]);
 	}
-
-
 	void SubmitWordForm(LPTSTR word)//будет меняться подстановками!
 	{
 		for (LPTSTR pInWord = word; *pInWord; pInWord++)
@@ -615,7 +612,7 @@ public:
 
 					if (!FindModifiedSound(soundBase, feature))
 					{
-						SoundTable::Sound* soundWithMod = new (pSounds.New()) SoundTable::Sound(chrWithMod, feature);
+						Sound* soundWithMod = new (pSounds.New()) Sound(chrWithMod, feature);
 						tblSounds[iClass].ConfirmSound(soundWithMod, FT_MODIFIER);//со вставкой столбца
 					}
 				}
