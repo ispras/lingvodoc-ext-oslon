@@ -82,6 +82,16 @@ public:
 				if (s1 != s2)
 				{
 
+					//ВРЕМЕННАЯ МЕРА ДЛЯ НЕПРАВИЛЬНОЙ МФА В СЛОВАРЯХ
+
+					if (!(Replace(&s1, &s2, L'w', L'v')))
+						if (!(Replace(&s1, &s2, L'χ', L'x')))
+							if (!(Replace(&s1, &s2, L'h', L'x')))
+								if (!(Replace(&s1, &s2, L'ʨ', L'ʧ')))
+									if (!(Replace(&s1, &s2, L'ɛ', L'e')))
+										if (!(Replace(&s1, &s2, L'ɔ', L'o')));
+
+
 					dist = abs(s1->OrdinalInIPA(FT_PLACE) - s2->OrdinalInIPA(FT_PLACE))
 						+ abs(s1->OrdinalInIPA(FT_MANNER) - s2->OrdinalInIPA(FT_MANNER))
 						;//	 + abs(s1->OrdinalInIPA(FT_COARTICULATION) - s2->OrdinalInIPA(FT_COARTICULATION));
@@ -92,16 +102,16 @@ public:
 					if (SpecDist(s1, s2, L'ə', &dist, 1));
 
 					//ВРЕМЕННАЯ МЕРА ДЛЯ НЕПРАВИЛЬНОЙ МФА В СЛОВАРЯХ
+					/*
+					else if	(SpecDist(s1, s2, L'w', L'v', &dist, 0));
+					else if	(SpecDist(s1, s2, L'x', L'χ', &dist, 0));
+					else if	(SpecDist(s1, s2, L'x', L'h', &dist, 0));
+					else if	(SpecDist(s1, s2, L'χ', L'h', &dist, 0));
+					else if	(SpecDist(s1, s2, L'ʨ', L'ʧ', &dist, 0));
 
-					else if (SpecDist(s1, s2, L'w', L'v', &dist, 0));
-					else if (SpecDist(s1, s2, L'x', L'χ', &dist, 0));
-					else if (SpecDist(s1, s2, L'x', L'h', &dist, 0));
-					else if (SpecDist(s1, s2, L'χ', L'h', &dist, 0));
-					else if (SpecDist(s1, s2, L'ʨ', L'ʧ', &dist, 0));
-
-					else if (SpecDist(s1, s2, L'e', L'ɛ', &dist, 0));
-					else if (SpecDist(s1, s2, L'o', L'ɔ', &dist, 0));
-
+					else if	(SpecDist(s1, s2, L'e', L'ɛ', &dist, 0));
+					else if	(SpecDist(s1, s2, L'o', L'ɔ', &dist, 0));
+					*/
 				}
 			}
 			else if (isNotSameType)
@@ -123,6 +133,21 @@ public:
 
 
 		return distAll;
+	}
+	bool Replace(Sound** s1, Sound** s2, TCHAR chFrom, TCHAR chTo)
+	{
+		bool ret = false;
+		if ((*s1)->Symbol[0] == chFrom)
+		{
+			*s1 = ipa->GetSound(chTo);
+			ret = true;
+		}
+		if ((*s2)->Symbol[0] == chFrom)
+		{
+			*s2 = ipa->GetSound(chTo);
+			ret = true;
+		}
+		return ret;
 	}
 	bool SpecDist(Sound* s1, Sound* s2, TCHAR ch, int* dist, int distNew)
 	{

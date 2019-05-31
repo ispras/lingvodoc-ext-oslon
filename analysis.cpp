@@ -62,10 +62,19 @@ PhonemicAnalysis_GetAllOutput(LPTSTR bufIn, int nRows, LPTSTR bufOut, int)
 		trOut.AddSubtree(&trIPAVowels, L"Гласные звуки", IT_COLUMN | IT_EMPTYLINEBEFORE);//, IT_TAB);
 		trOut.AddSubtree(&trIPANotFound, L"Неопознанные знаки", IT_COLUMN | IT_EMPTYLINEBEFORE, 0);
 
-		InfoNode* ndDistr[FT_NSOUNDCLASSES];
-		ndDistr[FT_VOWEL] = trOut.Add(L"Списки по гласному первого слога",/*NULL,*/ IT_COLUMN | IT_EMPTYLINEBEFORE);
-		ndDistr[FT_CONSONANT] = trOut.Add(L"Списки по согласному перед гласным первого слога", /*NULL,*/ IT_COLUMN | IT_EMPTYLINEBEFORE);
-		dic.BuildDistributionLists(ndDistr, &trOut);
+		InfoNode* ndTblDistr[FT_NSOUNDCLASSES];
+		ndTblDistr[FT_VOWEL] = trOut.Add(L"Распределение гласных", IT_COLUMN | IT_EMPTYLINEBEFORE | IT_LINEBRKAFTER);
+		ndTblDistr[FT_CONSONANT] = trOut.Add(L"Распределение согласных", IT_COLUMN | IT_EMPTYLINEBEFORE | IT_LINEBRKAFTER);
+		trOut.HorLine();
+		InfoNode* ndListDistr[FT_NSOUNDCLASSES];
+		ndListDistr[FT_VOWEL] = trOut.Add(L"Списки по гласному первого слога",/*NULL,*/ IT_COLUMN);
+		trOut.HorLine();
+		ndListDistr[FT_CONSONANT] = trOut.Add(L"Списки по согласному перед гласным первого слога", /*NULL,*/ IT_COLUMN);
+
+		dic.phono->AddDistibutionConditions();
+
+		dic.BuildDistributionTables(dic.phono->qry, ndTblDistr, &trOut);
+		dic.BuildDistributionLists(dic.phono->qry, ndListDistr, &trOut);
 
 		OutputString output(szOutput, 100); //Dictionary::OutputString катит!!!
 		output.Build(trOut.ndRoot);

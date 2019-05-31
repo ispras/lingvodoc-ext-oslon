@@ -4,7 +4,7 @@
 #define IT_LINEBRKBEFORE 	0x4
 #define IT_LINEBRKAFTER 	0x8
 #define IT_EMPTYLINEBEFORE 	0x10
-#define IT_HORLINEBEFORE 	0x20
+//#define IT_HORLINEBEFORE 	0x20
 #define IT_HORLINEAFTER 	0x40
 
 #define IT_LINEBRK		 	0x100
@@ -116,7 +116,10 @@ public:
 		ndParent->chldLast = nd;
 		return nd;
 	}
-
+	void HorLine()
+	{
+		Add(NULL, IT_HORLINE);
+	}
 	void AddSubtree(InfoTree* trToAdd, LPTSTR title, int fMain = IT_COLUMN | IT_LINEBRKBEFORE, int fNodes = 0)
 	{
 		InfoNode* ndC = Add(title, fMain);
@@ -369,8 +372,8 @@ public:
 
 			if (flags & IT_COLUMN)
 			{
-				lstrcpy(posOut, TEXT(":"));
-				posOut++;
+				lstrcpy(posOut, TEXT(": "));
+				posOut += 2;
 			}
 
 		}

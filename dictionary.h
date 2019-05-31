@@ -1,5 +1,6 @@
 #include "parser.h"
 #include "ipa.h"
+#include "phonology.h"
 
 class WordForm : public BNode
 {
@@ -70,6 +71,7 @@ public:
 	Pool<WordForm>		pWordForms; //(500) — нельзя в старом C++
 	Pool<TCHAR>			pString;
 	IPA*				ipa;
+	Phonology*			phono;
 	Replacer			replacers[RT_COUNT];
 	int					iReplacer;
 	int					nWordForms;
@@ -78,6 +80,7 @@ public:
 	Dictionary() : pString(10000), pWordForms(1000)
 	{
 		ipa = new IPA;
+		phono = new Phonology;
 
 		nWordForms = 0;
 
@@ -89,6 +92,7 @@ public:
 	~Dictionary()
 	{
 		delete ipa;
+		delete phono;
 	}
 
 	int ReplaceSymbols(LPTSTR bIn, LPTSTR bOut/*, int szOut*/, int iReplacerToUse = RT_DEFAULT)//, LPTSTR lang = NULL)
@@ -239,36 +243,10 @@ public:
 		}
 		ipa->EndSubmitWordForms();
 	}
-	/*
-		void AddWordList_CTAPOE(LPTSTR sIn)
-		{
-			Parser parser(sIn, L"\r\n", PARSER_SKIPNEWLINE);
-			LPTSTR wordIPA, wordOrig;
 
-			TCHAR buf[200];
 
-			while (wordOrig = parser.Next())
-			{
-				if (iReplacer == RT_NONE)
-					iReplacer = GuessReplacer(wordOrig);
-				ReplaceSymbols(wordOrig, buf);
 
-				wordOrig = pString.New(wordOrig, wcslen(wordOrig)+1);
-				wordIPA = pString.New(buf, wcslen(buf)+1);
 
-				WordForm* wfNew = new (pWordForms.New()) WordForm(wordIPA, wordOrig, NULL);
-
-				//создаются дубли-сироты этих объектов, если уже в дереве есть
-
-				ipa->SubmitWordForm(wordIPA);
-
-				WordForm* wfFound = (WordForm*)trWordForms.Add(wfNew);
-				if (!wfFound)
-					nWordForms++;
-			}
-			ipa->EndSubmitWordForms();
-		}
-	*/
 	void BuildIPATable(int iClass, InfoTree* trOut)
 	{
 		trOut->Add(NULL, IT_HORLINE);
@@ -303,34 +281,38 @@ public:
 		trOut->Add(NULL, IT_HORLINE);
 	}
 
-	void BuildDistributionLists(InfoNode** ndRoot, InfoTree* trOut)
+	void BuildDistributionTables(Query& qry, InfoNode** ndRoot, InfoTree* trOut)
 	{
-		Query qry;
-
-		qry.AddCondition(L"Г", L"#", NULL, 0, L"в начале");
-		qry.AddCondition(L"Г", L"ГУБ", NULL, QF_OBJECTONLYONCE, L"после губных");
-		qry.AddCondition(L"Г", L"ЗУБ", NULL, QF_OBJECTONLYONCE, L"после зубных");
-		qry.AddCondition(L"Г", L"ПАЛ", NULL, QF_OBJECTONLYONCE, L"после палатальных");
-		qry.AddCondition(L"Г", L"ЗЯЗ", NULL, QF_OBJECTONLYONCE, L"после заднеязычных");
-		qry.AddCondition(L"Г", L"ЛАР", NULL, QF_OBJECTONLYONCE, L"после ларингальных");
-
-		qry.AddCondition(L"Г", NULL, L"ЗУБ", QF_OBJECTONLYONCE, L"перед зубными");
-
-		qry.AddCondition(L"Г", NULL, L"ПАЛ", QF_OBJECTONLYONCE, L"перед палатальными");
-		qry.AddCondition(L"Г", NULL, L"ЗЯЗ", QF_OBJECTONLYONCE, L"перед заднеязычными");
-		qry.AddCondition(L"Г", NULL, L"ЛАР", QF_OBJECTONLYONCE, L"перед ларингальными");
-
-		qry.AddCondition(L"С", L"#", NULL, 0, L"в начале");
-		qry.AddCondition(L"С", NULL, L"ПЕР", QF_OBJECTONLYONCE | QF_CONTEXTONLYONCE, L"перед передними");
-		qry.AddCondition(L"С", NULL, L"ЦНТ", QF_OBJECTONLYONCE | QF_CONTEXTONLYONCE, L"перед центральными");
-		qry.AddCondition(L"С", NULL, L"ЗАД", QF_OBJECTONLYONCE | QF_CONTEXTONLYONCE, L"перед задними");
-
-		qry.AddCondition(L"С", NULL, L"ОГУ", QF_OBJECTONLYONCE | QF_CONTEXTONLYONCE, L"перед огубленными");
-
-		//qry.DoneAddConditions()
-
 		Sound* sdThis;
+		TCHAR buf[200];
+		for (int iClass = FT_VOWEL; ; iClass = FT_CONSONANT)
+		{
+			trOut->Add(NULL, IT_TAB, ndRoot[iClass]);
+			trOut->Add(NULL, IT_TAB, ndRoot[iClass]);
 
+			SoundTable::Iterator* it = ipa->Iterator(iClass);
+			while (sdThis = it->Next())
+			{
+				InfoNode* ndThisSound = trOut->Add(sdThis->Symbol, IT_TAB, ndRoot[iClass]);
+
+				/*				for (Condition* cnd = qry.FirstCondition(); cnd; cnd = qry.NextCondition())
+								{
+									if (cnd->CheckThisFeature(FT_CLASS, iClass, ipa))
+										trOut->Add(cnd->AutoTitle(buf), IT_COLUMN|IT_LINEBRKBEFORE|IT_IDENT, ndThisSound, false, cnd);
+								}
+				*/
+				sdThis->dataExtra = ndThisSound;
+			}
+			it->Done();
+			if (iClass == FT_CONSONANT)
+				break;
+		}
+	}
+
+	void BuildDistributionLists(Query& qry, InfoNode** ndRoot, InfoTree* trOut)
+	{
+		Sound* sdThis;
+		TCHAR buf[200];
 		for (int iClass = FT_VOWEL; ; iClass = FT_CONSONANT)
 		{
 			SoundTable::Iterator* it = ipa->Iterator(iClass);
@@ -341,7 +323,7 @@ public:
 				for (Condition* cnd = qry.FirstCondition(); cnd; cnd = qry.NextCondition())
 				{
 					if (cnd->CheckThisFeature(FT_CLASS, iClass, ipa))
-						trOut->Add(cnd->title, IT_COLUMN | IT_SPACE | IT_LINEBRKBEFORE | IT_IDENT, ndThisSound, false, cnd);
+						trOut->Add(/*cnd->title*/ cnd->AutoTitle(buf), IT_COLUMN | IT_LINEBRKBEFORE | IT_IDENT, ndThisSound, false, cnd);
 				}
 
 				sdThis->dataExtra = ndThisSound;
@@ -394,4 +376,6 @@ public:
 			}
 		}
 	}
+
+
 };
