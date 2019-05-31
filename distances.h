@@ -87,9 +87,10 @@ public:
 					if (!(Replace(&s1, &s2, L'w', L'v')))
 						if (!(Replace(&s1, &s2, L'χ', L'x')))
 							if (!(Replace(&s1, &s2, L'h', L'x')))
-								if (!(Replace(&s1, &s2, L'ʨ', L'ʧ')))
-									if (!(Replace(&s1, &s2, L'ɛ', L'e')))
-										if (!(Replace(&s1, &s2, L'ɔ', L'o')));
+								if (!(Replace(&s1, &s2, L'ʥ', L'ʤ')))
+									if (!(Replace(&s1, &s2, L'ʨ', L'ʧ')))
+										if (!(Replace(&s1, &s2, L'ɛ', L'e')))
+											if (!(Replace(&s1, &s2, L'ɔ', L'o')));
 
 
 					dist = abs(s1->OrdinalInIPA(FT_PLACE) - s2->OrdinalInIPA(FT_PLACE))
