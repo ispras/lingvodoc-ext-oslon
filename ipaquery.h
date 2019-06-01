@@ -282,7 +282,7 @@ public:
 			return ST_ERROR;
 
 		*sound = sgmntzr.Current();
-		wcscat(wOut, (*sound)->Symbol);
+		wcscpy(wOut, (*sound)->Symbol);
 
 		int ret = ST_SOUND;
 
