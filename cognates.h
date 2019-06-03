@@ -12,7 +12,7 @@ LPTSTR __declspec(dllexport) _donecalc(void*, LPTSTR, int);
 //void __declspec(dllexport) _addcalc(LPTSTR);
 //LPTSTR __declspec(dllexport) _donecalc(LPTSTR);
 #endif
-Correspondence* cSHUANA;
+
 class CognateList;
 
 class Comparison
@@ -291,7 +291,7 @@ public:
 		else
 			FillMainRowWithMissingSounds(crsp);//
 	}
-	void FillMainRowWithMissingSounds(Correspondence* crsp)
+	void FillMainRowWithMissingSounds(Correspondence* crsp, bool _ = false)
 	{
 		bool wasChange = false;
 		for (int iCol = 0; iCol < nDicts; iCol++)
@@ -305,6 +305,7 @@ public:
 					if (!wasChange)
 					{
 						wasChange = true;
+
 						tCorrespondences.Remove(crsp->crspMain);
 					}
 					cMain->sound = cThis->sound;
@@ -315,6 +316,7 @@ public:
 				}
 			}
 		}
+
 		if (wasChange)
 			ReaddRow(crsp->crspMain, false);
 	}
@@ -338,7 +340,6 @@ public:
 				AcceptAndInsertRow(&corresps[iRow]);
 			}
 		}
-
 		if (doRemoveSingleWordsInColumns)
 			RemoveSingleWordsInColumns();
 		if (doConflate)
@@ -393,22 +394,105 @@ public:
 
 		if (!FillEmptySoundsInRow(crsp))//, true))
 		{
-			//out(L"выродилось!");
-			//outrow(crsp, false, true);
+			//			out(L"выродилось!");
+			//			outrow(crsp, false, true);
 			return;
 		}
 
 		Correspondence* cFound = (Correspondence*)tCorrespondences.Add(crsp);
-		if (cFound) {
-			//out(L"не передобавилось!");
-			//outrow(crsp);
-			//outrow(cFound);
+		if (cFound)
+		{
+			//			out(L"не передобавилось!");
+			//			outrow(crsp);
+			//			outrow(cFound);
 		}
 		//а лучше сразу добавлять их как-то правильно, а потом ещё раз, что ль, фильтровать???
 	//иначе все звуки стали нулями — но это временно! надо не ...
 	}
-	
+	/*
+	co()
+	{
+	bool ok=tCorrespondences.CheckOrder();
 
+	if (!ok)
+	out(L"НЕ ОТСОРТ!!!");
+	else
+	out(L"ОТСОРТ В НАЛЕ!!!");
+	}
+	outallrows(Correspondence* cThis, Correspondence* cMain)
+	{
+	co();
+
+
+
+	TCHAR r[1000];
+	TCHAR* s=new TCHAR[100000];
+	wcscpy(s,L"");
+	LPTSTR _s;
+	Correspondence* c1;
+	for (CorrespondenceTree::Iterator it1(&tCorrespondences); c1 = it1.Next();)
+	{
+		if (it1.IsStartOfGroup())
+		{
+			wcscpy(r,L"");
+			for (int iCol = 0; iCol < nDicts; iCol++)
+			{
+				_s=c1->comparanda[iCol].Text();
+				wcscat(r,_s);
+				wcscat(r,L"; ");
+			}
+			//out(r);
+			wcscat(s,r);
+			if (c1==cThis)
+				wcscat(s,L"-----");
+			if (c1==cMain)
+				wcscat(s,L"+++++");
+			wcscat(s,L"\r\n");
+
+			it1.TryExitGroup();
+		}
+	}
+	MsgBox(s);
+	delete[] s;
+	}
+
+	outrow(Correspondence* crsp, bool doSounds = true, bool doForms = true)
+	{
+	TCHAR s[1000];
+	wcscpy(s,L"");
+	TCHAR b[1000];
+	wcscpy(b,L"");
+	LPTSTR _s;
+	if (doSounds)
+	{for (int iCol = 0; iCol < nDicts; iCol++)
+	{
+		if (_s=crsp->comparanda[iCol].Text(true))
+			wcscat(s,_s);
+		else
+			wcscat(s,L"—");
+		wcscat(s,L"; ");
+	}
+	out(s);
+	}
+
+	if (doForms)
+	{
+	for (int iCol = 0; iCol < nDicts; iCol++)
+	{
+		if (_s=crsp->comparanda[iCol].formOrig)//s = crsp->comparanda[iCol].Text())
+			wcscat(b,_s);
+		else
+			wcscat(b,L"—");
+		wcscat(b,L"; ");
+	}
+	out(b);
+	}
+	MsgBox(s);
+	//MsgBox(b);
+
+	//out(tCorrespondences.CompareNodes(crsp,cFound,0));
+	}
+	*/
 	void RemoveDistancesIfTooFew(DistanceMatrix* mtx, int threshold)
 	{
 		for (int i = 0; i < nDicts; i++)
@@ -581,6 +665,7 @@ public:
 			if (cMain) //т.е. в группе
 			{
 				cToDel[i]->RemoveFromGroup();
+				//ReaddRow(cToDel[i], true);
 				cToDel[i]->iUnique = tCorrespondences.GetUniqueID();
 				tCorrespondences.Add(cToDel[i]);
 
@@ -626,14 +711,13 @@ public:
 	}
 	void ConflateRows()
 	{
-		//		Correspondence** cToDel = new Correspondence*[nCorresp];
-		//		int ncToDel = 0;
 		Correspondence* c1,
 			*c2;
 		CorrespondenceTree::COMPAREFLAGS cf = { true, true, true };
 	Anew:
 		for (CorrespondenceTree::Iterator it1(&tCorrespondences); c1 = it1.Next();)
 		{
+			//out(it1.maxStack);
 			if (it1.IsStartOfGroup())
 			{
 				if (!c1->isBeingChanged)
@@ -649,11 +733,20 @@ public:
 							{
 								if (!tCorrespondences.CompareNodes(c1, c2, &cf))
 								{
+									//out(L"включаем в группу ряд:");
+									//outrow(c1);
+									//out(L"вот в эту:");
+									//outrow(c2);
+									//outallrows(c1,c2);
 									tCorrespondences.Remove(c1);
+
 									c1->AddToGroup(c2);
-									FillMainRowWithMissingSounds(c1);
+
+									FillMainRowWithMissingSounds(c1, true);
+
 									//cToDel[ncToDel] = c1;
 									//ncToDel++;
+//outallrows(NULL, c1->crspMain);
 									goto Anew;
 								}
 							}
@@ -679,7 +772,7 @@ public:
 	}
 
 	void OutputLanguageList(InfoTree* trOut);
-	void SoundCorrespondenceNumbers(InfoTree* trOut);
+	void SoundCorrespondenceNumbers(InfoTree* trOut, int threshold);
 	void OutputLanguageHeader(InfoTree* trOut, InfoNode* ndTo);
 	void OutputPhoneticHeader(InfoTree* trOut, InfoNode* ndTo);
 	void OutputSoundsHeader(Correspondence* c, InfoTree* trOut, InfoNode* inTo, bool skipTransl, bool onlyWithForms, int fSep, int fLine);

@@ -48,10 +48,11 @@ private:
 	BNode*			ndOrphan;
 	BNode*			ndOrphan2;
 	BNode*			ndFound;
-public://временно, для RecurListScopes
 	BNode*			ndRoot;
-	BNode*			ndToFind;
-	//Word			wSearch;
+
+	BNode**			pool;//для отладки
+	BNode**			nAll;//для отладки
+public:
 
 	virtual	int		CompareNodes(BNode*, BNode*, void*) = 0;
 	/*
@@ -207,7 +208,7 @@ public://временно, для RecurListScopes
 		return 0;
 	}
 
-	byte remove(BNode* node)
+	byte remove(BNode* node, BNode* ndToFind)
 	{
 		int	dir1,
 			dir2;
@@ -225,30 +226,15 @@ public://временно, для RecurListScopes
 		else {
 			dir1 = CompareNodes(ndToFind, node, NULL);
 
-			/*
-
-					int	sz=node->wName.size;
-
-					if (sz>wSearch.size)
-						sz=wSearch.size;
-
-					dir1=memcmp(wSearch.pos,node->wName.pos,sz);
-			*/
 			if (dir1 < 0)
 				dir1 = 0;
 			else if (dir1 > 0)
 				dir1 = 1;
-			/*
-					else if (node->wName.size>wSearch.size)
-						dir1=0;
-					else if (node->wName.size<wSearch.size)
-						dir1=1;
-			*/
 			else {
 				ndFound = node;
 
 				if (node->depth[0] && node->depth[1]) {
-					_depth = remove(node->son[0]);
+					_depth = remove(node->son[0], ndToFind);
 
 					if (ndOrphan) {
 						ndOrphan2->son[0] = ndOrphan;
@@ -295,7 +281,7 @@ public://временно, для RecurListScopes
 		_son = node->son[dir1];
 
 		if (_son) {
-			_depth = remove(_son);
+			_depth = remove(_son, ndToFind);
 			switch (_depth) {
 			case -1:
 				ret = -1;
@@ -449,7 +435,7 @@ public://временно, для RecurListScopes
 	Done:
 		return ret;
 	}
-	BNode* find(BNode* node)
+	BNode* find(BNode* node, BNode* ndToFind)
 	{
 		int dir1 = CompareNodes(ndToFind, node, NULL);
 		/*
@@ -475,11 +461,12 @@ public://временно, для RecurListScopes
 		BNode*	BNode;
 
 		if (son) {
-			if (BNode = find(son))
+			if (BNode = find(son, ndToFind))
 				return BNode;
 		}
 		return NULL;
 	}
+
 public:
 	BTree()
 	{
@@ -514,9 +501,17 @@ public:
 	{
 		if (ndRoot)
 		{
-			ndFound = NULL;
-			ndToFind = _ndToFind;
-			remove(this->ndRoot);
+			ndFound = ndOrphan = ndOrphan2 = NULL;
+
+			remove(this->ndRoot, _ndToFind);
+
+			if (ndFound)
+			{
+				ndFound->depth[0] = ndFound->depth[1] = 0;
+				ndFound->son[0] = ndFound->son[1] = NULL;
+			}
+			//else out(L"НЕ УДАЛ!");
+
 			return !!ndFound;
 		}
 		else
@@ -526,9 +521,9 @@ public:
 
 	BNode* Find(BNode* _ndToFind)
 	{
-		ndToFind = _ndToFind;
+		//ndToFind = _ndToFind;
 		if (this->ndRoot)
-			return find(this->ndRoot);
+			return find(this->ndRoot, _ndToFind);
 		else
 			return NULL;
 	}
@@ -537,5 +532,6 @@ public:
 	{
 		return Add(node, true);
 	}
+
 };
 

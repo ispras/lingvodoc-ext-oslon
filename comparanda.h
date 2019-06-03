@@ -48,10 +48,15 @@ public:
 		typeOfSegment = ST_FRAGMENT;
 		isSoundInCognates = true;//надо переименовать
 	}
-	LPTSTR Text()
+	LPTSTR Text()//bool ignoreAutoFill = false)
 	{
 		switch (typeOfSegment)
 		{
+			/*case ST_EMPTYAUTOFILL:
+				if (ignoreAutoFill)
+				{
+					return L"=";
+				}*/
 		case ST_FRAGMENT:
 			//ИСПРАВИТЬ!!! return chrFragment;
 			return &chrFragment[0];
@@ -216,7 +221,6 @@ public:
 			_cf.ignoreUniqueID = false;
 			cf = &_cf;
 		}
-
 
 		Correspondence* c1 = (Correspondence*)_nd1;//поэтому надо шаблонно!!
 		Correspondence* c2 = (Correspondence*)_nd2;

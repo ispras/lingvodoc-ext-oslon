@@ -287,27 +287,65 @@ public:
 		TCHAR buf[200];
 		for (int iClass = FT_VOWEL; ; iClass = FT_CONSONANT)
 		{
+			trOut->Add(NULL, IT_HORLINE, ndRoot[iClass]);
 			trOut->Add(NULL, IT_TAB, ndRoot[iClass]);
 			trOut->Add(NULL, IT_TAB, ndRoot[iClass]);
+
+			InfoNode* ndSounds = trOut->Add(NULL, IT_TAB, ndRoot[iClass]);
 
 			SoundTable::Iterator* it = ipa->Iterator(iClass);
 			while (sdThis = it->Next())
-			{
-				InfoNode* ndThisSound = trOut->Add(sdThis->Symbol, IT_TAB, ndRoot[iClass]);
-
-				/*				for (Condition* cnd = qry.FirstCondition(); cnd; cnd = qry.NextCondition())
-								{
-									if (cnd->CheckThisFeature(FT_CLASS, iClass, ipa))
-										trOut->Add(cnd->AutoTitle(buf), IT_COLUMN|IT_LINEBRKBEFORE|IT_IDENT, ndThisSound, false, cnd);
-								}
-				*/
-				sdThis->dataExtra = ndThisSound;
-			}
+				trOut->Add(sdThis->Symbol, IT_TAB, ndSounds, false, sdThis);
 			it->Done();
+
+			for (Condition* cnd = qry.FirstCondition(); cnd; cnd = qry.NextCondition())
+			{
+				if (cnd->CheckThisFeature(FT_CLASS, iClass, ipa))
+				{
+					InfoNode* ndDistr = trOut->Add(cnd->AutoTitle(buf, 4), IT_COLUMN | IT_LINEBRKBEFORE, ndRoot[iClass], false, cnd);
+
+					trOut->Add(NULL, IT_TAB, ndDistr);
+					for (InfoNode* ndIter = ndSounds->chldFirst; ndIter; ndIter = ndIter->next)
+					{
+						Sound* sdThis = (Sound*)ndIter->dataExtra;
+
+
+						//cnd
+
+						WordForm* word;
+						TCHAR chrFragment[10];
+						Sound* sndGot;
+						bool isMet = false;
+
+						for (BTree::Walker w(&trWordForms); word = (WordForm*)w.Next();)
+						{
+							//такое копирование никуда не годится!
+							Condition cndThis(sdThis->Symbol, cnd->sgPrev.txtCondition, cnd->sgNext.txtCondition);
+
+							switch (cndThis.GetFirstMatchingFragment(ipa, &sndGot, word->formIPA, chrFragment))
+							{
+							case ST_SOUND:
+							case ST_FRAGMENT:
+								isMet = true;
+								goto AddPlusToTable;
+							}
+						}
+					AddPlusToTable:
+						if (isMet)
+							trOut->Add(L"+", IT_TAB, ndDistr);
+						else
+							trOut->Add(NULL, IT_TAB, ndDistr);
+					}
+				}
+			}
+
+			trOut->Add(NULL, IT_HORLINE, ndRoot[iClass]);
+
 			if (iClass == FT_CONSONANT)
 				break;
 		}
 	}
+
 
 	void BuildDistributionLists(Query& qry, InfoNode** ndRoot, InfoTree* trOut)
 	{
@@ -338,7 +376,7 @@ public:
 
 		for (BTree::Walker w(&trWordForms); word = (WordForm*)w.Next();)
 		{
-			SoundTable::Sound* sdCur, *sdNext = NULL, *sdPrev = NULL;
+			Sound* sdCur, *sdNext = NULL, *sdPrev = NULL;
 			Segmentizer sgmntzr(ipa, word->formIPA);
 
 			qry.SetSegmentizer(&sgmntzr);//вызовет ResetConditions

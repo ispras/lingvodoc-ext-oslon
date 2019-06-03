@@ -87,9 +87,16 @@ void Comparison::OutputLanguageList(InfoTree* trOut)
 	}
 	trOut->Add(NULL, IT_HORLINE);
 }
-void Comparison::SoundCorrespondenceNumbers(InfoTree* trOut)
+void Comparison::SoundCorrespondenceNumbers(InfoTree* trOut, int threshold)
 {
 	TCHAR buf[500];
+
+	wcscpy(buf, L"Барьер: ");
+	strcati(buf, threshold);
+	wcscat(buf, L"%");
+
+	trOut->Add(buf, IT_LINEBRKAFTER);
+
 	for (int i = 0; i < nDicts; i++)
 	{
 		_ltow(i + 1, buf, 10);

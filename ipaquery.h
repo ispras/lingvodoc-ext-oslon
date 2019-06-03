@@ -1,5 +1,7 @@
-#define QF_NOTHING					0x0
-#define QF_SOMETHING				0x2
+п»ї#define QF_NOTHING					0x0
+#define QF_FEATURE					0x2
+#define QF_SOUND					0x4
+#define QF_FRAGMENT					0x8
 #define QF_BEGINNING				0x20
 #define QF_ITERATE					0x40
 #define QF_OBJECTONLYONCE			0x100
@@ -12,7 +14,7 @@
 #define ST_FRAGMENT				12
 #define ST_FRAGMENTMAYBE		13
 
-class Condition;//надо без этого!
+class Condition;//РЅР°РґРѕ Р±РµР· СЌС‚РѕРіРѕ!
 class Condition : public LinkedElement<Condition>, public OwnNew
 {
 public:
@@ -27,37 +29,73 @@ public:
 	public:
 		int 		flag;
 		int			feature[FT_NFEATURETYPES];
-		LPTSTR		txtFeature;
+		LPTSTR		txtCondition;
 		short		wasAlready;
+		Sound*		sound;
 
 		Segment(LPTSTR _txt)
 		{
-			if (_txt) if (!_txt[0]) _txt = NULL; //у нас && неправильный
+			if (_txt) if (!_txt[0]) _txt = NULL; //Сѓ РЅР°СЃ Р»РѕРіРёС‡РµСЃРєРёР№ && РЅРµРїСЂР°РІРёР»СЊРЅС‹Р№
 
-			txtFeature = _txt;
+			txtCondition = _txt;
 			wasAlready = false;
 			flag = QF_NOTHING;
 
-			if (txtFeature)
-			{
-				if (!lstrcmp(txtFeature, L"#"))
-					flag = QF_BEGINNING;//в конце иначе	
-			}
-			//обнулять как-то надо, тут нужен к-р особый для «совокупности признаков»?
+			//РѕР±РЅСѓР»СЏС‚СЊ РєР°Рє-С‚Рѕ РЅР°РґРѕ, С‚СѓС‚ РЅСѓР¶РµРЅ Рє-СЂ РѕСЃРѕР±С‹Р№ РґР»СЏ В«СЃРѕРІРѕРєСѓРїРЅРѕСЃС‚Рё РїСЂРёР·РЅР°РєРѕРІВ»?
 			for (int iFType = 0; iFType < FT_NFEATURETYPES; iFType++)
 				feature[iFType] = 0;
 		}
 		bool Init(IPA* ipa)
 		{
-			if (!txtFeature) return false;
+			if (!txtCondition) return false;
 
-			Feature ftForSearch(txtFeature/*пока одно*/);
-			Feature* ftFound = (Feature*)ipa->tFeatures.Find(&ftForSearch);//будет искать, каждый раз, если задано несущ.
-			if (ftFound)
+			LPTSTR txtFeature;
+
+			switch (txtCondition[0])
 			{
-				feature[ftFound->iType] = ftFound->value;
-				feature[FT_CLASS] = ftFound->iClass;
-				flag = QF_SOMETHING;
+			case L'#':
+				flag = QF_BEGINNING;//РІ РєРѕРЅС†Рµ РёРЅР°С‡Рµ	
+				break;
+			case L'Р“'://СЌС‚Рѕ РІСЂРµРјРµРЅРЅРѕ, РїРѕС‚РѕРј Р±СѓРґСѓС‚ СЂР°Р·РЅС‹Рµ РіСЂСѓРїРїС‹ Р·РІСѓРєРѕРІ, РїСЂСЏРјРѕ РІРЅСѓС‚СЂРё С„РѕСЂРј РјРѕР¶РЅРѕ Р±СѓРґРµС‚
+			case L'РЎ':
+				txtFeature = txtCondition;
+				goto FindFeature;
+			case L'-':
+			case L'+':
+				txtFeature = txtCondition + 1;
+			FindFeature:
+				{
+					Feature ftForSearch(txtFeature);
+					Feature* ftFound = (Feature*)ipa->tFeatures.Find(&ftForSearch);//Р±СѓРґРµС‚ РёСЃРєР°С‚СЊ РєР°Р¶РґС‹Р№ СЂР°Р·, РµСЃР»Рё Р·Р°РґР°РЅРѕ РЅРµСЃСѓС‰.
+					if (ftFound)
+					{
+						feature[ftFound->iType] = ftFound->value;
+						feature[FT_CLASS] = ftFound->iClass;
+						flag = QF_FEATURE;
+					}
+				}
+				break;
+			default:
+				if (sound = ipa->GetSound(txtCondition[0]))
+					flag = QF_SOUND;
+			}
+			return true;
+		}
+		bool Check(Sound* sdThis, int iFType)
+		{
+			if (flag & QF_FEATURE)
+			{
+				if (!CompareFeaturesOr(sdThis->feature, feature, iFType))//С‚.Рµ. С‚РµРєСѓС‰Р°СЏ РіРѕРґРёС‚СЃСЏ РєР°Рє РєРѕРЅС‚РµРєСЃС‚ РІ РїСЂРёРЅС†РёРїРµ, РЅРѕ С‚РѕР»СЊРєРѕ РїРѕ РєР»Р°СЃСЃСѓ, С‚.Рµ. РЎ РёР»Рё Р“!!
+				{
+					wasAlready++;
+					return true;
+				}
+				else
+					return false;
+			}
+			else if (flag & QF_SOUND)
+			{
+				return (sdThis == sound);
 			}
 			return true;
 		}
@@ -82,14 +120,23 @@ public:
 		//		sgPrev.Init(ipa);
 		//		sgNext.Init(ipa);
 	}
-	LPTSTR AutoTitle(LPTSTR buf)
+	LPTSTR AutoTitle(LPTSTR buf, int szPad = 0)
 	{
 		buf[0] = L'\0';
-		if (sgPrev.txtFeature)
-			wcscat(buf, sgPrev.txtFeature);
+		if (sgPrev.txtCondition)
+			wcscat(buf, sgPrev.txtCondition);
 		wcscat(buf, L"_");
-		if (sgNext.txtFeature)
-			wcscat(buf, sgNext.txtFeature);
+		if (sgNext.txtCondition)
+			wcscat(buf, sgNext.txtCondition);
+
+		if (szPad)
+		{
+			int i;
+			for (i = wcslen(buf); i < szPad; i++)
+				buf[i] = L'_';
+			buf[i] = L'\0';
+		}
+
 		return buf;
 	}
 	void Reset()
@@ -106,75 +153,7 @@ public:
 		if (sgThis.flag == QF_NOTHING) sgThis.Init(ipa);
 		return sgThis.feature[iFType] & val;
 	}
-	bool Check____(Segmentizer* sgmtzr)
-	{
-		if (sgThis.flag == QF_NOTHING) sgThis.Init(sgmtzr->ipa);
-		if (sgPrev.flag == QF_NOTHING) sgPrev.Init(sgmtzr->ipa);
-		if (sgNext.flag == QF_NOTHING) sgNext.Init(sgmtzr->ipa);
 
-		Sound* sdThis = sgmtzr->Current(),
-			*sdAdjacent;
-		if ((flags & QF_OBJECTONLYONCE) && (sgThis.wasAlready))
-			return false;
-
-		if ((flags & QF_CONTEXTONLYONCE) && ((sgPrev.wasAlready) || (sgNext.wasAlready)))
-			return false;
-		//		if ((flags & QF_OBJECTINCONTEXTONLYONCE) && wasObjectInContext)
-		//			return false;
-		if (sgPrev.flag != QF_NOTHING)
-		{
-			if (!CompareFeaturesOr(sdThis->feature, sgPrev.feature, FT_CLASS))//т.е. текущая годится как контекст в принципе, но тольео по классу, т.с. С или Г!!
-				sgPrev.wasAlready++;
-		}
-		if (sgNext.flag != QF_NOTHING)
-		{
-			if (!CompareFeaturesOr(sdThis->feature, sgNext.feature, FT_CLASS))//т.е. текущая годится как контекст в принципе
-				sgNext.wasAlready++;
-		}
-		if (sgThis.flag != QF_NOTHING)
-		{
-			if (!CompareFeaturesOr(sdThis->feature, sgThis.feature, FT_CLASS))//т.е. текущая годится как заявленное «это»
-				sgThis.wasAlready++;
-			else
-				return false;
-		}
-
-		if (sgPrev.flag & QF_BEGINNING)
-		{
-			if (sgmtzr->IsFirst())
-				return true;
-			else
-				return false;
-		}
-
-		if (sgPrev.flag != QF_NOTHING)
-		{
-			sdAdjacent = sgmtzr->PeekPrevious();
-			if (!sdAdjacent)
-				return false;
-			if (!CompareFeaturesOr(sdAdjacent->feature, sgPrev.feature))
-				return true;
-			else
-				return false;
-		}
-		if (sgNext.flag != QF_NOTHING)
-		{
-			sdAdjacent = sgmtzr->PeekNext();
-			if (!sdAdjacent)
-				return false;
-			if (!CompareFeaturesOr(sdAdjacent->feature, sgNext.feature))
-				return true;
-			else
-				return false;
-		}
-
-
-		//		bool isMatch = !!(sdAdjacent->feature[feature->iType] & feature->value);
-
-		//		return isMatch;
-		return true;
-		//return false;
-	}
 	bool Check(Segmentizer* sgmtzr)
 	{
 		if (sgThis.flag == QF_NOTHING) sgThis.Init(sgmtzr->ipa);
@@ -190,24 +169,31 @@ public:
 			return false;
 		//		if ((flags & QF_OBJECTINCONTEXTONLYONCE) && wasObjectInContext)
 		//			return false;
-		if (sgPrev.flag != QF_NOTHING)
-		{
-			if (!CompareFeaturesOr(sdThis->feature, sgPrev.feature, FT_CLASS))//т.е. текущая годится как контекст в принципе, но только по классу, т.с. С или Г!!
-				sgPrev.wasAlready++;
-		}
-		if (sgNext.flag != QF_NOTHING)
-		{
-			if (!CompareFeaturesOr(sdThis->feature, sgNext.feature, FT_CLASS))//т.е. текущая годится как контекст в принципе
-				sgNext.wasAlready++;
-		}
-		if (sgThis.flag != QF_NOTHING)
-		{
-			if (!CompareFeaturesOr(sdThis->feature, sgThis.feature, FT_CLASS))//т.е. текущая годится как заявленное «это»
-				sgThis.wasAlready++;
-			else
-				return false;
-		}
 
+		sgPrev.Check(sdThis, FT_CLASS);
+		sgNext.Check(sdThis, FT_CLASS);
+
+		if (!sgThis.Check(sdThis, FT_CLASS))
+			return false;
+		/*
+				if (sgPrev.flag != QF_NOTHING)
+				{
+					if (!CompareFeaturesOr(sdThis->feature, sgPrev.feature, FT_CLASS))//С‚.Рµ. С‚РµРєСѓС‰Р°СЏ РіРѕРґРёС‚СЃСЏ РєР°Рє РєРѕРЅС‚РµРєСЃС‚ РІ РїСЂРёРЅС†РёРїРµ, РЅРѕ С‚РѕР»СЊРєРѕ РїРѕ РєР»Р°СЃСЃСѓ, С‚.Рµ. РЎ РёР»Рё Р“!!
+						sgPrev.wasAlready++;
+				}
+				if (sgNext.flag != QF_NOTHING)
+				{
+					if (!CompareFeaturesOr(sdThis->feature, sgNext.feature, FT_CLASS))//С‚.Рµ. С‚РµРєСѓС‰Р°СЏ РіРѕРґРёС‚СЃСЏ РєР°Рє РєРѕРЅС‚РµРєСЃС‚ РІ РїСЂРёРЅС†РёРїРµ
+						sgNext.wasAlready++;
+				}
+				if (sgThis.flag != QF_NOTHING)
+				{
+					if (!CompareFeaturesOr(sdThis->feature, sgThis.feature, FT_CLASS))//С‚.Рµ. С‚РµРєСѓС‰Р°СЏ РіРѕРґРёС‚СЃСЏ РєР°Рє Р·Р°СЏРІР»РµРЅРЅРѕРµ В«СЌС‚РѕВ»
+						sgThis.wasAlready++;
+					else
+						return false;
+				}
+		*/
 		if (sgPrev.flag & QF_BEGINNING)
 		{
 			if (sgmtzr->IsFirst())
@@ -282,14 +268,15 @@ public:
 			return ST_ERROR;
 
 		*sound = sgmntzr.Current();
+
 		wcscpy(wOut, (*sound)->Symbol);
 
 		int ret = ST_SOUND;
 
 		if (flags & QF_ITERATE)
 		{
-			Condition c(sgThis.txtFeature, NULL, NULL);//вот так неловко копируем условие
-			Sound* sPrev = sgmntzr.PeekPrevious(); //это пока так, ибо нет движения назад
+			Condition c(sgThis.txtCondition, NULL, NULL);//РІРѕС‚ С‚Р°Рє РЅРµР»РѕРІРєРѕ РєРѕРїРёСЂСѓРµРј СѓСЃР»РѕРІРёРµ
+			Sound* sPrev = sgmntzr.PeekPrevious(); //СЌС‚Рѕ РїРѕРєР° С‚Р°Рє, РёР±Рѕ РЅРµС‚ РґРІРёР¶РµРЅРёСЏ РЅР°Р·Р°Рґ
 			Sound* sNext;
 
 			int i = 2;
@@ -300,10 +287,10 @@ public:
 					ret = ST_FRAGMENT;
 					wcscat(wOut, sNext->Symbol);
 				}
-				else if (sgThis.feature[FT_CLASS] == FT_VOWEL)//проверяем потенциальные д-ги [надо это как-то обобщить]
+				else if (sgThis.feature[FT_CLASS] == FT_VOWEL)//РїСЂРѕРІРµСЂСЏРµРј РїРѕС‚РµРЅС†РёР°Р»СЊРЅС‹Рµ Рґ-РіРё [РЅР°РґРѕ СЌС‚Рѕ РєР°Рє-С‚Рѕ РѕР±РѕР±С‰РёС‚СЊ]
 				{
 					Sound* sBase = ipa->GetBaseSound(sNext);
-					if (wcschr(_listExtraGlides, sBase->Symbol[0])) //слева направо
+					if (wcschr(_listExtraGlides, sBase->Symbol[0])) //СЃР»РµРІР° РЅР°РїСЂР°РІРѕ
 					{
 						ret = ST_FRAGMENTMAYBE;
 						wcscat(wOut, sNext->Symbol);
@@ -312,7 +299,7 @@ public:
 					{
 						sBase = ipa->GetBaseSound(sPrev);
 						LPTSTR posFound = wcschr(_listExtraGlides, sBase->Symbol[0]);
-						if (posFound) //слева направо
+						if (posFound) //СЃР»РµРІР° РЅР°РїСЂР°РІРѕ
 						{
 							ret = ST_FRAGMENTMAYBE;
 							TCHAR buf[20];
@@ -321,13 +308,13 @@ public:
 							//int iSymbol = _listExtraGlides - posFound;
 
 							wcscpy(wOut, sPrev->Symbol);
-							//тут можно было бы заменять: wcscpy(wOut, _listExtraGlidesVowels[);
+							//С‚СѓС‚ РјРѕР¶РЅРѕ Р±С‹Р»Рѕ Р±С‹ Р·Р°РјРµРЅСЏС‚СЊ: wcscpy(wOut, _listExtraGlidesVowels[);
 
 							wcscat(wOut, buf);
 						}
 					}
 				}
-				else break; //но надо откатить назад?
+				else break; //РЅРѕ РЅР°РґРѕ РѕС‚РєР°С‚РёС‚СЊ РЅР°Р·Р°Рґ?
 				i++;
 			}
 		}
@@ -386,7 +373,7 @@ public:
 			cndCur = cndCur->next;
 		return cndCur;
 	}
-	bool CheckCurrentCondition()//вроде лишнее
+	bool CheckCurrentCondition()//РІСЂРѕРґРµ Р»РёС€РЅРµРµ
 	{
 		if (!cndCur)
 			return false;

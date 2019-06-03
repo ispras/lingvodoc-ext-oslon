@@ -56,6 +56,16 @@ int abs(int i)
 	return i;
 }
 
+int pow(int _i, int p)
+{
+	int i = _i;
+	while (p > 1)
+	{
+		i *= _i;
+		p--;
+	}
+	return i;
+}
 
 LPTSTR strcpyi(LPTSTR a, int i)
 {

@@ -623,7 +623,7 @@ public:
 			}
 		}
 	}
-	bool EndSubmitWordForms()
+	void EndSubmitWordForms()
 	{
 		for (int i = 0; i < FT_NSOUNDCLASSES; i++)
 		{

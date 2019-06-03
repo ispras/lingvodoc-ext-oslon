@@ -61,9 +61,9 @@ PhonemicAnalysis_GetAllOutput(LPTSTR bufIn, int nRows, LPTSTR bufOut, int)
 		trOut.AddSubtree(&trIPAVowels, L"Гласные звуки", IT_COLUMN | IT_EMPTYLINEBEFORE);//, IT_TAB);
 		trOut.AddSubtree(&trIPANotFound, L"Неопознанные знаки", IT_COLUMN | IT_EMPTYLINEBEFORE, 0);
 
-		//		InfoNode* ndTblDistr[FT_NSOUNDCLASSES];
-		//		ndTblDistr[FT_VOWEL] = trOut.Add(L"Распределение гласных", IT_COLUMN| IT_EMPTYLINEBEFORE|IT_LINEBRKAFTER);
-		//		ndTblDistr[FT_CONSONANT] = trOut.Add(L"Распределение согласных", IT_COLUMN|IT_EMPTYLINEBEFORE);
+		InfoNode* ndTblDistr[FT_NSOUNDCLASSES];
+		ndTblDistr[FT_VOWEL] = trOut.Add(L"Распределение гласных", IT_COLUMN | IT_EMPTYLINEBEFORE | IT_LINEBRKAFTER);
+		ndTblDistr[FT_CONSONANT] = trOut.Add(L"Распределение согласных", IT_COLUMN | IT_EMPTYLINEBEFORE);
 
 		InfoNode* ndListDistr[FT_NSOUNDCLASSES];
 		ndListDistr[FT_VOWEL] = trOut.Add(L"Списки по гласному первого слога",/*NULL,*/ IT_COLUMN);
@@ -72,7 +72,7 @@ PhonemicAnalysis_GetAllOutput(LPTSTR bufIn, int nRows, LPTSTR bufOut, int)
 
 		dic.phono->AddDistibutionConditions();
 
-		//		dic.BuildDistributionTables(dic.phono->qry, ndTblDistr, &trOut);
+		dic.BuildDistributionTables(dic.phono->qry, ndTblDistr, &trOut);
 		dic.BuildDistributionLists(dic.phono->qry, ndListDistr, &trOut);
 
 		OutputString output(szOutput, 100); //Dictionary::OutputString катит!!!
@@ -208,13 +208,15 @@ CognateDistanceAnalysis_GetAllOutput(LPTSTR bufIn, int nCols, int nRows, LPTSTR 
 		}
 
 
+		int threshold = 65;
+
 		Condition* cnd = qry.AddCondition(NULL, NULL, NULL, 0, L"Суммарная матрица");
-		cmp.RemoveDistancesIfTooFew(&mtxSum, 20);
+		cmp.RemoveDistancesIfTooFew(&mtxSum, threshold);
 		cmp.OutputDistances(cnd, &mtxSum, &trOut);
 
 		if (!isBinary)
 		{
-			cmp.SoundCorrespondenceNumbers(&trOut);
+			cmp.SoundCorrespondenceNumbers(&trOut, threshold);
 		}
 
 
@@ -351,8 +353,9 @@ GetPhonemeDifference(LPTSTR bufIn, LPTSTR bufOut)
 	TCHAR buf[1000];
 
 	dic.ReplaceSymbols(bufIn, bufIPA, dic.GuessReplacer(bufIn));
-	dic.ipa->SubmitWordForm(bufIPA);
-	dic.ipa->EndSubmitWordForms();
+	//dic.ipa->ConfirmAllIPA();
+	//dic.ipa->SubmitWordForm(bufIPA);
+	//dic.ipa->EndSubmitWordForms();
 
 	Parser parser(bufIPA, L" ");
 	for (int i = 0; parser.Next() && i <= 1; i++)
