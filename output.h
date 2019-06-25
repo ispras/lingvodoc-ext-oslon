@@ -516,7 +516,7 @@ void Comparison::OutputDeviationsWithMaterial(Condition* cnd, InfoTree* trOut, I
 	trOut->Add(NULL, IT_SECTIONBRK, inMult);
 }
 
-void Comparison::OutputCorrespondencesWithMaterial(Condition* cnd, InfoTree* trOut, bool doMakeTableForSingles)
+void Comparison::OutputCorrespondencesWithMaterial(Condition* cnd, InfoTree* trOut, bool doMakeTableForSingles = false)//нельзя тут повторять
 {
 	LPTSTR word;
 	Sound* sound;
@@ -574,7 +574,7 @@ void Comparison::OutputCorrespondencesWithMaterial(Condition* cnd, InfoTree* trO
 	}
 }
 
-void Comparison::OutputReconstructedWords(Comparison* cmp, InfoTree* trOut)
+void Comparison::OutputReconstructedWords(Comparison* cmp, InfoTree* trOut)//нельзя тут повторять
 {
 	InfoNode* inMult = trOut->Add(L"Реконструкции", IT_COLUMN | IT_EMPTYLINEBEFORE | IT_LINEBRKAFTER, NULL);
 	OutputLanguageHeader(trOut, inMult, true);
@@ -592,8 +592,9 @@ void Comparison::OutputReconstructedWords(Comparison* cmp, InfoTree* trOut)
 		}
 	}
 	trOut->Add(NULL, IT_HORLINE, inMult);
+	trOut->Add(NULL, IT_SECTIONBRK, inMult);
 }
-void Comparison::OutputReconstructedSounds(Condition* cnd, InfoTree* trOut)
+void Comparison::OutputReconstructedSounds(Condition* cnd, InfoTree* trOut)//нельзя тут повторять
 {
 	LPTSTR word;
 	Sound* sound;
