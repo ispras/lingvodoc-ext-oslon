@@ -50,8 +50,8 @@ private:
 	BNode*			ndFound;
 	BNode*			ndRoot;
 
-	BNode**			pool;//для отладки
-	BNode**			nAll;//для отладки
+	//	BNode**			pool;//для отладки
+	//	BNode**			nAll;//для отладки
 public:
 
 	virtual	int		CompareNodes(BNode*, BNode*, void*) = 0;
@@ -466,7 +466,37 @@ public:
 		}
 		return NULL;
 	}
+	/*
+		bool checkorder(BNode* bn)
+		{
+			if (bn->son[0])
+			{
+				if (CompareNodes(bn, bn->son[0], NULL) != 1)
+					return false;
+				if (!checkorder(bn->son[0])) return false;
+			}
 
+			for (int i = 0; i < nAll; i++)
+			{
+				if (pool[i] == bn)
+					return false;
+			}
+
+			pool[nAll] = bn;
+			nAll++;
+
+			if (bn != Find(bn))
+				return false;
+
+			if (bn->son[1])
+			{
+				if (CompareNodes(bn, bn->son[1], NULL) != -1)
+					return false;
+				if (!checkorder(bn->son[1])) return false;
+			}
+			return true;
+		}
+	*/
 public:
 	BTree()
 	{
@@ -532,6 +562,18 @@ public:
 	{
 		return Add(node, true);
 	}
+	/*
+		bool CheckOrder()
+		{
+			if (!ndRoot) return true;
 
+			nAll = 0;
+			int n = 2 * pow(2, ndRoot->depth[0] + 10);
+			pool = new BNode*[n];//[pow(2, ndRoot->depth[0]+1)] исправить!
+			bool res = checkorder(ndRoot);
+			delete[] pool;
+			return res;
+		}
+	*/
 };
 

@@ -121,3 +121,28 @@ LPTSTR StrCpyWMax(LPTSTR dest, LPTSTR src, int len)
 		return (LPTSTR)memcpy(dest, src, (len - 1) * sizeof(TCHAR));
 	}
 }
+
+void JustCopySymbols(LPTSTR* bIn, LPTSTR *bOut, int szToCopy)
+{
+	wcsncpy(*bOut, *bIn, szToCopy);
+	*bOut += szToCopy;
+	*bIn += szToCopy;
+}
+
+void ReplaceSymbols(LPTSTR* bIn, LPTSTR *bOut, int szToReplace, LPTSTR bReplaceBy)
+{
+	int szToReplaceBy = wcslen(bReplaceBy);
+
+	switch (bReplaceBy[0])
+	{
+	case L'@':
+		szToReplaceBy = 0;
+		break;
+	default:
+		wcscpy(*bOut, bReplaceBy);
+	}
+
+	*bOut += szToReplaceBy;
+	*bIn += szToReplace;
+}
+

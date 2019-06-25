@@ -169,3 +169,43 @@ public:
 		return false;
 	}
 };
+
+class Distance : public BNode
+{
+public:
+	Distance(Sound* sd)
+	{
+		cmp.SetSound(sd);
+		dist = 0;
+	}
+
+	Comparandum	cmp;
+	int				dist;
+};
+
+class DistanceTree : public BTree
+{
+	Pool<Distance>		pDistance;
+public:
+	DistanceTree() : pDistance(1000)
+	{
+	}
+	Distance* New(Sound* sd)
+	{
+		Distance* d = new (pDistance.New()) Distance(sd);
+		return d;
+	}
+	int CompareNodes(BNode* _nd1, BNode* _nd2, void* _struct)
+	{
+
+		Distance* d1 = (Distance*)_nd1;//поэтому надо шаблонно!!
+		Distance* d2 = (Distance*)_nd2;
+
+		if (d1->dist < d2->dist)
+			return -1;
+		else
+			return 1;
+
+		return 0;
+	}
+};

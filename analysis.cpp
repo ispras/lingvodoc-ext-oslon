@@ -23,6 +23,7 @@
 #include "comparanda.h"
 #include "distances.h"
 #include "cognates.h"
+#include "reconstruction.h"
 
 //летит
 //TCHAR IPA[100] = TEXT("a, b");
@@ -39,7 +40,7 @@ PhonemicAnalysis_GetAllOutput(LPTSTR bufIn, int nRows, LPTSTR bufOut, int)
 	if (nRows == -1)
 		szOutput = lstrlen(bufIn) * 50 + 100000;
 	else
-		szOutput = nRows * 250 + 100000;
+		szOutput = nRows * 350 + 100000;
 
 	if (!bufIn)
 		return szOutput;
@@ -118,17 +119,24 @@ CognateAnalysis_GetAllOutput(LPTSTR bufIn, int nCols, int nRows, LPTSTR bufOut, 
 		cmp.AddCognateList(bufIn, false);
 
 		Query qry;
+		//		qry.AddCondition(L"Г", L"#", NULL, QF_ITERATE, 								L"Соответствия по начальному гласному");
+		//		qry.AddCondition(L"Г", L"С", NULL, QF_OBJECTONLYONCE|QF_ITERATE, 			L"Соответствия по гласному после первого согласного");
+		//		qry.AddCondition(L"С", L"#", NULL, QF_ITERATE,		 						L"Соответствия по начальному согласному");
+
+
 		qry.AddCondition(L"Г", L"#", NULL, QF_ITERATE, L"Соответствия по начальному гласному");
-		qry.AddCondition(L"Г", L"С", NULL, QF_OBJECTONLYONCE | QF_ITERATE, L"Соответствия по гласному после первого согласного");
 		qry.AddCondition(L"С", L"#", NULL, QF_ITERATE, L"Соответствия по начальному согласному");
+		qry.AddCondition(L"Г", L"С", NULL, QF_ITERATE, L"Соответствия по гласному первого слога после согласного", 0, 1);
+		qry.AddCondition(L"С", L"Г", NULL, QF_ITERATE, L"Соответствия по согласному после гласного первого слога", 0, 1);
+		qry.AddCondition(L"Г", L"С", NULL, QF_ITERATE, L"Соответствия по гласному второго слога", 0, 2);
 
 		if (!isBinary)
 			cmp.OutputLanguageList(&trOut);
 
 		for (Condition* cnd = qry.FirstCondition(); cnd; cnd = qry.NextCondition())
 		{
-			//			cmp.Process(cnd, false, false);
-			cmp.Process(cnd, true, true);
+			cmp.Process(cnd, false, false);
+			//cmp.Process(cnd, true, true);
 			cmp.OutputCorrespondencesWithMaterial(cnd, &trOut);
 		}
 
@@ -208,7 +216,7 @@ CognateDistanceAnalysis_GetAllOutput(LPTSTR bufIn, int nCols, int nRows, LPTSTR 
 		}
 
 
-		int threshold = 65;
+		int threshold = 50;
 
 		Condition* cnd = qry.AddCondition(NULL, NULL, NULL, 0, L"Суммарная матрица");
 		cmp.RemoveDistancesIfTooFew(&mtxSum, threshold);
@@ -268,8 +276,8 @@ CognateAcousticAnalysis_GetAllOutput(LPTSTR bufIn, int nCols, int nRows, LPTSTR 
 		cmp.AddCognateList(bufIn, true);
 
 		Query qry;
-		//qry.AddCondition(L"Г", L"#", NULL, 0, 					L"Отклонения по начальному гласному");
-		//qry.AddCondition(L"Г", L"С", NULL, QF_OBJECTONLYONCE, 	L"Отклонения по гласному после первого согласного");
+		//qry.AddCondition(L"Г", L"#", NULL, 0,                     L"Отклонения по начальному гласному");
+		//qry.AddCondition(L"Г", L"С", NULL, QF_OBJECTONLYONCE,     L"Отклонения по гласному после первого согласного");
 
 		qry.AddCondition(L"Г", NULL, NULL, QF_OBJECTONLYONCE | QF_ITERATE, L"Отклонения по первому гласному в слове");
 
@@ -314,6 +322,91 @@ CognateAcousticAnalysis_GetAllOutput(LPTSTR bufIn, int nCols, int nRows, LPTSTR 
 #ifdef __linux__ 
 }
 #endif
+
+#ifdef __linux__ 
+extern "C" {int
+#else
+int __declspec(dllexport)
+#endif
+CognateReconstruct_GetAllOutput(LPTSTR bufIn, int nCols, int nRows, LPTSTR bufOut, int flags)
+{
+	if (nCols < 1 || nCols > 1000)
+		return -1;
+
+	int szOutput = nRows * nCols * 60 + 100000;
+
+	if (!bufIn)
+		return szOutput;
+
+	try
+	{
+		bool isBinary = flags == 2;
+		nRows -= 1;//потому что там ещё и заголовок
+
+		const int nCmp = 5;
+		Comparison cmp[nCmp];
+		IPA ipa;
+		Reconstruction rc;
+
+		for (int i = 0; i < nCmp; i++)
+		{
+			new (&cmp[i]) Comparison(nRows, nCols);
+			cmp[i].AddCognateList(bufIn, false);
+		}
+
+
+		LPTSTR title;
+		if (!isBinary) title = L"РЕКОНСТРУКЦИЯ ПРАФОРМ"; else title = NULL;
+		InfoTree trOut(title);
+
+		Query qry;
+		cmp[0].condition = qry.AddCondition(L"Г", L"#", NULL, QF_ITERATE, L"Соответствия по начальному гласному");
+		cmp[1].condition = qry.AddCondition(L"С", L"#", NULL, QF_ITERATE, L"Соответствия по начальному согласному");
+		cmp[2].condition = qry.AddCondition(L"Г", L"С", NULL, QF_ITERATE, L"Соответствия по гласному первого слога после согласного", 0, 1);
+		cmp[3].condition = qry.AddCondition(L"С", L"Г", NULL, QF_ITERATE, L"Соответствия по согласному после гласного первого слога", 0, 1);
+		cmp[4].condition = qry.AddCondition(L"Г", L"С", NULL, QF_ITERATE, L"Соответствия по гласному второго слога", 0, 2);
+
+		if (!isBinary)
+			cmp[0].OutputLanguageList(&trOut);
+
+		for (int i = 0; i < nCmp; i++)
+			//for (Condition* cnd = qry.FirstCondition(); cnd; cnd = qry.NextCondition())
+		{
+			cmp[i].Process(cmp[i].condition, false, true);
+			//i++;
+		}
+
+		//		i = 0;
+		for (int i = 0; i < nCmp; i++)
+			//		for (Condition* cnd = qry.FirstCondition(); cnd; cnd = qry.NextCondition())
+		{
+			nCols = rc.ReconstructSounds(&cmp[i], cmp[i].condition);
+			cmp[i].OutputReconstructedSounds(cmp[i].condition, &trOut);
+			//i++;
+		}
+		trOut.Add(NULL, IT_SECTIONBRK, NULL);
+
+		rc.ReconstructWords(cmp, nCmp, qry);
+		cmp[0].OutputReconstructedWords(&cmp[0], &trOut);
+
+		OutputString output(szOutput, 20, nCols * 2, isBinary);
+		output.Build(trOut.ndRoot);
+
+		if (isBinary)
+			output.OutputTableSizes(bufOut);
+		output.OutputData(bufOut);
+
+		return output.OutputSize;
+	}
+	catch (...)
+	{
+		return -2;
+	}
+}
+#ifdef __linux__ 
+}
+#endif
+
 
 
 
@@ -420,8 +513,10 @@ ExtractCognateRows(LPTSTR bufIn, LPTSTR bufOut)
 
 	Query qry;
 	qry.AddCondition(L"Г", L"#", NULL, QF_ITERATE, L"Соответствия по начальному гласному");
-	qry.AddCondition(L"Г", L"С", NULL, QF_ITERATE | QF_OBJECTONLYONCE, L"Соответствия по гласному после первого согласного");
 	qry.AddCondition(L"С", L"#", NULL, QF_ITERATE, L"Соответствия по начальному согласному");
+	qry.AddCondition(L"Г", L"С", NULL, QF_ITERATE, L"Соответствия по гласному первого слога после согласного", 0, 1);
+	qry.AddCondition(L"С", L"Г", NULL, QF_ITERATE, L"Соответствия по согласному после гласного первого слога", 0, 1);
+	qry.AddCondition(L"Г", L"С", NULL, QF_ITERATE, L"Соответствия по гласному второго слога", 0, 2);
 
 	for (Condition* cnd = qry.FirstCondition(); cnd; cnd = qry.NextCondition())
 	{

@@ -130,6 +130,7 @@ public:
 	public:
 		bool			canExist;
 		bool			exists;
+		bool			used;
 		TCHAR			Symbol[8];
 		void*			dataExtra;
 		Sound*			nextModified;
@@ -147,7 +148,7 @@ public:
 				canExist = false;
 
 			//symbolToReplaceBy[0] = L'\0';
-			exists = false;
+			exists = used = false;
 			dataExtra = nextModified = NULL;
 
 			for (int iFType = 0; iFType < FT_NFEATURETYPES; iFType++)
@@ -280,12 +281,10 @@ public:
 
 		tSounds.Add(sound);
 	}
-
 	void ConfirmSound(Sound* sound, int iClass = -1)
 	{
 		sound->exists = true;
 		tSounds.Add(sound);
-
 		if (iClass == FT_MODIFIER)
 		{
 			Sound* sdMain = ipaAll + sound->Symbol[0];
@@ -429,7 +428,7 @@ public:
 			rowCurrent[iFType] = rowCurrent[iFType]->next;
 		}
 	}
-	bool PutSoundInIPATable(int iChr)
+	bool PutSoundInIPATable(int iChr, bool doConfirm)
 	{
 		if (!IsSoundCodeOK(iChr))
 			return false;
@@ -438,7 +437,13 @@ public:
 
 		//Sound* sound = 
 		new (&ipaAll[iChr]) Sound(iChr, rowCurrent);//, iRow, iCol, _isPreModifier, _isPostModifier);
-		//	tSounds.Add(sound);
+
+		if (doConfirm)
+		{
+			ipaAll[iChr].exists = true;
+			tSounds.Add(&ipaAll[iChr]);
+		}
+
 		return true;
 	}
 	void CountRows()
@@ -489,7 +494,7 @@ public://временно вм. friend
 public:
 	LPTSTR tblPostModifiers, tblConsonants, tblVowels;//, tblReplaceLat, tblReplaceCyr;
 
-	IPA() : pString(3000), pSounds(100)
+	IPA(bool doConfirmAllSounds = false) : pString(3000), pSounds(100)
 	{
 		ipaAll = NULL;
 
@@ -505,14 +510,12 @@ public:
 		tblConsonants = pString.New(_tblConsonants, wcslen(_tblConsonants) + 1);
 		tblVowels = pString.New(_tblVowels, wcslen(_tblVowels) + 1);
 
-		BuildPotentialSoundTable(FT_MODIFIER, tblPostModifiers, FT_COARTICULATION);
+		BuildPotentialSoundTable(FT_MODIFIER, tblPostModifiers, FT_COARTICULATION, doConfirmAllSounds);
 
-		BuildPotentialSoundTable(FT_CONSONANT, tblConsonants, FT_PLACE);
-		BuildPotentialSoundTable(FT_VOWEL, tblVowels, FT_PLACE);
+		BuildPotentialSoundTable(FT_CONSONANT, tblConsonants, FT_PLACE, doConfirmAllSounds);
+		BuildPotentialSoundTable(FT_VOWEL, tblVowels, FT_PLACE, doConfirmAllSounds);
 
 		tblSounds[FT_UNKNOWNSOUND].InitIPAMemory(&ipaAll);//плохо, что надо явно вызывать!!!
-
-
 
 		nameFeature[FT_CLASS] = L"класс";
 		nameFeature[FT_MANNER] = L"способ";
@@ -581,11 +584,13 @@ public:
 	{
 		return GetSound(sound->Symbol[0]);
 	}
-	void SubmitWordForm(LPTSTR word)//будет меняться подстановками!
+
+	Sound* SubmitWordForm(LPTSTR word)//будет меняться подстановками!
 	{
+		Sound* sdCur;
 		for (LPTSTR pInWord = word; *pInWord; pInWord++)
 		{
-			Sound* soundBase = &ipaAll[*pInWord];//GetSoundWithReplacement(pInWord);
+			Sound* soundBase = sdCur = &ipaAll[*pInWord];//GetSoundWithReplacement(pInWord);
 			TCHAR chr = *pInWord;
 
 			bool isSoundOK = SoundIsInIPA(chr);
@@ -610,9 +615,9 @@ public:
 					//SoundTable::Sound sdForSearch(NULL, feature);
 					//SoundTable::Sound* sdFound = (SoundTable::Sound*)tblSounds[iClass].tSounds.Find(&sdForSearch);
 
-					if (!FindModifiedSound(soundBase, feature))
+					if (!(sdCur = FindModifiedSound(soundBase, feature)))
 					{
-						Sound* soundWithMod = new (pSounds.New()) Sound(chrWithMod, feature);
+						Sound* soundWithMod = sdCur = new (pSounds.New()) Sound(chrWithMod, feature);
 						tblSounds[iClass].ConfirmSound(soundWithMod, FT_MODIFIER);//со вставкой столбца
 					}
 				}
@@ -622,7 +627,9 @@ public:
 				}
 			}
 		}
+		return sdCur;
 	}
+
 	void EndSubmitWordForms()
 	{
 		for (int i = 0; i < FT_NSOUNDCLASSES; i++)
@@ -667,6 +674,7 @@ public:
 
 		return buf;
 	}
+
 	bool SoundExists(int iChr)
 	{
 		if (!tblSounds[FT_CONSONANT].IsSoundCodeOK(iChr)) //если согласных нет, то сломается, поэтому надо делать класс IPAAll
@@ -684,7 +692,7 @@ public:
 		return false;
 	}
 
-	void BuildPotentialSoundTable(int iClass, LPTSTR txtTable, int iHorFType)
+	void BuildPotentialSoundTable(int iClass, LPTSTR txtTable, int iHorFType, bool doConfirmAllSounds)
 	{
 		SoundTable* table = &tblSounds[iClass];
 		table->InitIPAMemory(&ipaAll);
@@ -790,7 +798,7 @@ public:
 			case FT_SOUND:
 				if (!parser.IsItemEmpty())
 				{
-					table->PutSoundInIPATable(word[0]);
+					table->PutSoundInIPATable(word[0], doConfirmAllSounds);
 				}
 				//ругаться, если есть!
 				break;
@@ -798,95 +806,6 @@ public:
 		}
 	}
 };
-
-
-class Segmentizer : public OwnNew
-{
-public:
-	LPTSTR				pInWord;
-	LPTSTR				pOldInWord;
-	LPTSTR				text;
-	Sound*				sndCurrent;
-	Sound*				sndPrevious;
-	bool				doSearchModified;
-public:
-	IPA*				ipa;//на самом деле friend Query?
-
-	Segmentizer(IPA* _ipa, LPTSTR _text, bool _doSearchModified = true)
-	{
-		doSearchModified = _doSearchModified;
-		ipa = _ipa;
-
-		Set(_text);
-	}
-	void Set(LPTSTR _text)
-	{
-		text = _text;
-		pInWord = pOldInWord = NULL;
-		sndCurrent = NULL;
-		sndPrevious = NULL;
-	}
-	LPTSTR CurrentPos()
-	{
-		return pOldInWord;
-	}
-	TCHAR Current1Char()
-	{
-		return pOldInWord[0];
-	}
-	Sound* Current()
-	{
-		return sndCurrent;
-	}
-	Sound* PeekPrevious()
-	{
-		return sndPrevious;
-	}
-	Sound* PeekNext()
-	{
-		return GetNext(true);
-	}
-	Sound* GetNext(bool doPeek = false)
-	{
-		Sound* soundBase, *sound;
-		LPTSTR pos = pInWord;
-
-		if (!pos)
-			pos = text;
-		if (!*pos)
-			return NULL;
-
-		if (!doPeek)
-			pOldInWord = pos;
-
-		TCHAR chr = *pos;
-		sound = soundBase = &ipa->ipaAll[chr];
-
-		if (doSearchModified)
-		{
-			int	feature[FT_NFEATURETYPES];
-			TCHAR chrWithMod[9];
-			int nPostModifiers = ipa->GetPostModifiers(pos, chrWithMod, feature);
-			pos += nPostModifiers;
-
-			if (nPostModifiers)
-				sound = ipa->FindModifiedSound(soundBase, feature);
-		}
-
-		if (!doPeek)
-		{
-			sndPrevious = sndCurrent;
-			sndCurrent = sound;;
-			pInWord = pos + 1;
-		}
-
-		return sound;
-	}
-	bool IsFirst()
-	{
-		return pOldInWord == text;
-	}
-};
-
+#include "segmentizer.h"
 #include "ipaquery.h"
 #include "replacer.h"

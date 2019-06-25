@@ -23,6 +23,8 @@ public:
 	int			intExtra;
 	int			flags;
 	int			nIterate;
+	int			iSyllableToLook;
+	int			iCurSyllable;
 
 	class Segment
 	{
@@ -105,12 +107,13 @@ public:
 	Segment		sgThis;
 	Segment		sgNext;
 
-	Condition(LPTSTR _ftThis, LPTSTR _ftPrev, LPTSTR _ftNext, int _flags = 0, LPTSTR _title = NULL, int _extraInt = 0, int _nIterate = 2) : sgThis(_ftThis), sgPrev(_ftPrev), sgNext(_ftNext)
+	Condition(LPTSTR _ftThis, LPTSTR _ftPrev, LPTSTR _ftNext, int _flags = 0, LPTSTR _title = NULL, int _extraInt = 0, int _nIterate = 2, int _iSyllable = -1) : sgThis(_ftThis), sgPrev(_ftPrev), sgNext(_ftNext)
 	{
 		title = _title;
 		flags = _flags;
 		intExtra = _extraInt;
 		nIterate = _nIterate;
+		iSyllableToLook = _iSyllable;
 		//		condition = _condition;
 		//		iClass = _iClass;
 		//		feature = NULL;
@@ -144,6 +147,7 @@ public:
 		sgPrev.wasAlready = 0;
 		sgThis.wasAlready = 0;
 		sgNext.wasAlready = 0;
+		iCurSyllable = 0;
 		//wasObject = wasContext = wasObjectInContext = false;//sgThis.feature = NULL;
 		//sgPrev.feature = NULL;
 		//sgNext.feature = NULL;
@@ -162,6 +166,21 @@ public:
 
 		Sound* sdThis = sgmtzr->Current(),
 			*sdAdjacent;
+
+		if (iSyllableToLook != -1)
+		{
+			if (sdThis->feature[FT_CLASS] & FT_VOWEL)
+			{
+				sdAdjacent = sgmtzr->PeekPrevious();
+				if (!sdAdjacent)
+					iCurSyllable++;
+				else if (!(sdAdjacent->feature[FT_CLASS] & FT_VOWEL))
+					iCurSyllable++;
+			}
+			if (iCurSyllable != iSyllableToLook)
+				return false;
+		}
+
 		if ((flags & QF_OBJECTONLYONCE) && (sgThis.wasAlready))
 			return false;
 
@@ -175,25 +194,7 @@ public:
 
 		if (!sgThis.Check(sdThis, FT_CLASS))
 			return false;
-		/*
-				if (sgPrev.flag != QF_NOTHING)
-				{
-					if (!CompareFeaturesOr(sdThis->feature, sgPrev.feature, FT_CLASS))//т.е. текущая годится как контекст в принципе, но только по классу, т.е. С или Г!!
-						sgPrev.wasAlready++;
-				}
-				if (sgNext.flag != QF_NOTHING)
-				{
-					if (!CompareFeaturesOr(sdThis->feature, sgNext.feature, FT_CLASS))//т.е. текущая годится как контекст в принципе
-						sgNext.wasAlready++;
-				}
-				if (sgThis.flag != QF_NOTHING)
-				{
-					if (!CompareFeaturesOr(sdThis->feature, sgThis.feature, FT_CLASS))//т.е. текущая годится как заявленное «это»
-						sgThis.wasAlready++;
-					else
-						return false;
-				}
-		*/
+
 		if (sgPrev.flag & QF_BEGINNING)
 		{
 			if (sgmtzr->IsFirst())
@@ -223,29 +224,9 @@ public:
 				return false;
 		}
 
-
-		//		bool isMatch = !!(sdAdjacent->feature[feature->iType] & feature->value);
-
-		//		return isMatch;
 		return true;
-		//return false;
 	}
-	/*
-		Sound* GetFirstMatchingFragment_(IPA* ipa, Sound** sound, LPTSTR wIn, LPTSTR wOut)
-		{
-			Segmentizer sgmntzr(ipa, wIn);
 
-			Reset();
-
-			if (!wIn) return NULL;
-
-			while (sgmntzr.GetNext())
-			{
-				bool isYes = Check(&sgmntzr);
-				if (isYes) break; //else if (!isYes && QR_FIRSTINWORD)
-			}
-		}
-	*/
 	int GetFirstMatchingFragment(IPA* ipa, Sound** sound, LPTSTR wIn, LPTSTR wOut)
 	{
 		Segmentizer sgmntzr(ipa, wIn);
@@ -253,7 +234,7 @@ public:
 
 		if (!wIn)
 		{
-			*sound = NULL;
+			if (sound) *sound = NULL;
 			return ST_NONE;
 		}
 
@@ -267,19 +248,19 @@ public:
 		if (!isYes)
 			return ST_ERROR;
 
-		*sound = sgmntzr.Current();
-
-		wcscpy(wOut, (*sound)->Symbol);
+		if (sound) *sound = sgmntzr.Current();
+		if (wOut) 	wcscpy(wOut, (*sound)->Symbol);
 
 		int ret = ST_SOUND;
 
-		if (flags & QF_ITERATE)
+		if (wOut && flags & QF_ITERATE)
 		{
 			Condition c(sgThis.txtCondition, NULL, NULL);//вот так неловко копируем условие
 			Sound* sPrev = sgmntzr.PeekPrevious(); //это пока так, ибо нет движения назад
 			Sound* sNext;
 
 			int i = 2;
+
 			while ((sNext = sgmntzr.GetNext()) && i <= nIterate)
 			{
 				if (c.Check(&sgmntzr))
@@ -345,9 +326,9 @@ public:
 		sgmtzr = _sgmtzr;
 		ResetConditions();
 	}
-	Condition* AddCondition(LPTSTR _ftThis, LPTSTR _ftPrev, LPTSTR _ftNext, int flags = 0, LPTSTR _title = NULL, int _extraInt = 0)
+	Condition* AddCondition(LPTSTR _ftThis, LPTSTR _ftPrev, LPTSTR _ftNext, int flags = 0, LPTSTR _title = NULL, int _extraInt = 0, int _iSyllable = -1)
 	{
-		Condition* c = ::new Condition(_ftThis, _ftPrev, _ftNext, flags, _title, _extraInt);
+		Condition* c = ::new Condition(_ftThis, _ftPrev, _ftNext, flags, _title, _extraInt, 2, _iSyllable);
 
 		llConditions.Add(c);
 

@@ -48,6 +48,12 @@ public:
 		typeOfSegment = ST_FRAGMENT;
 		isSoundInCognates = true;//надо переименовать
 	}
+	void SetSound(Sound* sd)
+	{
+		typeOfSegment = ST_SOUND;
+		sound = sd;
+		isSoundInCognates = true;//надо переименовать
+	}
 	LPTSTR Text()//bool ignoreAutoFill = false)
 	{
 		switch (typeOfSegment)
@@ -63,6 +69,9 @@ public:
 			//case ST_SOUND:
 		default:
 			//ИСПРАВИТЬ!!! return sound->Symbol;
+			if (!sound)
+				return NULL;
+
 			return &sound->Symbol[0];
 			//case ST_NONE:
 			//	return NULL;
@@ -187,6 +196,14 @@ public:
 
 		next = prev = crspMain = NULL;
 	}
+	bool IsHeadOfGroup()
+	{
+		return !!first;
+	}
+	bool IsInGroup()
+	{
+		return !!crspMain;
+	}
 };
 
 //////////////////////////////////////////////////////////////
@@ -208,7 +225,21 @@ public:
 		bool ignoreRankSame;
 		bool ignoreUniqueID;
 	};
-
+	int CompareNodeSoundsEtc(Comparandum* cmp1, Comparandum* cmp2)
+	{
+		int res;
+		if (cmp1->typeOfSegment == ST_FRAGMENT && cmp2->typeOfSegment == ST_FRAGMENT)
+		{
+			if (res = cmp1->CompareFragmentWith(cmp2))
+				return res;
+		}
+		else if (cmp1->typeOfSegment == ST_FRAGMENT)
+			return 1;
+		else if (cmp2->typeOfSegment == ST_FRAGMENT)
+			return -1;
+		else if (res = CompareFeaturesAnd(cmp1->sound->feature, cmp2->sound->feature))
+			return res;
+	}
 	int CompareNodes(BNode* _nd1, BNode* _nd2, void* _struct)
 	{
 		COMPAREFLAGS* cf = (COMPAREFLAGS*)_struct;
@@ -249,17 +280,9 @@ public:
 
 			if (isCanCompare)
 			{
-				isNonNull = true;
-				if (cmp1->typeOfSegment == ST_FRAGMENT && cmp2->typeOfSegment == ST_FRAGMENT)
-				{
-					if (res = cmp1->CompareFragmentWith(cmp2))
-						return res;
-				}
-				else if (cmp1->typeOfSegment == ST_FRAGMENT)
-					return 1;
-				else if (cmp2->typeOfSegment == ST_FRAGMENT)
-					return -1;
-				else if (res = CompareFeaturesAnd(cmp1->sound->feature, cmp2->sound->feature))
+				isNonNull = (cmp1->sound && cmp1->typeOfSegment != ST_EMPTYAUTOFILL && cmp2->sound && cmp2->typeOfSegment != ST_EMPTYAUTOFILL);//true;
+
+				if (res = CompareNodeSoundsEtc(cmp1, cmp2))
 					return res;
 
 				//nSame++;
@@ -278,6 +301,12 @@ public:
 
 		if (!isNonNull)//т.е. если ни по одному столбцу не сравнили
 		{
+			//if (c1->rankAllSoundsSame == 10 && c2->rankAllSoundsSame == 10)
+			//{
+			//	if (!CompareNodeSoundsEtc(&c1->comparanda[0], &c2->comparanda[0]))
+			//		return 0;
+			//}
+
 			if (c1->iRow < c2->iRow)
 				return 1;
 			if (c1->iRow > c2->iRow)

@@ -1,4 +1,5 @@
-﻿#pragma once
+﻿
+#pragma once
 #include "datastructures.h"
 #include "parser.h"
 #include "ipa.h"
@@ -18,6 +19,8 @@ class CognateList;
 class Comparison
 {
 public:
+	void* operator new (size_t size, void* memAlloc) { return memAlloc; }
+
 	Dictionary 			dic;
 	//Pool<TCHAR>		pString;
 
@@ -26,11 +29,16 @@ public:
 	int			nSoundCorresp;
 	bool		isProcessed;
 	DictInfo*	dictinfos;
+	Condition*	condition;
 
 
 	Correspondence*		corresps;
 	CorrespondenceTree 	tCorrespondences;
 
+	Comparison() : tCorrespondences(0)
+	{
+		//для массивов
+	}
 	Comparison(int nRows, int nCols) : tCorrespondences(nCols)
 	{
 		nDicts = nCols;
@@ -81,7 +89,32 @@ public:
 			isProcessed = false;
 		}
 	}
-	void AddCognateList(LPTSTR sIn, bool hasPhonData)
+	int AddDictionary(LPTSTR sName, int iColNew)
+	{
+		nDicts++;
+
+		dictinfos = (DictInfo*)realloc(dictinfos, nDicts * sizeof(DictInfo));//new DictInfo[nDicts];
+
+		for (int i = nDicts - 1; i > iColNew; i--)
+		{
+			memcpy(&dictinfos[i], &dictinfos[i - 1], sizeof(DictInfo));
+		}
+		new (&dictinfos[iColNew]) DictInfo(sName);
+
+		for (int iRow = 0; iRow < nCorresp; iRow++)
+		{
+			corresps[iRow].comparanda = (Comparandum*)realloc(corresps[iRow].comparanda, nDicts * sizeof(Comparandum));//new Comparandum[nDicts];
+			for (int i = nDicts - 1; i > iColNew; i--)
+			{
+				memcpy(&corresps[iRow].comparanda[i], &corresps[iRow].comparanda[i - 1], sizeof(Comparandum));
+			}
+
+			new (&corresps[iRow].comparanda[iColNew]) Comparandum(NULL, NULL, NULL);
+		}
+		return nDicts;
+	}
+
+	void AddCognateList(LPTSTR sIn, bool hasPhonData)//, bool isProtoCol)
 	{
 		Parser parser(sIn, L"\0", PARSER_NONNULLEND);
 		LPTSTR wordOrig = NULL, wordIPA = NULL, wordTranslation = NULL, wchrTranscr = NULL, wLength = NULL, wF1 = NULL, wF2 = NULL, wF3 = NULL;
@@ -95,10 +128,9 @@ public:
 				dic.GetDictInfo(parser, dictinfos[iCol]);
 			else
 			{
-				dic.GetOrigIPAAndTranslation(parser, wordOrig, wordIPA, wordTranslation, dictinfos[iCol], hasPhonData, wchrTranscr, wLength, wF1, wF2, wF3);
 				if (iCol == 0)
 					new (&corresps[iRow]) Correspondence(nDicts, iRow);
-
+				dic.GetOrigIPAAndTranslation(parser, wordOrig, wordIPA, wordTranslation, dictinfos[iCol], hasPhonData, wchrTranscr, wLength, wF1, wF2, wF3);
 				new (&corresps[iRow].comparanda[iCol]) Comparandum(wordIPA, wordOrig, wordTranslation, wchrTranscr, wLength, wF1, wF2, wF3);
 
 				if (wordIPA)
@@ -162,11 +194,19 @@ public:
 		Sound* soundSame = NULL,
 			*soundSameExact = NULL,
 			*soundFirst = NULL;
-
+		int typWas = ST_ERROR;
 		for (int iCol = 0; iCol < nDicts; iCol++)
 		{
 			if (!crsp->comparanda[iCol].sound)
 				continue;
+
+			if (typWas != ST_ERROR && crsp->comparanda[iCol].typeOfSegment != typWas)
+			{
+				crsp->rankAllSoundsSame = 0;
+				break;
+			}
+			typWas = crsp->comparanda[iCol].typeOfSegment;
+
 			//			if (!crsp->comparanda[iCol].formIPA)
 			//				continue;
 
@@ -269,14 +309,15 @@ public:
 				crsp->comparanda[iCol].isSoundInCognates = true;
 		}
 
-		//		if (crsp->crspMain = (Correspondence*)tCorrespondences.Add(crsp))
-		//			crsp->AddToGroup();
 
 		Correspondence* c;
 		CorrespondenceTree::COMPAREFLAGS cf = { true, false, false };
 
 		for (CorrespondenceTree::Iterator it(&tCorrespondences); c = it.Next();)
 		{
+			//outrow(c);
+			//outrow(crsp);
+
 			if (tCorrespondences.CompareNodes(c, crsp, &cf))
 				it.TryExitGroup();
 			else
@@ -287,7 +328,9 @@ public:
 		}
 
 		if (!crsp->crspMain)
+		{
 			tCorrespondences.Add(crsp);
+		}
 		else
 			FillMainRowWithMissingSounds(crsp);//
 	}
@@ -328,9 +371,9 @@ public:
 		{
 			for (int iRow = 0; iRow < nCorresp; iRow++)
 			{
+
 				if (i_nEmtpy != CountEmptyColsInRow(&corresps[iRow]))
 					continue;//вроде это не глупость, т.к. сперва надо добавить более полные
-
 
 				if (!ExtractSoundsFromCognates(&corresps[iRow], cnd))
 					continue;
@@ -349,6 +392,7 @@ public:
 
 		isProcessed = true;
 	}
+
 
 	void CalculateDistances(DistanceMatrix* mtx, int factor)
 	{
@@ -419,9 +463,11 @@ public:
 	else
 	out(L"ОТСОРТ В НАЛЕ!!!");
 	}
+	*/
+	/*
 	outallrows(Correspondence* cThis, Correspondence* cMain)
 	{
-	co();
+	//co();
 
 
 
@@ -466,7 +512,7 @@ public:
 	if (doSounds)
 	{for (int iCol = 0; iCol < nDicts; iCol++)
 	{
-		if (_s=crsp->comparanda[iCol].Text(true))
+		if (_s=crsp->comparanda[iCol].Text())
 			wcscat(s,_s);
 		else
 			wcscat(s,L"—");
@@ -487,7 +533,7 @@ public:
 	}
 	out(b);
 	}
-	MsgBox(s);
+	//MsgBox(s);
 	//MsgBox(b);
 
 	//out(tCorrespondences.CompareNodes(crsp,cFound,0));
@@ -717,7 +763,6 @@ public:
 	Anew:
 		for (CorrespondenceTree::Iterator it1(&tCorrespondences); c1 = it1.Next();)
 		{
-			//out(it1.maxStack);
 			if (it1.IsStartOfGroup())
 			{
 				if (!c1->isBeingChanged)
@@ -773,14 +818,16 @@ public:
 
 	void OutputLanguageList(InfoTree* trOut);
 	void SoundCorrespondenceNumbers(InfoTree* trOut, int threshold);
-	void OutputLanguageHeader(InfoTree* trOut, InfoNode* ndTo);
+	void OutputLanguageHeader(InfoTree* trOut, InfoNode* ndTo, bool isProtoSounds);
 	void OutputPhoneticHeader(InfoTree* trOut, InfoNode* ndTo);
-	void OutputSoundsHeader(Correspondence* c, InfoTree* trOut, InfoNode* inTo, bool skipTransl, bool onlyWithForms, int fSep, int fLine);
+	void OutputSoundsHeader(Correspondence* c, InfoTree* trOut, InfoNode* inTo, bool isProtoSounds, bool skipTransl, bool onlyWithForms, int fSep, int fLine);
 	void OutputCognatesRow(Correspondence* c, InfoTree* trOut, InfoNode* inTo, bool isPhonData, int fLine);
 	void OutputCognate(Comparandum* cmp, InfoTree* trOut, InfoNode* inTo, bool isPhonData, int fLine, CognateList* cl);
 	void OutputCognatesBySound(Correspondence* cGroupTop, Correspondence* cOther, int iColDiff, InfoTree* trOut, InfoNode* inMult, InfoTree* trCld, Correspondence* cEqual);
 	void OutputDeviationsWithMaterial(Condition* cnd, InfoTree* trOut, InfoTree* trCld);
 	void OutputCorrespondencesWithMaterial(Condition* cnd, InfoTree* trOut, bool doMakeTableForSingles = false);
+	void OutputReconstructedSounds(Condition* cnd, InfoTree* trOut);
+	void OutputReconstructedWords(Comparison* cmp, InfoTree* trOut);
 	void OutputDistances(Condition* cnd, DistanceMatrix* mtx, InfoTree* trOut);
 };
 

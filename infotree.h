@@ -6,10 +6,12 @@
 #define IT_EMPTYLINEBEFORE 	0x10
 //#define IT_HORLINEBEFORE 	0x20
 #define IT_HORLINEAFTER 	0x40
+#define IT_GREATER			0x80
+#define IT_ASTERISK			0x100
 
-#define IT_LINEBRK		 	0x100
-#define IT_HORLINE		 	0x200
-#define IT_SECTIONBRK	 	0x400
+#define IT_LINEBRK		 	0x200
+#define IT_HORLINE		 	0x400
+#define IT_SECTIONBRK	 	0x800
 
 #define IT_IDENT 			0x1000
 #define IT_COMMA 			0x2000
@@ -342,6 +344,13 @@ public:
 		if (data)
 		{
 			isLnBrk = false;
+
+			if (flags & IT_ASTERISK)
+			{
+				lstrcpy(posOut, TEXT("*"));
+				posOut++;
+			}
+
 			if (flags & IT_SQRBRK)
 			{
 				lstrcpy(posOut, TEXT("["));
@@ -380,6 +389,11 @@ public:
 		if (!isLast)// && !(flags & IT_LINEBRKBEFORE))
 		{
 			isLnBrk = false;
+			if (flags & IT_GREATER)
+			{
+				lstrcpy(posOut, TEXT(" > "));
+				posOut += 3;
+			}
 			if (flags & IT_COMMA)
 			{
 				lstrcpy(posOut, TEXT(","));
@@ -427,6 +441,7 @@ public:
 	}
 	bool Build(InfoNode* ndCur, bool isFirst = true, int iLevel = 0)
 	{
+		if (!ndCur) return false;
 		if (iLevel == 0)
 		{
 			OutputSize = 0;

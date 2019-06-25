@@ -208,12 +208,17 @@ public:
 		}
 	}
 
-	void GetDictInfo(Parser& parser, DictInfo& dictinfo)
+	void GetDictInfo(Parser& parser, DictInfo& dictinfo, LPTSTR wordOrig = NULL)
 	{
-		LPTSTR wordOrig = StoreString(parser.Current(), parser.LengthOfCurrentWord());
+		if (wordOrig)
+			wordOrig = StoreString(wordOrig);
+		else
+		{
+			wordOrig = StoreString(parser.Current(), parser.LengthOfCurrentWord());
+			LPTSTR wordAbbrName = parser.Next();
+		}
+
 		new (&dictinfo) DictInfo(wordOrig);
-		LPTSTR wordAbbrName;
-		wordAbbrName = parser.Next();
 	}
 	void AddWordList(LPTSTR sIn, int nRows)
 	{
@@ -302,7 +307,7 @@ public:
 			{
 				if (cnd->CheckThisFeature(FT_CLASS, iClass, ipa))
 				{
-					InfoNode* ndDistr = trOut->Add(cnd->AutoTitle(buf, 4), IT_COLUMN | IT_LINEBRKBEFORE, ndRoot[iClass], false, cnd);
+					InfoNode* ndDistr = trOut->Add(cnd->AutoTitle(buf, 5), IT_COLUMN | IT_LINEBRKBEFORE, ndRoot[iClass], false, cnd);
 
 					trOut->Add(NULL, IT_TAB, ndDistr);
 					for (InfoNode* ndIter = ndSounds->chldFirst; ndIter; ndIter = ndIter->next)
@@ -361,7 +366,7 @@ public:
 				for (Condition* cnd = qry.FirstCondition(); cnd; cnd = qry.NextCondition())
 				{
 					if (cnd->CheckThisFeature(FT_CLASS, iClass, ipa))
-						trOut->Add(/*cnd->title*/ cnd->AutoTitle(buf), IT_COLUMN | IT_LINEBRKBEFORE | IT_IDENT, ndThisSound, false, cnd);
+						trOut->Add(/*cnd->title*/ cnd->AutoTitle(buf, 5), IT_COLUMN | IT_LINEBRKBEFORE | IT_IDENT, ndThisSound, false, cnd);
 				}
 
 				sdThis->dataExtra = ndThisSound;
