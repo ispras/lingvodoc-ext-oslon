@@ -101,7 +101,7 @@ CognateAnalysis_GetAllOutput(LPTSTR bufIn, int nCols, int nRows, LPTSTR bufOut, 
 	if (nCols < 1 || nCols > 1000)
 		return -1;
 
-	int szOutput = nRows * nCols * 60 + 100000;
+	int szOutput = nRows * nCols * 150 + 100000;
 
 	if (!bufIn)
 		return szOutput;
@@ -333,7 +333,7 @@ CognateReconstruct_GetAllOutput(LPTSTR bufIn, int nCols, int nRows, LPTSTR bufOu
 	if (nCols < 1 || nCols > 1000)
 		return -1;
 
-	int szOutput = nRows * nCols * 150 + 100000;
+	int szOutput = nRows * nCols * 60 + 100000;
 
 	if (!bufIn)
 		return szOutput;
