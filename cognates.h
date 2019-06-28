@@ -176,6 +176,7 @@ public:
 	}
 	bool FillEmptySoundsInRow(Correspondence* crsp)//, bool isReadding = false)
 	{
+
 		//в этой ф-ции назначаются rankAllSoundsSame и nSoundsSame
 		//а потом распространяется потенциальный одинаковый звук на все
 		//если нет одинакового, то суётся первый
@@ -197,7 +198,7 @@ public:
 		int typWas = ST_ERROR;
 		for (int iCol = 0; iCol < nDicts; iCol++)
 		{
-			if (!crsp->comparanda[iCol].sound)
+			if (!crsp->comparanda[iCol].sound || crsp->comparanda[iCol].typeOfSegment == ST_EMPTYAUTOFILL)
 				continue;
 
 			if (typWas != ST_ERROR && crsp->comparanda[iCol].typeOfSegment != typWas)
@@ -262,8 +263,10 @@ public:
 				}
 			}
 		}
+
 		return true;
 	}
+	Correspondence* C;
 	int CountEmptyColsInRow(Correspondence* crsp)
 	{
 		crsp->nSoundsEmpty = 0;
@@ -438,107 +441,16 @@ public:
 
 		if (!FillEmptySoundsInRow(crsp))//, true))
 		{
-			//			out(L"выродилось!");
-			//			outrow(crsp, false, true);
-			return;
+				return;
 		}
 
 		Correspondence* cFound = (Correspondence*)tCorrespondences.Add(crsp);
-		if (cFound)
-		{
-			//			out(L"не передобавилось!");
-			//			outrow(crsp);
-			//			outrow(cFound);
-		}
+
 		//а лучше сразу добавлять их как-то правильно, а потом ещё раз, что ль, фильтровать???
 	//иначе все звуки стали нулями — но это временно! надо не ...
 	}
-	/*
-	co()
-	{
-	bool ok=tCorrespondences.CheckOrder();
-
-	if (!ok)
-	out(L"НЕ ОТСОРТ!!!");
-	else
-	out(L"ОТСОРТ В НАЛЕ!!!");
-	}
-	*/
-	/*
-	outallrows(Correspondence* cThis, Correspondence* cMain)
-	{
-	//co();
 
 
-
-	TCHAR r[1000];
-	TCHAR* s=new TCHAR[100000];
-	wcscpy(s,L"");
-	LPTSTR _s;
-	Correspondence* c1;
-	for (CorrespondenceTree::Iterator it1(&tCorrespondences); c1 = it1.Next();)
-	{
-		if (it1.IsStartOfGroup())
-		{
-			wcscpy(r,L"");
-			for (int iCol = 0; iCol < nDicts; iCol++)
-			{
-				_s=c1->comparanda[iCol].Text();
-				wcscat(r,_s);
-				wcscat(r,L"; ");
-			}
-			//out(r);
-			wcscat(s,r);
-			if (c1==cThis)
-				wcscat(s,L"-----");
-			if (c1==cMain)
-				wcscat(s,L"+++++");
-			wcscat(s,L"\r\n");
-
-			it1.TryExitGroup();
-		}
-	}
-	MsgBox(s);
-	delete[] s;
-	}
-
-	outrow(Correspondence* crsp, bool doSounds = true, bool doForms = true)
-	{
-	TCHAR s[1000];
-	wcscpy(s,L"");
-	TCHAR b[1000];
-	wcscpy(b,L"");
-	LPTSTR _s;
-	if (doSounds)
-	{for (int iCol = 0; iCol < nDicts; iCol++)
-	{
-		if (_s=crsp->comparanda[iCol].Text())
-			wcscat(s,_s);
-		else
-			wcscat(s,L"—");
-		wcscat(s,L"; ");
-	}
-	out(s);
-	}
-
-	if (doForms)
-	{
-	for (int iCol = 0; iCol < nDicts; iCol++)
-	{
-		if (_s=crsp->comparanda[iCol].formOrig)//s = crsp->comparanda[iCol].Text())
-			wcscat(b,_s);
-		else
-			wcscat(b,L"—");
-		wcscat(b,L"; ");
-	}
-	out(b);
-	}
-	//MsgBox(s);
-	//MsgBox(b);
-
-	//out(tCorrespondences.CompareNodes(crsp,cFound,0));
-	}
-	*/
 	void RemoveDistancesIfTooFew(DistanceMatrix* mtx, int threshold)
 	{
 		for (int i = 0; i < nDicts; i++)

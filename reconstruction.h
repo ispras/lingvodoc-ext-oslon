@@ -120,6 +120,8 @@ public:
 
 		cReconstr->formIPA = cmp[0].dic.StoreString(_bOut);
 		cReconstr->formOrig = cmp[0].dic.StoreString(_bOut);
+
+		//cReconstr->translation = L"хобана";
 	}
 	void ReconstructWords(Comparison* cmp, int nCmp, Query& qry)
 	{
@@ -222,8 +224,8 @@ public:
 			cReconstr->SetFragment(c->chrFragment);
 			cReconstr->sound = ipa->GetSound(c->chrFragment[0]);
 			break;
-		
-			//out(c->typeOfSegment);
+		default:
+			;	//out(c->typeOfSegment);
 		}
 	}
 
