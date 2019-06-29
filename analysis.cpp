@@ -135,8 +135,8 @@ CognateAnalysis_GetAllOutput(LPTSTR bufIn, int nCols, int nRows, LPTSTR bufOut, 
 
 		for (Condition* cnd = qry.FirstCondition(); cnd; cnd = qry.NextCondition())
 		{
-			//cmp.Process(cnd, false, false);
-			cmp.Process(cnd, true, true);
+			cmp.Process(cnd, false, false);
+			//cmp.Process(cnd, true, true);
 			cmp.OutputCorrespondencesWithMaterial(cnd, &trOut);
 		}
 
@@ -372,6 +372,7 @@ CognateReconstruct_GetAllOutput(LPTSTR bufIn, int nCols, int nRows, LPTSTR bufOu
 		for (int i = 0; i < nCmp; i++)
 			//for (Condition* cnd = qry.FirstCondition(); cnd; cnd = qry.NextCondition())
 		{
+			//cmp[i].Process(cmp[i].condition, true, true);
 			cmp[i].Process(cmp[i].condition, false, true);
 			//i++;
 		}

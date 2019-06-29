@@ -225,7 +225,7 @@ public:
 			cReconstr->sound = ipa->GetSound(c->chrFragment[0]);
 			break;
 		default:
-			;	//out(c->typeOfSegment);
+			;//out(c->typeOfSegment);
 		}
 	}
 
