@@ -36,11 +36,11 @@ public:
 	}
 	void Reset_()
 	{
-		sound = NULL;
-		typeOfSegment == ST_NONE;
 		chrFragment[0] = L'\0';
 		isSoundInCognates = false;
 		isSingleInGroup = false;
+		typeOfSegment = ST_NONE;
+		sound = NULL;
 	}
 	void SetFragment(LPTSTR text)
 	{
@@ -67,6 +67,8 @@ public:
 			//ИСПРАВИТЬ!!! return chrFragment;
 			return &chrFragment[0];
 			//case ST_SOUND:
+		case ST_NONE:
+			return NULL;
 		default:
 			//ИСПРАВИТЬ!!! return sound->Symbol;
 			if (!sound)

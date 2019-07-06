@@ -23,29 +23,18 @@ public:
 		for (int i = 0; i < nCmp; i++)
 		{
 			LPTSTR txt = NULL;
-			if (cmp[i].corresps[iRow].IsHeadOfGroup() || cmp[i].corresps[iRow].IsInGroup())
-			{
-				Correspondence* crsp = &cmp[i].corresps[iRow];
-				if (crsp->IsInGroup())
-					crsp = crsp->crspMain;
-
-				txt = crsp->comparanda[0].Text();
-
-				//wasSomething = true;
-
-				//JustCopySymbols(&bIn, &bOut, cmp[0].corresps[iRow].comparanda[0].Text());
-				//break;
-			}
-			//else if (i > 1 && wasSomething)
+			Correspondence* crsp = &cmp[i].corresps[iRow];
+			//if (crsp->IsHeadOfGroup()||crsp->IsInGroup())
 			//{
-			//	txt = L"?";
-			//}
+
+			if (crsp->IsInGroup())
+				crsp = crsp->crspMain;
+
+			txt = crsp->comparanda[0].Text();
 			if (!txt)
 			{
 				for (int iCol = 1; iCol < cmp[0].nDicts; iCol++)
 				{
-					//if (cmp[i].corresps[iRow].comparanda[iCol].formIPA) out(cmp[i].corresps[iRow].comparanda[iCol].formIPA);					
-										//Sound* sd; TCHAR chr[10];
 					cmp[i].condition->Reset();
 					switch (cmp[i].condition->GetFirstMatchingFragment(
 						ipa,

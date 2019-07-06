@@ -266,7 +266,7 @@ public:
 
 		return true;
 	}
-	Correspondence* C;
+
 	int CountEmptyColsInRow(Correspondence* crsp)
 	{
 		crsp->nSoundsEmpty = 0;
@@ -441,16 +441,20 @@ public:
 
 		if (!FillEmptySoundsInRow(crsp))//, true))
 		{
-				return;
+			return;
 		}
 
 		Correspondence* cFound = (Correspondence*)tCorrespondences.Add(crsp);
-
+		if (cFound)
+		{
+			//			out(L"не передобавилось!");
+			//			outrow(crsp);
+			//			outrow(cFound);
+		}
 		//а лучше сразу добавлять их как-то правильно, а потом ещё раз, что ль, фильтровать???
 	//иначе все звуки стали нулями — но это временно! надо не ...
 	}
-
-
+	
 	void RemoveDistancesIfTooFew(DistanceMatrix* mtx, int threshold)
 	{
 		for (int i = 0; i < nDicts; i++)
@@ -556,7 +560,8 @@ public:
 	}
 	void RemoveSingleWordsInColumns()
 	{
-		while (RemoveSingleWordsInColumnsOnce());
+		//while (RemoveSingleWordsInColumnsOnce());
+		RemoveSingleWordsInColumnsOnce();
 	}
 	int RemoveSingleWordsInColumnsOnce()
 	{

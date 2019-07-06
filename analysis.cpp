@@ -135,8 +135,8 @@ CognateAnalysis_GetAllOutput(LPTSTR bufIn, int nCols, int nRows, LPTSTR bufOut, 
 
 		for (Condition* cnd = qry.FirstCondition(); cnd; cnd = qry.NextCondition())
 		{
-			//cmp.Process(cnd, false, false);
-			cmp.Process(cnd, true, true);
+			cmp.Process(cnd, false, false);
+			//cmp.Process(cnd, true, true);
 			cmp.OutputCorrespondencesWithMaterial(cnd, &trOut);
 		}
 
@@ -333,7 +333,7 @@ CognateReconstruct_GetAllOutput(LPTSTR bufIn, int nCols, int nRows, LPTSTR bufOu
 	if (nCols < 1 || nCols > 1000)
 		return -1;
 
-	int szOutput = nRows * nCols * 60 + 100000;
+	int szOutput = nRows * nCols * 160 + 100000;
 
 	if (!bufIn)
 		return szOutput;
@@ -343,7 +343,7 @@ CognateReconstruct_GetAllOutput(LPTSTR bufIn, int nCols, int nRows, LPTSTR bufOu
 		bool isBinary = flags == 2;
 		nRows -= 1;//потому что там ещё и заголовок
 
-		const int nCmp = 5;
+		const int nCmp = 9;
 		Comparison cmp[nCmp];
 		IPA ipa;
 		Reconstruction rc;
@@ -362,9 +362,13 @@ CognateReconstruct_GetAllOutput(LPTSTR bufIn, int nCols, int nRows, LPTSTR bufOu
 		Query qry;
 		cmp[0].condition = qry.AddCondition(L"Г", L"#", NULL, QF_ITERATE, L"Соответствия по начальному гласному");
 		cmp[1].condition = qry.AddCondition(L"С", L"#", NULL, QF_ITERATE, L"Соответствия по начальному согласному");
-		cmp[2].condition = qry.AddCondition(L"Г", L"С", NULL, QF_ITERATE, L"Соответствия по гласному первого слога после согласного", 0, 1);
-		cmp[3].condition = qry.AddCondition(L"С", L"Г", NULL, QF_ITERATE, L"Соответствия по согласному после гласного первого слога", 0, 1);
-		cmp[4].condition = qry.AddCondition(L"Г", L"С", NULL, QF_ITERATE, L"Соответствия по гласному второго слога", 0, 2);
+		cmp[2].condition = qry.AddCondition(L"Г", L"С", NULL, QF_ITERATE, L"Соответствия по гласному 1-го слога после согласного", 0, 1);
+		cmp[3].condition = qry.AddCondition(L"С", L"Г", NULL, QF_ITERATE, L"Соответствия по согласному после гласного 1-го слога", 0, 1);
+		cmp[4].condition = qry.AddCondition(L"Г", L"С", NULL, QF_ITERATE, L"Соответствия по гласному 2-го слога", 0, 2);
+		cmp[5].condition = qry.AddCondition(L"С", L"Г", NULL, QF_ITERATE, L"Соответствия по согласному после гласного 2-го слога", 0, 2);
+		cmp[6].condition = qry.AddCondition(L"Г", L"С", NULL, QF_ITERATE, L"Соответствия по гласному 3-го слога", 0, 3);
+		cmp[7].condition = qry.AddCondition(L"С", L"Г", NULL, QF_ITERATE, L"Соответствия по согласному после гласного 3-го слога", 0, 3);
+		cmp[8].condition = qry.AddCondition(L"Г", L"С", NULL, QF_ITERATE, L"Соответствия по гласному 4-го слога", 0, 4);
 
 		if (!isBinary)
 			cmp[0].OutputLanguageList(&trOut);

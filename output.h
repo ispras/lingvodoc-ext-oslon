@@ -242,15 +242,15 @@ void Comparison::OutputCognatesBySound(Correspondence* cGroupTop, Correspondence
 	if (trCld)
 	{
 
-		if (!cEqual->comparanda[iColDiff].sound)
-		{
-			trCld->Add(L"?", IT_SPACE);
-			/////////////////////////////////////////////////
-			//out(cEqual->comparanda[iColDiff].formIPA);
-			/////////////////////////////////////////////////
-		}
-		else
-			trCld->Add(cEqual->comparanda[iColDiff].Text(), IT_SQRBRK | IT_SPACE);
+		//if (!cEqual->comparanda[iColDiff].sound)
+		//{
+		//trCld->Add(L"?", IT_SPACE);
+		/////////////////////////////////////////////////
+		//out(cEqual->comparanda[iColDiff].formIPA);
+		/////////////////////////////////////////////////
+		//}
+		//else
+		trCld->Add(cEqual->comparanda[iColDiff].Text(), IT_SQRBRK | IT_SPACE);
 		trCld->Add(L"в других рядах", IT_LINEBRKAFTER);
 	}
 
@@ -609,8 +609,11 @@ void Comparison::OutputReconstructedSounds(Condition* cnd, InfoTree* trOut)//н�
 	Correspondence* c;
 	for (CorrespondenceTree::Iterator it(&tCorrespondences); c = it.Next();)
 	{
-		if (it.IsStartOfGroup() || c->rankAllSoundsSame >= 5)
+		if (it.IsStartOfGroup())
+			//if (it.IsStartOfGroup() || c->rankAllSoundsSame >= 5)
+		{
 			OutputSoundsHeader(c, trOut, inMultList, true, false, false, IT_DASH, IT_LINEBRK);
+		}
 
 		it.TryExitGroup();
 	}
