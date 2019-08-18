@@ -24,6 +24,7 @@
 #include "distances.h"
 #include "cognates.h"
 #include "reconstruction.h"
+#include "multireconstruction.h"
 
 //летит
 //TCHAR IPA[100] = TEXT("a, b");
@@ -323,6 +324,7 @@ CognateAcousticAnalysis_GetAllOutput(LPTSTR bufIn, int nCols, int nRows, LPTSTR 
 }
 #endif
 
+
 #ifdef __linux__ 
 extern "C" {int
 #else
@@ -341,58 +343,22 @@ CognateReconstruct_GetAllOutput(LPTSTR bufIn, int nCols, int nRows, LPTSTR bufOu
 	try
 	{
 		bool isBinary = flags == 2;
-		nRows -= 1;//потому что там ещё и заголовок
-
-		const int nCmp = 9;
-		Comparison cmp[nCmp];
-		IPA ipa;
-		Reconstruction rc;
-
-		for (int i = 0; i < nCmp; i++)
-		{
-			new (&cmp[i]) Comparison(nRows, nCols);
-			cmp[i].AddCognateList(bufIn, false);
-		}
-
 
 		LPTSTR title;
 		if (!isBinary) title = L"РЕКОНСТРУКЦИЯ ПРАФОРМ"; else title = NULL;
 		InfoTree trOut(title);
 
-		Query qry;
-		cmp[0].condition = qry.AddCondition(L"Г", L"#", NULL, QF_ITERATE, L"Соответствия по начальному гласному");
-		cmp[1].condition = qry.AddCondition(L"С", L"#", NULL, QF_ITERATE, L"Соответствия по начальному согласному");
-		cmp[2].condition = qry.AddCondition(L"Г", L"С", NULL, QF_ITERATE, L"Соответствия по гласному 1-го слога после согласного", 0, 1);
-		cmp[3].condition = qry.AddCondition(L"С", L"Г", NULL, QF_ITERATE, L"Соответствия по согласному после гласного 1-го слога", 0, 1);
-		cmp[4].condition = qry.AddCondition(L"Г", L"С", NULL, QF_ITERATE, L"Соответствия по гласному 2-го слога", 0, 2);
-		cmp[5].condition = qry.AddCondition(L"С", L"Г", NULL, QF_ITERATE, L"Соответствия по согласному после гласного 2-го слога", 0, 2);
-		cmp[6].condition = qry.AddCondition(L"Г", L"С", NULL, QF_ITERATE, L"Соответствия по гласному 3-го слога", 0, 3);
-		cmp[7].condition = qry.AddCondition(L"С", L"Г", NULL, QF_ITERATE, L"Соответствия по согласному после гласного 3-го слога", 0, 3);
-		cmp[8].condition = qry.AddCondition(L"Г", L"С", NULL, QF_ITERATE, L"Соответствия по гласному 4-го слога", 0, 4);
+		Reconstruction rc(nCols, nRows - 1, bufIn);//nRows -= 1;//потому что там ещё и заголовок
+
+		nCols = rc.Reconstruct();
+
 
 		if (!isBinary)
-			cmp[0].OutputLanguageList(&trOut);
-
-		for (int i = 0; i < nCmp; i++)
-			//for (Condition* cnd = qry.FirstCondition(); cnd; cnd = qry.NextCondition())
-		{
-			cmp[i].Process(cmp[i].condition, true, true);
-			//cmp[i].Process(cmp[i].condition, false, true);
-			//i++;
-		}
-
-		//		i = 0;
-		for (int i = 0; i < nCmp; i++)
-			//		for (Condition* cnd = qry.FirstCondition(); cnd; cnd = qry.NextCondition())
-		{
-			nCols = rc.ReconstructSounds(&cmp[i], cmp[i].condition);
-			cmp[i].OutputReconstructedSounds(cmp[i].condition, &trOut);
-			//i++;
-		}
+			rc.cmp[0].OutputLanguageList(&trOut);
+		for (int i = 0; i < rc.nCmp; i++)
+			rc.cmp[i].OutputReconstructedSounds(rc.cmp[i].condition, &trOut);
 		trOut.Add(NULL, IT_SECTIONBRK, NULL);
-
-		rc.ReconstructWords(cmp, nCmp, qry);
-		cmp[0].OutputReconstructedWords(&cmp[0], &trOut);
+		rc.cmp[0].OutputReconstructedWords(&trOut);
 
 		OutputString output(szOutput, 20, nCols * 2, isBinary);
 		output.Build(trOut.ndRoot);
@@ -412,8 +378,79 @@ CognateReconstruct_GetAllOutput(LPTSTR bufIn, int nCols, int nRows, LPTSTR bufOu
 }
 #endif
 
+#ifdef __linux__ 
+extern "C" {int
+#else
+int __declspec(dllexport)
+#endif
+CognateMultiReconstruct_GetAllOutput(LPTSTR bufIn, int* pnCols, int nGroups, int nRows, LPTSTR bufOut, int flags)
+{
+	int nColsAll = 0;
+	for (int i = 0; i < nGroups; i++)
+		nColsAll += pnCols[i];
+	if (nColsAll < 1 || nColsAll > 1000)
+		return -1;
+	int szOutput = nRows * nColsAll * 160 + 100000;
 
+	if (!bufIn)
+		return szOutput;
 
+	try
+	{
+		bool isBinary = flags == 2;
+
+		LPTSTR title;
+		if (!isBinary) title = L"РЕКОНСТРУКЦИЯ ПРАПРАФОРМ"; else title = NULL;
+		InfoTree trOut(title);
+
+		MultiReconstruction mrc(pnCols, nGroups, nRows - 1, bufIn);
+
+		mrc.ReconstructFirstLevel();
+
+		Reconstruction rc(nGroups, nRows - 1, NULL);//nRows -= 1;//потому что там ещё и заголовок
+
+		for (int i = 0; i < nGroups; i++)
+			rc.CopyColumnFrom(mrc.reconstructions[i], 0, i);
+		/*
+		for (int iRow=0;iRow<rc.cmp[1].nCorresp;iRow++)
+		{
+			TCHAR b[200];
+			lstrcpy(b,L"\0");
+			if (rc.cmp[1].corresps[iRow].comparanda[0].formIPA)
+				lstrcat(b, rc.cmp[1].corresps[iRow].comparanda[0].formIPA);
+			lstrcat(b,L"\t");
+			if (rc.cmp[1].corresps[iRow].comparanda[1].formIPA)
+				lstrcat(b, rc.cmp[1].corresps[iRow].comparanda[1].formIPA);
+			out(b);
+		}
+		*/
+
+		int nCols = rc.Reconstruct();
+
+		if (!isBinary)
+			rc.cmp[0].OutputLanguageList(&trOut);
+		for (int i = 0; i < rc.nCmp; i++)
+			rc.cmp[i].OutputReconstructedSounds(rc.cmp[i].condition, &trOut);
+		trOut.Add(NULL, IT_SECTIONBRK, NULL);
+		rc.cmp[0].OutputReconstructedWords(&trOut);
+
+		OutputString output(szOutput, 20, nCols * 2, isBinary);
+		output.Build(trOut.ndRoot);
+
+		if (isBinary)
+			output.OutputTableSizes(bufOut);
+		output.OutputData(bufOut);
+
+		return output.OutputSize;
+	}
+	catch (...)
+	{
+		return -2;
+	}
+}
+#ifdef __linux__ 
+}
+#endif
 
 
 #ifdef __linux__ 

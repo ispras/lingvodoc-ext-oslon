@@ -9,6 +9,7 @@ public:
 	int			typeOfSegment;
 	TCHAR		chrFragment[8];
 	TCHAR		chrTranscr[8];
+	bool		isReconstructed;
 	bool		isSoundInCognates;
 	bool		isSingleInGroup;
 
@@ -16,11 +17,12 @@ public:
 	{
 		Reset_();
 	}
-	Comparandum(LPTSTR _formIPA, LPTSTR _formOrig, LPTSTR _translation, LPTSTR _chrTranscr = NULL, LPTSTR _wLength = NULL, LPTSTR _wF1 = NULL, LPTSTR _wF2 = NULL, LPTSTR _wF3 = NULL)
+	Comparandum(LPTSTR _formIPA, LPTSTR _formOrig, LPTSTR _translation, bool _isReconstructed, LPTSTR _chrTranscr = NULL, LPTSTR _wLength = NULL, LPTSTR _wF1 = NULL, LPTSTR _wF2 = NULL, LPTSTR _wF3 = NULL)
 	{
 		formIPA = _formIPA;
 		formOrig = _formOrig;
 		translation = _translation;
+		isReconstructed = _isReconstructed;
 
 		wF1 = _wF1;
 		wF2 = _wF2;

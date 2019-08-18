@@ -147,53 +147,49 @@ void Comparison::OutputPhoneticHeader(InfoTree* trOut, InfoNode* ndTo)
 	trOut->Add(L"f₃", IT_TAB, ndTo);
 	trOut->Add(NULL, IT_HORLINE, ndTo);
 }
-void Comparison::OutputSoundsHeader(Correspondence* c, InfoTree* trOut, InfoNode* inTo, bool isProtoSounds, bool skipTransl, bool onlyWithForms, int fSep, int fLine)
+void Comparison::OutputSoundsHeader(Correspondence* c, InfoTree* trOut, InfoNode* inTo, bool skipTransl, bool onlyWithForms, int fSep, int fLine)
 {
-	int iCol;
-	//	if (isProtoSounds)
-	//		iCol = -1;
-	//	else
-	iCol = 0;
+	int iCol = 0;
 
 	for (; iCol < nDicts; iCol++)
 	{
 		LPTSTR word;
-
-		int fAdd;
-
+		int fAdd = 0;
 		TCHAR buf[10];
+		/*
+				if (iCol == 0 && isProtoSounds)
+				{
+					fAdd |= IT_ASTERISK|IT_GREATER|(fSep & IT_TAB);
 
-		//if (iCol == -1)
-		if (iCol == 0 && isProtoSounds)
-		{
-			fAdd = IT_GREATER | IT_ASTERISK | (fSep & IT_TAB);
-			//lstrcpy(buf, L"*");
-			//word = buf;
-			if (c->comparanda[iCol].sound)
-				word = c->comparanda[iCol].Text();
-			else
-				word = NULL;
-		}
+					if (c->comparanda[iCol].sound)
+						word = c->comparanda[iCol].Text();
+					else
+						word = NULL;
+				}
+				else
+				{
+		*/
+		bool isProtoCol = (iCol == 0 && c->comparanda[iCol].isReconstructed);
+		bool isLastCol = (iCol == nDicts - 1);
+
+		fAdd |= fSep * (!isLastCol) * (!isProtoCol);
+		fAdd |= IT_GREATER * isProtoCol;
+
+		bool isSoundOK;
+		if (onlyWithForms)
+			isSoundOK = !!c->comparanda[iCol].formIPA;
 		else
+			isSoundOK = c->comparanda[iCol].isSoundInCognates;
+
+		if (isSoundOK)
 		{
-			if (iCol < nDicts - 1)
-				fAdd = fSep;
-			else
-				fAdd = 0;
-			bool isSoundOK;
-			if (onlyWithForms)
-				isSoundOK = !!c->comparanda[iCol].formIPA;
-			else
-				isSoundOK = c->comparanda[iCol].isSoundInCognates;
+			fAdd |= IT_ASTERISK * c->comparanda[iCol].isReconstructed;
+			fAdd |= IT_SQRBRK * !c->comparanda[iCol].isReconstructed;
 
-			if (isSoundOK)
-			{
-				fAdd |= IT_SQRBRK;
-
-				word = c->comparanda[iCol].Text();
-			}
-			else word = L" ? ";
+			word = c->comparanda[iCol].Text();
 		}
+		else word = L" ? ";
+		//}
 
 		if (!word) word = L"@";
 
@@ -283,7 +279,7 @@ void Comparison::OutputCognatesBySound(Correspondence* cGroupTop, Correspondence
 
 							trOut->Add(cEqual->comparanda[iColDiff].Text(), IT_SQRBRK | IT_SPACE, inMult);
 							trOut->Add(L"также в ряду", IT_COLUMN | IT_TAB, inMult);
-							OutputSoundsHeader(cExtra, trOut, inMult, false, false, false, IT_DASH, IT_HORLINE);
+							OutputSoundsHeader(cExtra, trOut, inMult, false, false, IT_DASH, IT_HORLINE);
 						}
 
 						OutputCognate(&cExtra->comparanda[iColDiff], trOut, inMult, true, IT_LINEBRK, &cl);
@@ -402,7 +398,7 @@ void Comparison::OutputDeviationsWithMaterial(Condition* cnd, InfoTree* trOut, I
 					trOut->Add(NULL, IT_HORLINE, inMult);
 
 					trOut->Add(L"Простейший ряд", IT_COLUMN | IT_TAB, inMult);
-					OutputSoundsHeader(cGroupTop, trOut, inMult, false, false, false, IT_DASH, IT_LINEBRKAFTER);
+					OutputSoundsHeader(cGroupTop, trOut, inMult, false, false, IT_DASH, IT_LINEBRKAFTER);
 
 					trOut->Add(NULL, IT_HORLINE, inMult);
 
@@ -423,7 +419,7 @@ void Comparison::OutputDeviationsWithMaterial(Condition* cnd, InfoTree* trOut, I
 
 					trCld->Add(cGroupTop->comparanda[iColDiff].Text(), IT_SQRBRK | IT_SPACE);
 					trCld->Add(L"в простейшем ряду", IT_COLUMN | IT_SPACE);
-					OutputSoundsHeader(cGroupTop, trCld, NULL, false, false, true, IT_DASH, IT_LINEBRKAFTER);
+					OutputSoundsHeader(cGroupTop, trCld, NULL, false, true, IT_DASH, IT_LINEBRKAFTER);
 
 					nDeviations++;
 
@@ -468,13 +464,13 @@ void Comparison::OutputDeviationsWithMaterial(Condition* cnd, InfoTree* trOut, I
 
 					trOut->Add(L"Отклоняющийся ряд", IT_COLUMN | IT_TAB, inMult);
 					cOther->dataExtra = (void*)1;
-					OutputSoundsHeader(cOther, trOut, inMult, false, false, true, IT_DASH, IT_HORLINE);
+					OutputSoundsHeader(cOther, trOut, inMult, false, true, IT_DASH, IT_HORLINE);
 
 
 
 					trCld->Add(cOther->comparanda[iColDiff].Text(), IT_SQRBRK | IT_SPACE);
 					trCld->Add(L"в отклоняющемся ряду", IT_COLUMN | IT_SPACE);
-					OutputSoundsHeader(cOther, trCld, NULL, false, false, true, IT_DASH, IT_LINEBRKAFTER);
+					OutputSoundsHeader(cOther, trCld, NULL, false, true, IT_DASH, IT_LINEBRKAFTER);
 
 
 
@@ -548,10 +544,10 @@ void Comparison::OutputCorrespondencesWithMaterial(Condition* cnd, InfoTree* trO
 		if (it.IsStartOfGroup() || doMakeTableForSingles)
 		{
 			if (!doMakeTableForSingles)
-				OutputSoundsHeader(c, trOut, inMultList, false, false, false, IT_DASH, IT_LINEBRK);
+				OutputSoundsHeader(c, trOut, inMultList, false, false, IT_DASH, IT_LINEBRK);
 
 			inTo = inMult;
-			OutputSoundsHeader(c, trOut, inTo, false, true, false, IT_TAB, IT_HORLINE);
+			OutputSoundsHeader(c, trOut, inTo, true, false, IT_TAB, IT_HORLINE);
 		}
 
 
@@ -574,20 +570,20 @@ void Comparison::OutputCorrespondencesWithMaterial(Condition* cnd, InfoTree* trO
 	}
 }
 
-void Comparison::OutputReconstructedWords(Comparison* cmp, InfoTree* trOut)//нельзя тут повторять
+void Comparison::OutputReconstructedWords(InfoTree* trOut)//нельзя тут повторять
 {
 	InfoNode* inMult = trOut->Add(L"Реконструкции", IT_COLUMN | IT_EMPTYLINEBEFORE | IT_LINEBRKAFTER, NULL);
 	OutputLanguageHeader(trOut, inMult, true);
 
-	for (int iRow = 0; iRow < cmp->nCorresp; iRow++)
+	for (int iRow = 0; iRow < nCorresp; iRow++)
 	{
 		//if (formIPACur = cmp[0].corresps[iRow].comparanda[iCol].formIPA)
 		for (int iCol = 0; iCol < nDicts; iCol++)
 		{
-			if (cmp[0].corresps[iRow].comparanda[0].formIPA)//реконструкция
+			if (corresps[iRow].comparanda[0].formIPA)//реконструкция
 			{
-				trOut->Add(cmp[0].corresps[iRow].comparanda[iCol].formOrig, IT_TAB | (IT_ASTERISK*(iCol == 0)), inMult);
-				trOut->Add(cmp[0].corresps[iRow].comparanda[iCol].translation, IT_MARRQUOTES | IT_TAB, inMult);
+				trOut->Add(corresps[iRow].comparanda[iCol].formOrig, IT_TAB | (IT_ASTERISK*(corresps[iRow].comparanda[iCol].isReconstructed)), inMult);
+				trOut->Add(corresps[iRow].comparanda[iCol].translation, IT_MARRQUOTES | IT_TAB, inMult);
 			}
 		}
 	}
@@ -602,7 +598,7 @@ void Comparison::OutputReconstructedSounds(Condition* cnd, InfoTree* trOut)//н�
 	InfoNode* inCnd, *inMult,/* *inOnce,*/ *inMultList;
 
 	inMultList = trOut->Add(cnd->title, IT_COLUMN | IT_LINEBRKBEFORE | IT_LINEBRKAFTER, NULL, false, cnd);
-	inMult = trOut->Add(NULL, IT_COLUMN | IT_HORLINE, inCnd);
+	inMult = trOut->Add(NULL, IT_COLUMN | IT_HORLINE);
 
 	InfoNode* inTo = inMult;
 
@@ -612,7 +608,7 @@ void Comparison::OutputReconstructedSounds(Condition* cnd, InfoTree* trOut)//н�
 		if (it.IsStartOfGroup())
 			//if (it.IsStartOfGroup() || c->rankAllSoundsSame >= 5)
 		{
-			OutputSoundsHeader(c, trOut, inMultList, true, false, false, IT_DASH, IT_LINEBRK);
+			OutputSoundsHeader(c, trOut, inMultList, false, false, IT_DASH, IT_LINEBRK);
 		}
 
 		it.TryExitGroup();

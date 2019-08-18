@@ -109,32 +109,76 @@ public:
 				memcpy(&corresps[iRow].comparanda[i], &corresps[iRow].comparanda[i - 1], sizeof(Comparandum));
 			}
 
-			new (&corresps[iRow].comparanda[iColNew]) Comparandum(NULL, NULL, NULL);
+			new (&corresps[iRow].comparanda[iColNew]) Comparandum(NULL, NULL, NULL, false);
 		}
 		return nDicts;
 	}
+	void InitEmpty()
+	{
+		for (int iCol = 0; iCol < nDicts; iCol++)
+			new (&dictinfos[iCol]) DictInfo;
 
-	void AddCognateList(LPTSTR sIn, bool hasPhonData)//, bool isProtoCol)
+		for (int iRow = 0; iRow < nCorresp; iRow++)
+		{
+			new (&corresps[iRow]) Correspondence(nDicts, iRow);
+		}
+	}
+	void CopyDictionaryFrom(Comparison* cmpFrom, int iColFrom, int iColTo)
+	{
+		dictinfos[iColTo].name = cmpFrom->dictinfos[iColFrom].name;
+
+		for (int iRow = 0; iRow < nCorresp; iRow++)
+		{
+			Comparandum* cFrom = &cmpFrom->corresps[iRow].comparanda[iColFrom];
+			Comparandum* cTo = &corresps[iRow].comparanda[iColTo];
+
+			new (&corresps[iRow].comparanda[iColTo]) Comparandum(dic.TranscribeWord(cFrom->formOrig, dictinfos[iColTo]), dic.StoreNonNullString(cFrom->formOrig), NULL, cFrom->isReconstructed);
+
+			if (cTo->formIPA)
+			{
+				dic.ipa->SubmitWordForm(cTo->formIPA);
+				dictinfos[iColTo].nWords++;
+			}
+
+			//НЕ СДЕЛАНО!
+			//new (cTo) Comparandum(dic.StoreString(cFrom->formIPA), dic.StoreString(cFrom->formOrig), NULL);
+			//в LoadAddress вызывается AddPointerTypeRef и портит тип!!!
+		}
+		dic.ipa->EndSubmitWordForms();
+	}
+	void AddCognateList(LPTSTR sIn, bool hasPhonData, int begCols = 0, int nCols = 0, int nColsAll = 0)
 	{
 		Parser parser(sIn, L"\0", PARSER_NONNULLEND);
 		LPTSTR wordOrig = NULL, wordIPA = NULL, wordTranslation = NULL, wchrTranscr = NULL, wLength = NULL, wF1 = NULL, wF2 = NULL, wF3 = NULL;
 
-		int iRow = -1, iCol = -1;
+		if (!nColsAll) nColsAll = nDicts;
+		if (!nCols) nCols = nDicts;
+
+		int iColIn = -1, iCol = -1, iRow = -1;
 		while (parser.Next())
 		{
-			if (!dic.NextCol(iCol, iRow, nDicts, nCorresp)) break;
-
-			if (iRow == -1)
-				dic.GetDictInfo(parser, dictinfos[iCol]);
-			else
+			if (!dic.NextCol(iColIn, iRow, nColsAll, nCorresp)) break;
+			if (iColIn >= begCols && iColIn < begCols + nCols)
 			{
-				if (iCol == 0)
-					new (&corresps[iRow]) Correspondence(nDicts, iRow);
-				dic.GetOrigIPAAndTranslation(parser, wordOrig, wordIPA, wordTranslation, dictinfos[iCol], hasPhonData, wchrTranscr, wLength, wF1, wF2, wF3);
-				new (&corresps[iRow].comparanda[iCol]) Comparandum(wordIPA, wordOrig, wordTranslation, wchrTranscr, wLength, wF1, wF2, wF3);
+				iCol = iColIn - begCols;
 
-				if (wordIPA)
-					dictinfos[iCol].nWords++;
+				if (iRow == -1)
+					dic.GetDictInfo(parser, dictinfos[iCol]);
+				else
+				{
+					if (iCol == 0)
+						new (&corresps[iRow]) Correspondence(nDicts, iRow);
+
+					dic.GetOrigIPAAndTranslation(parser, wordOrig, wordIPA, wordTranslation, dictinfos[iCol], hasPhonData, wchrTranscr, wLength, wF1, wF2, wF3);
+					new (&corresps[iRow].comparanda[iCol]) Comparandum(wordIPA, wordOrig, wordTranslation, false, wchrTranscr, wLength, wF1, wF2, wF3);
+
+					if (wordIPA)
+						dictinfos[iCol].nWords++;
+				}
+			}
+			else//надо перепрыгнуть через перевод
+			{
+				parser.Next();
 			}
 		}
 		dic.ipa->EndSubmitWordForms();
@@ -167,7 +211,7 @@ public:
 				new (&corresps[iRow]) Correspondence(nDicts, iRow);
 			}
 
-			new (&corresps[iRow].comparanda[iCol]) Comparandum(wordIPA, wordOrig, NULL);
+			new (&corresps[iRow].comparanda[iCol]) Comparandum(wordIPA, wordOrig, NULL, false);
 
 			if (wordIPA)
 				dictinfos[iCol].nWords++;
@@ -318,9 +362,6 @@ public:
 
 		for (CorrespondenceTree::Iterator it(&tCorrespondences); c = it.Next();)
 		{
-			//outrow(c);
-			//outrow(crsp);
-
 			if (tCorrespondences.CompareNodes(c, crsp, &cf))
 				it.TryExitGroup();
 			else
@@ -375,13 +416,14 @@ public:
 			for (int iRow = 0; iRow < nCorresp; iRow++)
 			{
 
-				if (i_nEmtpy != CountEmptyColsInRow(&corresps[iRow]))
-					continue;//вроде это не глупость, т.к. сперва надо добавить более полные
+				if (i_nEmtpy != CountEmptyColsInRow(&corresps[iRow]))//вроде это не глупость, т.к. сперва надо добавить более полные
+					continue;
 
 				if (!ExtractSoundsFromCognates(&corresps[iRow], cnd))
 					continue;
 
-				FillEmptySoundsInRow(&corresps[iRow]);
+				if (!FillEmptySoundsInRow(&corresps[iRow])) //значит пусто совсем
+					continue;
 
 				AcceptAndInsertRow(&corresps[iRow]);
 			}
@@ -441,6 +483,8 @@ public:
 
 		if (!FillEmptySoundsInRow(crsp))//, true))
 		{
+			//			out(L"выродилось!");
+			//			outrow(crsp, false, true);
 			return;
 		}
 
@@ -454,7 +498,7 @@ public:
 		//а лучше сразу добавлять их как-то правильно, а потом ещё раз, что ль, фильтровать???
 	//иначе все звуки стали нулями — но это временно! надо не ...
 	}
-	
+
 	void RemoveDistancesIfTooFew(DistanceMatrix* mtx, int threshold)
 	{
 		for (int i = 0; i < nDicts; i++)
@@ -737,14 +781,14 @@ public:
 	void SoundCorrespondenceNumbers(InfoTree* trOut, int threshold);
 	void OutputLanguageHeader(InfoTree* trOut, InfoNode* ndTo, bool isProtoSounds);
 	void OutputPhoneticHeader(InfoTree* trOut, InfoNode* ndTo);
-	void OutputSoundsHeader(Correspondence* c, InfoTree* trOut, InfoNode* inTo, bool isProtoSounds, bool skipTransl, bool onlyWithForms, int fSep, int fLine);
+	void OutputSoundsHeader(Correspondence* c, InfoTree* trOut, InfoNode* inTo, bool skipTransl, bool onlyWithForms, int fSep, int fLine);
 	void OutputCognatesRow(Correspondence* c, InfoTree* trOut, InfoNode* inTo, bool isPhonData, int fLine);
 	void OutputCognate(Comparandum* cmp, InfoTree* trOut, InfoNode* inTo, bool isPhonData, int fLine, CognateList* cl);
 	void OutputCognatesBySound(Correspondence* cGroupTop, Correspondence* cOther, int iColDiff, InfoTree* trOut, InfoNode* inMult, InfoTree* trCld, Correspondence* cEqual);
 	void OutputDeviationsWithMaterial(Condition* cnd, InfoTree* trOut, InfoTree* trCld);
 	void OutputCorrespondencesWithMaterial(Condition* cnd, InfoTree* trOut, bool doMakeTableForSingles = false);
 	void OutputReconstructedSounds(Condition* cnd, InfoTree* trOut);
-	void OutputReconstructedWords(Comparison* cmp, InfoTree* trOut);
+	void OutputReconstructedWords(InfoTree* trOut);
 	void OutputDistances(Condition* cnd, DistanceMatrix* mtx, InfoTree* trOut);
 };
 

@@ -140,6 +140,11 @@ public:
 		return RT_NONE;
 	}
 
+	LPTSTR StoreNonNullString(LPTSTR str, int sz = -1)
+	{
+		if (!str) return NULL;
+		return StoreString(str, sz);
+	}
 	LPTSTR StoreString(LPTSTR str, int sz = -1)
 	{
 		if (str[0] == L'\0' || sz == 0)

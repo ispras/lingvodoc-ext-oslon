@@ -271,6 +271,9 @@ public:
 				else if (sgThis.feature[FT_CLASS] == FT_VOWEL)//проверяем потенциальные д-ги [надо это как-то обобщить]
 				{
 					Sound* sBase = ipa->GetBaseSound(sNext);
+
+					if (!sBase) break;
+
 					if (wcschr(_listExtraGlides, sBase->Symbol[0])) //слева направо
 					{
 						ret = ST_FRAGMENTMAYBE;

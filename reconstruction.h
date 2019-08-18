@@ -1,20 +1,64 @@
-class Reconstruction
+class Reconstruction : public OwnNew
 {
 	IPA* ipa;
 public:
-	Reconstruction()
+	Query qry;
+	Comparison*	cmp;
+	int			nCmp;
+
+	Reconstruction() //для массива
+	{
+		//		cmp = NULL;
+		//		ipa = NULL;
+	}
+	Reconstruction(int nCols, int nRows, LPTSTR bufIn = NULL, int begCols = 0, int nCallsAll = 0)
 	{
 		ipa = new IPA(true);
+
+
+		nCmp = 9;
+		cmp = new Comparison[9/*nCmp ИСПРАВИТЬ!*/];
+
+		for (int i = 0; i < nCmp; i++)
+		{
+			new (&cmp[i]) Comparison(nRows, nCols);
+			if (bufIn)
+				cmp[i].AddCognateList(bufIn, false, begCols, nCols, nCallsAll);
+			else
+				cmp[i].InitEmpty();
+		}
+
+		cmp[0].condition = qry.AddCondition(L"Г", L"#", NULL, QF_ITERATE, L"Соответствия по начальному гласному");
+		cmp[1].condition = qry.AddCondition(L"С", L"#", NULL, QF_ITERATE, L"Соответствия по начальному согласному");
+		cmp[2].condition = qry.AddCondition(L"Г", L"С", NULL, QF_ITERATE, L"Соответствия по гласному 1-го слога после согласного", 0, 1);
+		cmp[3].condition = qry.AddCondition(L"С", L"Г", NULL, QF_ITERATE, L"Соответствия по согласному после гласного 1-го слога", 0, 1);
+		cmp[4].condition = qry.AddCondition(L"Г", L"С", NULL, QF_ITERATE, L"Соответствия по гласному 2-го слога", 0, 2);
+		cmp[5].condition = qry.AddCondition(L"С", L"Г", NULL, QF_ITERATE, L"Соответствия по согласному после гласного 2-го слога", 0, 2);
+		cmp[6].condition = qry.AddCondition(L"Г", L"С", NULL, QF_ITERATE, L"Соответствия по гласному 3-го слога", 0, 3);
+		cmp[7].condition = qry.AddCondition(L"С", L"Г", NULL, QF_ITERATE, L"Соответствия по согласному после гласного 3-го слога", 0, 3);
+		cmp[8].condition = qry.AddCondition(L"Г", L"С", NULL, QF_ITERATE, L"Соответствия по гласному 4-го слога", 0, 4);
+
 	}
 	~Reconstruction()
 	{
 		delete ipa;
+		delete[] cmp;
 	}
-	void ReconstructWord(Comparison* cmp, int nCmp, int iRow, Comparandum* cReconstr)//, LPTSTR formIPACur)
+	int Reconstruct()
 	{
-		//TCHAR _bIn[1000];
+		int nCols;
+		for (int i = 0; i < nCmp; i++)
+			cmp[i].Process(cmp[i].condition, true, true);
+		for (int i = 0; i < nCmp; i++)
+			nCols = ReconstructSounds(i);
+
+		ReconstructWords();
+
+		return nCols;
+	}
+	void ReconstructWord(int iRow, Comparandum* cReconstr)//, LPTSTR formIPACur)
+	{
 		TCHAR _bOut[1000];
-		//LPTSTR bIn = _bIn;
 		LPTSTR bOut = _bOut;
 
 		wcscpy(bOut, L"");
@@ -60,105 +104,23 @@ public:
 			}
 		}
 
-
-		//		for (int i = 0; i < nCmp; i++)
-		//		{
-					/*
-					Sound* sdCur;
-					switch (cmpThis->condition->GetFirstMatchingFragment(
-										cmpThis->dic.ipa,
-										&cReconstr.sound,
-										formIPACur,
-										cReconstr.chrFragment))
-					{
-					case ST_ERROR:
-						JustCopy(&bIn, &bOut, 1);
-						break;
-					default:
-						ReplaceSymbols(&bIn, &bOut, wcslen(cReconts);
-					//case ST_FRAGMENT:
-					//	break;
-					//case ST_FRAGMENTMAYBE:
-					}
-					*/
-
-
-
-					//		}
-					/*
-							Segmentizer sgmntzr(ipa, bIn, true);
-
-							Sound* sdCur;
-							while (sdCur = sgmntzr.GetNext())
-							{
-								bIn = sgmntzr.CurrentPos();
-
-								if (!rule->condition)
-								{
-									JustCopySymbols(&bIn, &bOut, 1);
-								}
-								else
-								{
-									//у нас пока с условием может быть замена только ОДНОГО знака
-									CopyOrReplaceSymbols(rule, &bIn, &bOut, &sgmntzr);
-								}
-							}
-							//*bOut = L'\0';
-					*/
-
-
 		cReconstr->formIPA = cmp[0].dic.StoreString(_bOut);
 		cReconstr->formOrig = cmp[0].dic.StoreString(_bOut);
-
-		//cReconstr->translation = L"хобана";
+		cReconstr->isReconstructed = true;
 	}
-	void ReconstructWords(Comparison* cmp, int nCmp, Query& qry)
+	void ReconstructWords()
 	{
 		for (int iRow = 0; iRow < cmp[0].nCorresp; iRow++)
 		{
-			//			LPTSTR formIPACur;
-			//			int iCol;
-			//			for (int iCol = 1; iCol < cmp[0].nDicts; iCol++)
-			//			{
-			//				if (formIPACur = cmp[0].corresps[iRow].comparanda[iCol].formIPA)
-			//					break;
-			//			}
-
-			ReconstructWord(cmp, nCmp, iRow, &cmp[0].corresps[iRow].comparanda[0]);//, formIPACur);
-/*
-			for (int i = 0; i < nCmp; i++)
-			{
-				if (cmp[i].corresps[iRow].IsInGroup())
-				{
-					ReconstructWord(&cmp[i], cmp, nCmp, &cmp[0].corresps[iRow].comparanda[0], formIPACur);
-					break;
-				}
-			}
-*/
-
-/*
-			for (int i = 0; i < nCmp; i++)
-			{
-				Correspondence* crsp;
-				for (CorrespondenceTree::Iterator it(&cmp[i].tCorrespondences); crsp = it.Next();)
-				{
-					if (!it.IsStartOfGroup())
-					{
-						it.TryExitGroup();
-						continue;
-					}
-					if (!wcscmp(cmp[i].corresps[iRow].comparanda[iCol].formIPA, formIPACur))
-					{
-
-					}
-				}
-			}
-*/
+			ReconstructWord(iRow, &cmp[0].corresps[iRow].comparanda[0]);//, formIPACur);
 		}
 	}
 
-	int ReconstructSounds(Comparison* cmp, Condition* cnd)
+	int ReconstructSounds(int iCmp)
 	{
+		Comparison* cmp = &cmp[iCmp];
+		Condition* cnd = cmp->condition;
+
 		int nCols = cmp->AddDictionary(L"ПРАЯЗЫК", 0);
 
 		//for (int iRow = 0; iRow < cmp->nCorresp; iRow++)
@@ -182,6 +144,7 @@ public:
 					if (!CopyIfFragment(c, crsp, cmp))
 						FindAverageSoundOrFragment(c, crsp, cmp, cnd);
 				}
+				crsp->comparanda[0].isReconstructed = true;
 			}
 			//else
 			it.TryExitGroup();
@@ -287,5 +250,13 @@ public:
 		cReconstr->sound = NULL;
 
 		return false;
+	}
+	void CopyColumnFrom(Reconstruction& rcFrom, int iColFrom, int iColTo)
+	{
+		for (int i = 0; i < nCmp; i++)
+		{
+			//временно: тут копируем только из первого (rcFrom.cmp[0]), т.к. только там сидят реконструкции, что надо переделать!!!
+			cmp[i].CopyDictionaryFrom(&rcFrom.cmp[0], iColFrom, iColTo);
+		}
 	}
 };
