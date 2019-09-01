@@ -35,9 +35,8 @@ public:
 	Correspondence*		corresps;
 	CorrespondenceTree 	tCorrespondences;
 
-	Comparison() : tCorrespondences(0)
+	Comparison() : dic(-1), tCorrespondences(0)
 	{
-		//для массивов
 	}
 	Comparison(int nRows, int nCols) : tCorrespondences(nCols)
 	{
@@ -131,20 +130,18 @@ public:
 		{
 			Comparandum* cFrom = &cmpFrom->corresps[iRow].comparanda[iColFrom];
 			Comparandum* cTo = &corresps[iRow].comparanda[iColTo];
-
 			new (&corresps[iRow].comparanda[iColTo]) Comparandum(dic.TranscribeWord(cFrom->formOrig, dictinfos[iColTo]), dic.StoreNonNullString(cFrom->formOrig), NULL, cFrom->isReconstructed);
-
-			if (cTo->formIPA)
-			{
-				dic.ipa->SubmitWordForm(cTo->formIPA);
-				dictinfos[iColTo].nWords++;
-			}
+			if (cTo->formIPA) dictinfos[iColTo].nWords++;
+			//{
+			//	dic.ipa->SubmitWordForm(cTo->formIPA);
+			//	dictinfos[iColTo].nWords++;
+			//}
 
 			//НЕ СДЕЛАНО!
 			//new (cTo) Comparandum(dic.StoreString(cFrom->formIPA), dic.StoreString(cFrom->formOrig), NULL);
 			//в LoadAddress вызывается AddPointerTypeRef и портит тип!!!
 		}
-		dic.ipa->EndSubmitWordForms();
+		//dic.ipa->EndSubmitWordForms();//это пока не надо, оно только пустые ряды убирает, что сейчас неважно
 	}
 	void AddCognateList(LPTSTR sIn, bool hasPhonData, int begCols = 0, int nCols = 0, int nColsAll = 0)
 	{

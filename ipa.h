@@ -104,7 +104,7 @@ class SoundTable
 {
 public:
 	class Row;//надо без этого!!!
-	class Row : public LinkedElement<Row>
+	class Row : public LinkedElement<Row>, public OwnNew
 	{
 	public:
 		bool		isEmpty;
@@ -114,6 +114,8 @@ public:
 		int			iIPA;
 		Row(Row* rowPrev = NULL)
 		{
+			next = prev = NULL;// можно это в LinkedElement()?
+
 			i = 0;
 			isEmpty = true;
 			valBase = valMod = 0;
@@ -128,10 +130,10 @@ public:
 	class Sound : public BNode
 	{
 	public:
+		TCHAR			Symbol[8];
 		bool			canExist;
 		bool			exists;
 		bool			used;
-		TCHAR			Symbol[8];
 		void*			dataExtra;
 		Sound*			nextModified;
 		Row*			row[FT_NFEATURETYPES];
@@ -226,6 +228,7 @@ public:
 
 	LinkedList<Row> llRows[FT_NFEATURETYPES];
 	Row*			rowCurrent[FT_NFEATURETYPES];
+	Pool<Row>		pRows;
 
 	class Iterator
 	{
@@ -245,30 +248,30 @@ public:
 		}
 	};
 
-	SoundTable()
+	SoundTable() : pRows(50)
 	{
 		ipaAll = NULL;
 		for (int iFType = 0; iFType < FT_NFEATURETYPES; iFType++)
 			rowCurrent[iFType] = NULL;
 	}
-	~SoundTable()
-	{
-		for (int iFType = 0; iFType < FT_NFEATURETYPES; iFType++)
-		{
-			llRows[iFType].DestroyAll();
-		}
-	}
+	//	~SoundTable()
+	//	{
+	//	}
 
-	void InitIPAMemory(Sound** _pipaAll)
+	bool InitIPAMemory(Sound** _pipaAll)
 	{
 		nipaAll = 0xffff;
 		if (!*_pipaAll)
 		{
 			int sz = sizeof(Sound)*nipaAll;
-			*_pipaAll = (Sound*)malloc(sz);//не new, чтоб избежать к-ра в цикле
+			if (!(*_pipaAll = (Sound*)malloc(sz)))
+				return false;//не new, чтоб избежать к-ра в цикле
+
 			memset(*_pipaAll, 0, sz);
 		}
 		ipaAll = *_pipaAll;
+
+		return true;
 	}
 
 	void AddUnknownSound(int iChr)
@@ -317,7 +320,7 @@ public:
 					rowPrev = row;
 				}
 			AddRow:
-				row = new Row(rowPrev);
+				row = new (pRows.New()) Row(rowPrev);
 				llRows[iFType].Add(row, rowPrev);
 
 				AddRowValue(iFType, sound->feature[iFType], FT_SET, row);
@@ -419,7 +422,7 @@ public:
 		{
 			iCur = rowCurrent[iFType]->iIPA;
 		AddNewRow:
-			rowCurrent[iFType] = new Row;
+			rowCurrent[iFType] = new (pRows.New()) Row;
 			llRows[iFType].Add(rowCurrent[iFType]);
 			rowCurrent[iFType]->iIPA = iCur + 1;
 		}
@@ -457,7 +460,7 @@ public:
 				nxt = row->next;
 
 				if (row->isEmpty)
-					llRows[iFType].Delete(row, true);
+					llRows[iFType].Delete(row, false);
 				else
 				{
 					row->i = i;
@@ -526,9 +529,6 @@ public:
 	{
 		free(ipaAll);
 	}
-	//void AddUnknownSound()
-	//{
-	//}
 	Sound* FindModifiedSound(Sound* sndBase, int* feature)
 	{
 		for (Sound* soundMod = sndBase->nextModified; soundMod; soundMod = soundMod->nextModified)
@@ -639,10 +639,13 @@ public:
 	}
 	SoundTable::Iterator* Iterator(int iClass)
 	{
-		//return new...
 		BTree*_t = &tblSounds[iClass].tSounds;
-		SoundTable::Iterator* it = new SoundTable::Iterator(_t);
-		return it;
+		return new SoundTable::Iterator(_t);
+		//НЕРАЗБОР!
+		//return new SoundTable::Iterator(&tblSounds[iClass].tSounds); 
+//BTree*_t=&tblSounds[iClass].tSounds;
+//		SoundTable::Iterator* it = new SoundTable::Iterator(_t);
+//		return it;
 	}
 	//private:
 	void CopyFeatures(int* fTo, int* fFrom)
@@ -692,10 +695,11 @@ public:
 		return false;
 	}
 
-	void BuildPotentialSoundTable(int iClass, LPTSTR txtTable, int iHorFType, bool doConfirmAllSounds)
+	bool BuildPotentialSoundTable(int iClass, LPTSTR txtTable, int iHorFType, bool doConfirmAllSounds)
 	{
 		SoundTable* table = &tblSounds[iClass];
-		table->InitIPAMemory(&ipaAll);
+		if (!table->InitIPAMemory(&ipaAll))
+			return false;
 
 		Parser parser(txtTable, L"\t\r\n", PARSER_SKIPNEWLINE);
 		LPTSTR word;
@@ -804,6 +808,7 @@ public:
 				break;
 			}
 		}
+		return true;
 	}
 };
 #include "segmentizer.h"

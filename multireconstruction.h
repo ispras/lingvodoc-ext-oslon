@@ -8,8 +8,7 @@ public:
 	MultiReconstruction(int* nCols, int _nGroups, int nRows, LPTSTR bufIn)
 	{
 		nGroups = _nGroups;
-		//reconstructions = new Reconstruction[nGroups];//не сделано!!!
-		reconstructions = (Reconstruction*)malloc(sizeof(Reconstruction)*nGroups);
+		reconstructions = new Reconstruction[nGroups];
 
 		int begCols = 0, nColsAll = 0;
 
@@ -24,8 +23,7 @@ public:
 	}
 	~MultiReconstruction()
 	{
-		//		delete[] reconstructions;
-		free(reconstructions);
+		delete[] reconstructions;
 	}
 	void ReconstructFirstLevel()
 	{

@@ -13,10 +13,34 @@
 #include "windows.h"
 #include "winnt.h"
 #include <seh.h>
+
+//////////////////////////////
+//#include "отладка памяти.h"
+//////////////////////////////
+
+
+
+
 #include "gui_win32.h"
+
+
 #endif
 
+
+
 #include "stringfunctions.h"
+
+
+/////////////////
+
+//////////////////////////////
+//#include "вывод отладки памяти.h"
+//////////////////////////////
+
+
+
+
+
 
 #include "infotree.h"
 #include "dictionary.h"
@@ -45,7 +69,7 @@ PhonemicAnalysis_GetAllOutput(LPTSTR bufIn, int nRows, LPTSTR bufOut, int)
 
 	if (!bufIn)
 		return szOutput;
-
+	//MemDbg _m;
 	try
 	{
 		InfoTree trOut(L"ФОНЕТИЧЕСКИЙ АНАЛИЗ");
@@ -106,7 +130,7 @@ CognateAnalysis_GetAllOutput(LPTSTR bufIn, int nCols, int nRows, LPTSTR bufOut, 
 
 	if (!bufIn)
 		return szOutput;
-
+	//MemDbg _m;
 	try
 	{
 		bool isBinary = flags == 2;
@@ -177,7 +201,7 @@ CognateDistanceAnalysis_GetAllOutput(LPTSTR bufIn, int nCols, int nRows, LPTSTR 
 
 	if (!bufIn)
 		return szOutput;
-
+	//MemDbg _m;
 	try
 	{
 		bool isBinary = flags == 2;
@@ -262,7 +286,7 @@ CognateAcousticAnalysis_GetAllOutput(LPTSTR bufIn, int nCols, int nRows, LPTSTR 
 
 	if (!bufIn)
 		return szOutput;
-
+	//MemDbg _m; 
 	try
 	{
 		bool isBinary = flags == 2;
@@ -339,7 +363,7 @@ CognateReconstruct_GetAllOutput(LPTSTR bufIn, int nCols, int nRows, LPTSTR bufOu
 
 	if (!bufIn)
 		return szOutput;
-
+	//MemDbg _m;
 	try
 	{
 		bool isBinary = flags == 2;
@@ -397,6 +421,7 @@ CognateMultiReconstruct_GetAllOutput(LPTSTR bufIn, int* pnCols, int nGroups, int
 
 	try
 	{
+		//MemDbg _m;
 		bool isBinary = flags == 2;
 
 		LPTSTR title;
@@ -424,13 +449,13 @@ CognateMultiReconstruct_GetAllOutput(LPTSTR bufIn, int* pnCols, int nGroups, int
 			out(b);
 		}
 		*/
-
 		int nCols = rc.Reconstruct();
 
 		if (!isBinary)
 			rc.cmp[0].OutputLanguageList(&trOut);
 		for (int i = 0; i < rc.nCmp; i++)
 			rc.cmp[i].OutputReconstructedSounds(rc.cmp[i].condition, &trOut);
+
 		trOut.Add(NULL, IT_SECTIONBRK, NULL);
 		rc.cmp[0].OutputReconstructedWords(&trOut);
 
@@ -580,7 +605,15 @@ ExtractCognateRows(LPTSTR bufIn, LPTSTR bufOut)
 /*
 BOOL WINAPI DllMain(_In_ HINSTANCE hinstDLL, _In_ DWORD fdwReason, _In_ LPVOID lpvReserved)
 {
-	if (fdwReason == DLL_PROCESS_ATTACH)
-	MsgBox(L"Порядочек-с!");
+	switch (fdwReason)
+	{
+	case DLL_PROCESS_ATTACH:
+		MsgBox(L"вошли");
+		break;
+	case DLL_PROCESS_DETACH:
+		MsgBox(L"вышли");
+		break;
+	}
+	return true;
 }
 */

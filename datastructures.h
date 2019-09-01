@@ -51,7 +51,6 @@ public:
 		{//есть предыдущий
 			el->next = prev->next;
 			el->prev = prev;
-
 			if (prev->next)
 				prev->next->prev = el;
 			prev->next = el;
@@ -60,7 +59,6 @@ public:
 		{//вставить первым
 			el->next = first;
 			el->prev = NULL;
-
 			if (first)
 				first->prev = el;
 			first = el;
@@ -111,9 +109,9 @@ class LinkedElement
 public:
 	T*	next;
 	T*	prev;
-	// 	T()
+	// 	LinkedElement()
 	// 	{
-	// 		next = NULL;
+	// 		next = prev = NULL;
 	// 	}
 };
 

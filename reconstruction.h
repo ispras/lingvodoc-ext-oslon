@@ -17,7 +17,8 @@ public:
 
 
 		nCmp = 9;
-		cmp = new Comparison[9/*nCmp ИСПРАВИТЬ!*/];
+		cmp = new Comparison[nCmp];//нельзя, т.к. заведёт словари там
+		//cmp = (Comparison*)malloc(sizeof(Comparison)*nCmp);
 
 		for (int i = 0; i < nCmp; i++)
 		{
@@ -43,6 +44,11 @@ public:
 	{
 		delete ipa;
 		delete[] cmp;
+
+		//for (int i = 0; i < nCmp; i++)
+		//	cmp[i].___destr();//~Comparison();
+
+		//free(cmp);
 	}
 	int Reconstruct()
 	{
@@ -158,6 +164,7 @@ public:
 			SoundTable::Iterator* it = ipa->Iterator(iClass);
 			while (sd = it->Next())
 				sd->used = false;
+			it->Done();
 		}
 
 
@@ -236,7 +243,7 @@ public:
 			}
 			dt.Add(d);
 		}
-
+		it->Done();
 
 		for (BTree::Walker w(&dt); d = (Distance*)w.Next();)
 		{

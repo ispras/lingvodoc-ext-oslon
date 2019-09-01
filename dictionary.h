@@ -72,13 +72,19 @@ public:
 	Pool<TCHAR>			pString;
 	IPA*				ipa;
 	Phonology*			phono;
-	Replacer			replacers[RT_COUNT];
+	//Replacer			replacers[RT_COUNT];
+	Replacer*			replacers;
 	int					iReplacer;
 	int					nWordForms;
 	DictInfo			dictinfo;
 public:
-	Dictionary() : pString(10000), pWordForms(1000)
+	Dictionary(int what) : pString(0), pWordForms(0)
 	{
+		//ВРЕМЕННО
+	}
+	Dictionary() : pString(5000), pWordForms(1000)
+	{
+		replacers = new Replacer[RT_COUNT];
 		ipa = new IPA;
 		phono = new Phonology;
 
@@ -91,6 +97,7 @@ public:
 	}
 	~Dictionary()
 	{
+		delete[] replacers;
 		delete ipa;
 		delete phono;
 	}

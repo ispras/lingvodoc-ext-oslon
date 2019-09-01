@@ -129,6 +129,13 @@ void strcati(LPTSTR a, int i)
 	_ltow(i, a + sz, 10);
 	//return sz+lstrlen(a+sz);
 }
+void strcatih(LPTSTR a, void* i)
+{
+	int sz = lstrlen(a);
+	lstrcpy(a + sz, L"0x");
+	_ltow((long long)i, a + sz + 2, 0x10);
+	//return sz+lstrlen(a+sz);
+}
 void strcatb(LPTSTR a, int b)
 {
 	int _sz = lstrlen(a);
