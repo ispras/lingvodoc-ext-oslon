@@ -91,7 +91,6 @@ public:
 	int AddDictionary(LPTSTR sName, int iColNew)
 	{
 		nDicts++;
-
 		dictinfos = (DictInfo*)realloc(dictinfos, nDicts * sizeof(DictInfo));//new DictInfo[nDicts];
 
 		for (int i = nDicts - 1; i > iColNew; i--)

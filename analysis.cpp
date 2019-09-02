@@ -1,3 +1,5 @@
+//#define DEBUGMEM
+
 #define UNICODE
 #ifdef __linux__ 
 #include <wchar.h>
@@ -14,15 +16,12 @@
 #include "winnt.h"
 #include <seh.h>
 
-//////////////////////////////
-//#include "отладка памяти.h"
-//////////////////////////////
 
-
-
+#ifdef DEBUGMEM
+#include "отладка памяти.h"
+#endif
 
 #include "gui_win32.h"
-
 
 #endif
 
@@ -31,11 +30,9 @@
 #include "stringfunctions.h"
 
 
-/////////////////
-
-//////////////////////////////
-//#include "вывод отладки памяти.h"
-//////////////////////////////
+#ifdef DEBUGMEM
+#include "вывод отладки памяти.h"
+#endif
 
 
 
@@ -69,7 +66,9 @@ PhonemicAnalysis_GetAllOutput(LPTSTR bufIn, int nRows, LPTSTR bufOut, int)
 
 	if (!bufIn)
 		return szOutput;
-	//MemDbg _m;
+#ifdef DEBUGMEM
+	MemDbg _m;
+#endif
 	try
 	{
 		InfoTree trOut(L"ФОНЕТИЧЕСКИЙ АНАЛИЗ");
@@ -130,7 +129,9 @@ CognateAnalysis_GetAllOutput(LPTSTR bufIn, int nCols, int nRows, LPTSTR bufOut, 
 
 	if (!bufIn)
 		return szOutput;
-	//MemDbg _m;
+#ifdef DEBUGMEM
+	MemDbg _m;
+#endif
 	try
 	{
 		bool isBinary = flags == 2;
@@ -201,7 +202,9 @@ CognateDistanceAnalysis_GetAllOutput(LPTSTR bufIn, int nCols, int nRows, LPTSTR 
 
 	if (!bufIn)
 		return szOutput;
-	//MemDbg _m;
+#ifdef DEBUGMEM
+	MemDbg _m;
+#endif
 	try
 	{
 		bool isBinary = flags == 2;
@@ -286,7 +289,9 @@ CognateAcousticAnalysis_GetAllOutput(LPTSTR bufIn, int nCols, int nRows, LPTSTR 
 
 	if (!bufIn)
 		return szOutput;
-	//MemDbg _m; 
+#ifdef DEBUGMEM
+	MemDbg _m;
+#endif
 	try
 	{
 		bool isBinary = flags == 2;
@@ -363,7 +368,9 @@ CognateReconstruct_GetAllOutput(LPTSTR bufIn, int nCols, int nRows, LPTSTR bufOu
 
 	if (!bufIn)
 		return szOutput;
-	//MemDbg _m;
+#ifdef DEBUGMEM
+	MemDbg _m;
+#endif
 	try
 	{
 		bool isBinary = flags == 2;
@@ -421,7 +428,9 @@ CognateMultiReconstruct_GetAllOutput(LPTSTR bufIn, int* pnCols, int nGroups, int
 
 	try
 	{
-		//MemDbg _m;
+#ifdef DEBUGMEM
+		MemDbg _m;
+#endif
 		bool isBinary = flags == 2;
 
 		LPTSTR title;
@@ -436,19 +445,7 @@ CognateMultiReconstruct_GetAllOutput(LPTSTR bufIn, int* pnCols, int nGroups, int
 
 		for (int i = 0; i < nGroups; i++)
 			rc.CopyColumnFrom(mrc.reconstructions[i], 0, i);
-		/*
-		for (int iRow=0;iRow<rc.cmp[1].nCorresp;iRow++)
-		{
-			TCHAR b[200];
-			lstrcpy(b,L"\0");
-			if (rc.cmp[1].corresps[iRow].comparanda[0].formIPA)
-				lstrcat(b, rc.cmp[1].corresps[iRow].comparanda[0].formIPA);
-			lstrcat(b,L"\t");
-			if (rc.cmp[1].corresps[iRow].comparanda[1].formIPA)
-				lstrcat(b, rc.cmp[1].corresps[iRow].comparanda[1].formIPA);
-			out(b);
-		}
-		*/
+
 		int nCols = rc.Reconstruct();
 
 		if (!isBinary)

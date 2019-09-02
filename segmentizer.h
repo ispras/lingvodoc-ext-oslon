@@ -58,7 +58,7 @@ public:
 			pOldInWord = pos;
 
 		TCHAR chr = *pos;
-		sound = soundBase = &ipa->ipaAll[chr];
+		sound = soundBase = ipa->GetSound(chr);
 
 		if (doSearchModified)
 		{

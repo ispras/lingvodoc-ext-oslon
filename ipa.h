@@ -131,7 +131,7 @@ public:
 	{
 	public:
 		TCHAR			Symbol[8];
-		bool			canExist;
+		//bool			canExist;
 		bool			exists;
 		bool			used;
 		void*			dataExtra;
@@ -144,12 +144,14 @@ public:
 			if (_symbol)
 			{
 				lstrcpy(Symbol, _symbol);
-				canExist = true;
+				//canExist = true;
 			}
 			else
-				canExist = false;
+			{
+				//int i=9;i/=0;
+				//canExist = false;
+			}
 
-			//symbolToReplaceBy[0] = L'\0';
 			exists = used = false;
 			dataExtra = nextModified = NULL;
 
@@ -169,7 +171,6 @@ public:
 			Symbol[1] = L'\0';
 
 			dataExtra = nextModified = NULL;
-			canExist = true;
 			exists = false;
 
 			if (rows)
@@ -223,12 +224,13 @@ public:
 public:
 	SoundTree		tSounds;
 
-	Sound*			ipaAll;
+	Sound**			ipaAll;
 	int				nipaAll;
 
 	LinkedList<Row> llRows[FT_NFEATURETYPES];
 	Row*			rowCurrent[FT_NFEATURETYPES];
 	Pool<Row>		pRows;
+	Pool<Sound>		pSounds;
 
 	class Iterator
 	{
@@ -248,7 +250,7 @@ public:
 		}
 	};
 
-	SoundTable() : pRows(50)
+	SoundTable() : pRows(50), pSounds(100)
 	{
 		ipaAll = NULL;
 		for (int iFType = 0; iFType < FT_NFEATURETYPES; iFType++)
@@ -258,13 +260,13 @@ public:
 	//	{
 	//	}
 
-	bool InitIPAMemory(Sound** _pipaAll)
+	bool InitIPAMemory(Sound*** _pipaAll)
 	{
 		nipaAll = 0xffff;
 		if (!*_pipaAll)
 		{
-			int sz = sizeof(Sound)*nipaAll;
-			if (!(*_pipaAll = (Sound*)malloc(sz)))
+			int sz = sizeof(Sound*)*nipaAll;
+			if (!(*_pipaAll = (Sound**)malloc(sz)))
 				return false;//не new, чтоб избежать к-ра в цикле
 
 			memset(*_pipaAll, 0, sz);
@@ -274,15 +276,17 @@ public:
 		return true;
 	}
 
-	void AddUnknownSound(int iChr)
+	Sound* AddUnknownSound(int iChr)
 	{
-		Sound* sound = new (&ipaAll[iChr]) Sound(iChr);
+		Sound* sound = ipaAll[iChr] = new (pSounds.New()) Sound(iChr);
+
 		sound->feature[FT_CLASS] = FT_UNKNOWNSOUND;
 		sound->feature[FT_MANNER] = iChr;
 		sound->exists = true;
-		sound->canExist = false;
 
 		tSounds.Add(sound);
+
+		return sound;
 	}
 	void ConfirmSound(Sound* sound, int iClass = -1)
 	{
@@ -290,7 +294,7 @@ public:
 		tSounds.Add(sound);
 		if (iClass == FT_MODIFIER)
 		{
-			Sound* sdMain = ipaAll + sound->Symbol[0];
+			Sound* sdMain = ipaAll[sound->Symbol[0]];
 			for (int iFType = 0; iFType < FT_NFEATURETYPES; iFType++)
 				sound->row[iFType] = sdMain->row[iFType];
 
@@ -439,12 +443,15 @@ public:
 		//	return false;
 
 		//Sound* sound = 
-		new (&ipaAll[iChr]) Sound(iChr, rowCurrent);//, iRow, iCol, _isPreModifier, _isPostModifier);
+		//new (&ipaAll[iChr]) Sound(iChr, rowCurrent);//, iRow, iCol, _isPreModifier, _isPostModifier);
+
+
+		ipaAll[iChr] = new (pSounds.New()) Sound(iChr, rowCurrent);
 
 		if (doConfirm)
 		{
-			ipaAll[iChr].exists = true;
-			tSounds.Add(&ipaAll[iChr]);
+			ipaAll[iChr]->exists = true;
+			tSounds.Add(ipaAll[iChr]);
 		}
 
 		return true;
@@ -485,7 +492,7 @@ class IPA
 {
 	//	friend Segmentizer;
 public://временно вм. friend
-	Sound*			ipaAll;
+	Sound**			ipaAll;
 	Pool<Sound>		pSounds;
 	Pool<Feature>	pFeatures;
 	FeatureTree		tFeatures;
@@ -541,13 +548,15 @@ public:
 	}
 	int GetPostModifiers(LPTSTR pInWord, LPTSTR chrWithMod, int* feature)
 	{
-		Sound* soundBase = &ipaAll[*pInWord];
+		Sound* soundBase = ipaAll[*pInWord];
 		int nPostModifiers = 0;
 
 		while (true)
 		{
-			Sound* soundMod = &ipaAll[pInWord[1]];
+			Sound* soundMod = ipaAll[pInWord[1]];
 
+			if (!soundMod)
+				break;
 			if (soundMod->feature[FT_CLASS] == FT_MODIFIER)
 			{
 				if (nPostModifiers == 0)//т.е. это первый
@@ -577,7 +586,11 @@ public:
 	{
 		if (pChr == 0)
 			return NULL;
-		return &ipaAll[pChr];
+		Sound* sd = ipaAll[pChr];
+
+		if (!sd)
+			sd = tblSounds[FT_UNKNOWNSOUND].AddUnknownSound(pChr);
+		return sd;
 	}
 
 	Sound* GetBaseSound(Sound* sound)
@@ -590,7 +603,7 @@ public:
 		Sound* sdCur;
 		for (LPTSTR pInWord = word; *pInWord; pInWord++)
 		{
-			Sound* soundBase = sdCur = &ipaAll[*pInWord];//GetSoundWithReplacement(pInWord);
+			Sound* soundBase = sdCur = ipaAll[*pInWord];//GetSoundWithReplacement(pInWord);
 			TCHAR chr = *pInWord;
 
 			bool isSoundOK = SoundIsInIPA(chr);
@@ -639,13 +652,7 @@ public:
 	}
 	SoundTable::Iterator* Iterator(int iClass)
 	{
-		BTree*_t = &tblSounds[iClass].tSounds;
-		return new SoundTable::Iterator(_t);
-		//НЕРАЗБОР!
-		//return new SoundTable::Iterator(&tblSounds[iClass].tSounds); 
-//BTree*_t=&tblSounds[iClass].tSounds;
-//		SoundTable::Iterator* it = new SoundTable::Iterator(_t);
-//		return it;
+		return new SoundTable::Iterator(&tblSounds[iClass].tSounds);
 	}
 	//private:
 	void CopyFeatures(int* fTo, int* fFrom)
@@ -682,17 +689,17 @@ public:
 	{
 		if (!tblSounds[FT_CONSONANT].IsSoundCodeOK(iChr)) //если согласных нет, то сломается, поэтому надо делать класс IPAAll
 			return false;
-		else if (ipaAll[iChr].exists)
-			return true;
+		else if (ipaAll[iChr])
+			return ipaAll[iChr]->exists;
+
 		return false;
 	}
 	bool SoundIsInIPA(int iChr)
 	{
 		if (!tblSounds[FT_CONSONANT].IsSoundCodeOK(iChr)) //если согласных нет, то сломается, поэтому надо делать класс IPAAll
 			return false;
-		else if (ipaAll[iChr].canExist)
-			return true;
-		return false;
+		else
+			return !!ipaAll[iChr];
 	}
 
 	bool BuildPotentialSoundTable(int iClass, LPTSTR txtTable, int iHorFType, bool doConfirmAllSounds)
