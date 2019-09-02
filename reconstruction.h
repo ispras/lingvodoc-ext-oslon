@@ -3,8 +3,8 @@ class Reconstruction : public OwnNew
 	IPA* ipa;
 public:
 	Query qry;
-	Comparison*	cmp;
-	int			nCmp;
+	Comparison*	comparisons;
+	int			nComparisons;
 
 	Reconstruction() //для массива
 	{
@@ -15,47 +15,40 @@ public:
 	{
 		ipa = new IPA(true);
 
+		nComparisons = 9;
+		comparisons = new Comparison[nComparisons];
 
-		nCmp = 9;
-		cmp = new Comparison[nCmp];//нельзя, т.к. заведёт словари там
-		//cmp = (Comparison*)malloc(sizeof(Comparison)*nCmp);
-
-		for (int i = 0; i < nCmp; i++)
+		for (int i = 0; i < nComparisons; i++)
 		{
-			new (&cmp[i]) Comparison(nRows, nCols);
+			new (&comparisons[i]) Comparison(nRows, nCols);
 			if (bufIn)
-				cmp[i].AddCognateList(bufIn, false, begCols, nCols, nCallsAll);
+				comparisons[i].AddCognateList(bufIn, false, begCols, nCols, nCallsAll);
 			else
-				cmp[i].InitEmpty();
+				comparisons[i].InitEmpty();
 		}
 
-		cmp[0].condition = qry.AddCondition(L"Г", L"#", NULL, QF_ITERATE, L"Соответствия по начальному гласному");
-		cmp[1].condition = qry.AddCondition(L"С", L"#", NULL, QF_ITERATE, L"Соответствия по начальному согласному");
-		cmp[2].condition = qry.AddCondition(L"Г", L"С", NULL, QF_ITERATE, L"Соответствия по гласному 1-го слога после согласного", 0, 1);
-		cmp[3].condition = qry.AddCondition(L"С", L"Г", NULL, QF_ITERATE, L"Соответствия по согласному после гласного 1-го слога", 0, 1);
-		cmp[4].condition = qry.AddCondition(L"Г", L"С", NULL, QF_ITERATE, L"Соответствия по гласному 2-го слога", 0, 2);
-		cmp[5].condition = qry.AddCondition(L"С", L"Г", NULL, QF_ITERATE, L"Соответствия по согласному после гласного 2-го слога", 0, 2);
-		cmp[6].condition = qry.AddCondition(L"Г", L"С", NULL, QF_ITERATE, L"Соответствия по гласному 3-го слога", 0, 3);
-		cmp[7].condition = qry.AddCondition(L"С", L"Г", NULL, QF_ITERATE, L"Соответствия по согласному после гласного 3-го слога", 0, 3);
-		cmp[8].condition = qry.AddCondition(L"Г", L"С", NULL, QF_ITERATE, L"Соответствия по гласному 4-го слога", 0, 4);
+		comparisons[0].condition = qry.AddCondition(L"Г", L"#", NULL, QF_ITERATE, L"Соответствия по начальному гласному");
+		comparisons[1].condition = qry.AddCondition(L"С", L"#", NULL, QF_ITERATE, L"Соответствия по начальному согласному");
+		comparisons[2].condition = qry.AddCondition(L"Г", L"С", NULL, QF_ITERATE, L"Соответствия по гласному 1-го слога после согласного", 0, 1);
+		comparisons[3].condition = qry.AddCondition(L"С", L"Г", NULL, QF_ITERATE, L"Соответствия по согласному после гласного 1-го слога", 0, 1);
+		comparisons[4].condition = qry.AddCondition(L"Г", L"С", NULL, QF_ITERATE, L"Соответствия по гласному 2-го слога", 0, 2);
+		comparisons[5].condition = qry.AddCondition(L"С", L"Г", NULL, QF_ITERATE, L"Соответствия по согласному после гласного 2-го слога", 0, 2);
+		comparisons[6].condition = qry.AddCondition(L"Г", L"С", NULL, QF_ITERATE, L"Соответствия по гласному 3-го слога", 0, 3);
+		comparisons[7].condition = qry.AddCondition(L"С", L"Г", NULL, QF_ITERATE, L"Соответствия по согласному после гласного 3-го слога", 0, 3);
+		comparisons[8].condition = qry.AddCondition(L"Г", L"С", NULL, QF_ITERATE, L"Соответствия по гласному 4-го слога", 0, 4);
 
 	}
 	~Reconstruction()
 	{
 		delete ipa;
-		delete[] cmp;
-
-		//for (int i = 0; i < nCmp; i++)
-		//	cmp[i].___destr();//~Comparison();
-
-		//free(cmp);
+		delete[] comparisons;
 	}
 	int Reconstruct()
 	{
 		int nCols;
-		for (int i = 0; i < nCmp; i++)
-			cmp[i].Process(cmp[i].condition, true, true);
-		for (int i = 0; i < nCmp; i++)
+		for (int i = 0; i < nComparisons; i++)
+			comparisons[i].Process(comparisons[i].condition, true, true);
+		for (int i = 0; i < nComparisons; i++)
 			nCols = ReconstructSounds(i);
 
 		ReconstructWords();
@@ -70,10 +63,10 @@ public:
 		wcscpy(bOut, L"");
 
 		//bool wasSomething = false;
-		for (int i = 0; i < nCmp; i++)
+		for (int i = 0; i < nComparisons; i++)
 		{
 			LPTSTR txt = NULL;
-			Correspondence* crsp = &cmp[i].corresps[iRow];
+			Correspondence* crsp = &comparisons[i].corresps[iRow];
 			//if (crsp->IsHeadOfGroup()||crsp->IsInGroup())
 			//{
 
@@ -83,13 +76,13 @@ public:
 			txt = crsp->comparanda[0].Text();
 			if (!txt)
 			{
-				for (int iCol = 1; iCol < cmp[0].nDicts; iCol++)
+				for (int iCol = 1; iCol < comparisons[0].nDicts; iCol++)
 				{
-					cmp[i].condition->Reset();
-					switch (cmp[i].condition->GetFirstMatchingFragment(
+					comparisons[i].condition->Reset();
+					switch (comparisons[i].condition->GetFirstMatchingFragment(
 						ipa,
 						NULL,//&sd,
-						cmp[i].corresps[iRow].comparanda[iCol].formIPA,
+						comparisons[i].corresps[iRow].comparanda[iCol].formIPA,
 						NULL))//chr))
 					{
 					case ST_ERROR:
@@ -110,21 +103,21 @@ public:
 			}
 		}
 
-		cReconstr->formIPA = cmp[0].dic.StoreString(_bOut);
-		cReconstr->formOrig = cmp[0].dic.StoreString(_bOut);
+		cReconstr->formIPA = comparisons[0].dic.StoreString(_bOut);
+		cReconstr->formOrig = comparisons[0].dic.StoreString(_bOut);
 		cReconstr->isReconstructed = true;
 	}
 	void ReconstructWords()
 	{
-		for (int iRow = 0; iRow < cmp[0].nCorresp; iRow++)
+		for (int iRow = 0; iRow < comparisons[0].nCorresp; iRow++)
 		{
-			ReconstructWord(iRow, &cmp[0].corresps[iRow].comparanda[0]);//, formIPACur);
+			ReconstructWord(iRow, &comparisons[0].corresps[iRow].comparanda[0]);//, formIPACur);
 		}
 	}
 
 	int ReconstructSounds(int iCmp)
 	{
-		Comparison* cmp = &cmp[iCmp];
+		Comparison* cmp = &comparisons[iCmp];
 		Condition* cnd = cmp->condition;
 
 		int nCols = cmp->AddDictionary(L"ПРАЯЗЫК", 0);
@@ -260,10 +253,10 @@ public:
 	}
 	void CopyColumnFrom(Reconstruction& rcFrom, int iColFrom, int iColTo)
 	{
-		for (int i = 0; i < nCmp; i++)
+		for (int i = 0; i < nComparisons; i++)
 		{
 			//временно: тут копируем только из первого (rcFrom.cmp[0]), т.к. только там сидят реконструкции, что надо переделать!!!
-			cmp[i].CopyDictionaryFrom(&rcFrom.cmp[0], iColFrom, iColTo);
+			comparisons[i].CopyDictionaryFrom(&rcFrom.comparisons[0], iColFrom, iColTo);
 		}
 	}
 };

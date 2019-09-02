@@ -385,11 +385,11 @@ CognateReconstruct_GetAllOutput(LPTSTR bufIn, int nCols, int nRows, LPTSTR bufOu
 
 
 		if (!isBinary)
-			rc.cmp[0].OutputLanguageList(&trOut);
-		for (int i = 0; i < rc.nCmp; i++)
-			rc.cmp[i].OutputReconstructedSounds(rc.cmp[i].condition, &trOut);
+			rc.comparisons[0].OutputLanguageList(&trOut);
+		for (int i = 0; i < rc.nComparisons; i++)
+			rc.comparisons[i].OutputReconstructedSounds(rc.comparisons[i].condition, &trOut);
 		trOut.Add(NULL, IT_SECTIONBRK, NULL);
-		rc.cmp[0].OutputReconstructedWords(&trOut);
+		rc.comparisons[0].OutputReconstructedWords(&trOut);
 
 		OutputString output(szOutput, 20, nCols * 2, isBinary);
 		output.Build(trOut.ndRoot);
@@ -441,7 +441,7 @@ CognateMultiReconstruct_GetAllOutput(LPTSTR bufIn, int* pnCols, int nGroups, int
 
 		mrc.ReconstructFirstLevel();
 
-		Reconstruction rc(nGroups, nRows - 1, NULL);//nRows -= 1;//потому что там ещё и заголовок
+		Reconstruction rc(nGroups, nRows - 1, NULL);//nRows - 1, потому что там ещё и заголовок
 
 		for (int i = 0; i < nGroups; i++)
 			rc.CopyColumnFrom(mrc.reconstructions[i], 0, i);
@@ -449,12 +449,12 @@ CognateMultiReconstruct_GetAllOutput(LPTSTR bufIn, int* pnCols, int nGroups, int
 		int nCols = rc.Reconstruct();
 
 		if (!isBinary)
-			rc.cmp[0].OutputLanguageList(&trOut);
-		for (int i = 0; i < rc.nCmp; i++)
-			rc.cmp[i].OutputReconstructedSounds(rc.cmp[i].condition, &trOut);
+			rc.comparisons[0].OutputLanguageList(&trOut);
+		for (int i = 0; i < rc.nComparisons; i++)
+			rc.comparisons[i].OutputReconstructedSounds(rc.comparisons[i].condition, &trOut);
 
 		trOut.Add(NULL, IT_SECTIONBRK, NULL);
-		rc.cmp[0].OutputReconstructedWords(&trOut);
+		rc.comparisons[0].OutputReconstructedWords(&trOut);
 
 		OutputString output(szOutput, 20, nCols * 2, isBinary);
 		output.Build(trOut.ndRoot);

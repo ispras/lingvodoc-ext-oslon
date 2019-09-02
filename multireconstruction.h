@@ -4,7 +4,6 @@ public:
 	int 			nGroups;
 	Reconstruction* reconstructions;
 
-	MultiReconstruction() {} //для массива
 	MultiReconstruction(int* nCols, int _nGroups, int nRows, LPTSTR bufIn)
 	{
 		nGroups = _nGroups;
@@ -29,10 +28,10 @@ public:
 	{
 		for (Reconstruction* rc = reconstructions; rc < reconstructions + nGroups; rc++)
 		{
-			for (int i = 0; i < rc->nCmp; i++)
-				rc->cmp[i].Process(rc->cmp[i].condition, true, true);
+			for (int i = 0; i < rc->nComparisons; i++)
+				rc->comparisons[i].Process(rc->comparisons[i].condition, true, true);
 
-			for (int i = 0; i < rc->nCmp; i++)
+			for (int i = 0; i < rc->nComparisons; i++)
 				rc->ReconstructSounds(i);
 
 			rc->ReconstructWords();
