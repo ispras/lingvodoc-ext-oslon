@@ -241,13 +241,14 @@ public:
 			return 1;
 		else if (cmp2->typeOfSegment == ST_FRAGMENT)
 			return -1;
-		else if (res = CompareFeaturesAnd(cmp1->sound->feature, cmp2->sound->feature))
-			return res;
+
+		return CompareFeaturesAnd(cmp1->sound->feature, cmp2->sound->feature);
 	}
 	int CompareNodes(BNode* _nd1, BNode* _nd2, void* _struct)
 	{
 		COMPAREFLAGS* cf = (COMPAREFLAGS*)_struct;
 		COMPAREFLAGS _cf;
+		int res;
 
 		if (!cf)
 		{
@@ -274,7 +275,6 @@ public:
 		{
 			Comparandum* cmp1 = &c1->comparanda[iCol];
 			Comparandum* cmp2 = &c2->comparanda[iCol];
-			int res;
 
 			bool isCanCompare;
 			if (cf->skipEmpty)
@@ -284,7 +284,8 @@ public:
 
 			if (isCanCompare)
 			{
-				isNonNull = (cmp1->sound && cmp1->typeOfSegment != ST_EMPTYAUTOFILL && cmp2->sound && cmp2->typeOfSegment != ST_EMPTYAUTOFILL);//true;
+				//isNonNull = true;
+				isNonNull = (cmp1->sound && cmp1->typeOfSegment != ST_EMPTYAUTOFILL && cmp2->sound && cmp2->typeOfSegment != ST_EMPTYAUTOFILL);
 
 				if (res = CompareNodeSoundsEtc(cmp1, cmp2))
 					return res;
@@ -305,18 +306,20 @@ public:
 
 		if (!isNonNull)//т.е. если ни по одному столбцу не сравнили
 		{
-			//if (c1->rankAllSoundsSame == 10 && c2->rankAllSoundsSame == 10)
-			//{
-			//	if (!CompareNodeSoundsEtc(&c1->comparanda[0], &c2->comparanda[0]))
-			//		return 0;
-			//}
-
+			if (cf->skipEmpty)
+			{
+				if (c1->rankAllSoundsSame == 10 && c2->rankAllSoundsSame == 10)
+				{
+					if (!CompareNodeSoundsEtc(&c1->comparanda[0], &c2->comparanda[0]))
+						goto CheckUninque;
+				}
+			}
 			if (c1->iRow < c2->iRow)
 				return 1;
 			if (c1->iRow > c2->iRow)
 				return -1;
 		}
-
+	CheckUninque:
 		if (!cf->ignoreUniqueID)
 		{
 			if (c1->iUnique || c2->iUnique)

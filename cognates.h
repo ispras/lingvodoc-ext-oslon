@@ -344,6 +344,21 @@ public:
 
 		return true;
 	}
+	void _AcceptAndInsertRow(Correspondence* crsp)
+	{
+		for (int iCol = 0; iCol < nDicts; iCol++)
+		{
+			if (crsp->comparanda[iCol].sound && crsp->comparanda[iCol].typeOfSegment != ST_EMPTYAUTOFILL)
+				crsp->comparanda[iCol].isSoundInCognates = true;
+		}
+
+		Correspondence* cMain;
+		if (cMain = (Correspondence*)tCorrespondences.Add(crsp))
+		{
+			crsp->AddToGroup(cMain);
+			FillMainRowWithMissingSounds(crsp);
+		}
+	}
 	void AcceptAndInsertRow(Correspondence* crsp)
 	{
 		for (int iCol = 0; iCol < nDicts; iCol++)
@@ -367,14 +382,15 @@ public:
 			}
 		}
 
+
 		if (!crsp->crspMain)
 		{
 			tCorrespondences.Add(crsp);
 		}
 		else
-			FillMainRowWithMissingSounds(crsp);//
+			FillMainRowWithMissingSounds(crsp);//, false);
 	}
-	void FillMainRowWithMissingSounds(Correspondence* crsp, bool _ = false)
+	void FillMainRowWithMissingSounds(Correspondence* crsp)//, bool doAlterTree)
 	{
 		bool wasChange = false;
 		for (int iCol = 0; iCol < nDicts; iCol++)
@@ -385,12 +401,14 @@ public:
 				Comparandum* cMain = &crsp->crspMain->comparanda[iCol];
 				if (!cMain->sound || cMain->typeOfSegment == ST_EMPTYAUTOFILL)
 				{
+
 					if (!wasChange)
 					{
 						wasChange = true;
 
 						tCorrespondences.Remove(crsp->crspMain);
 					}
+
 					cMain->sound = cThis->sound;
 					cMain->typeOfSegment = cThis->typeOfSegment;
 					wcscpy(cMain->chrFragment, cThis->chrFragment);
@@ -411,7 +429,6 @@ public:
 		{
 			for (int iRow = 0; iRow < nCorresp; iRow++)
 			{
-
 				if (i_nEmtpy != CountEmptyColsInRow(&corresps[iRow]))//вроде это не глупость, т.к. сперва надо добавить более полные
 					continue;
 
@@ -433,7 +450,6 @@ public:
 
 		isProcessed = true;
 	}
-
 
 	void CalculateDistances(DistanceMatrix* mtx, int factor)
 	{
@@ -487,19 +503,20 @@ public:
 		Correspondence* cFound = (Correspondence*)tCorrespondences.Add(crsp);
 		if (cFound)
 		{
-			//			out(L"не передобавилось!");
+			//			out(L"не передобавился ряд:");
 			//			outrow(crsp);
+			//			out(L"ибо был такой:");
 			//			outrow(cFound);
 		}
 		//а лучше сразу добавлять их как-то правильно, а потом ещё раз, что ль, фильтровать???
-	//иначе все звуки стали нулями — но это временно! надо не ...
+		//иначе все звуки стали нулями — но это временно! надо не ...
 	}
 
 	void RemoveDistancesIfTooFew(DistanceMatrix* mtx, int threshold)
 	{
 		for (int i = 0; i < nDicts; i++)
 		{
-			if (dictinfos[i].nFilledSoundCorresp);
+			//if (dictinfos[i].nFilledSoundCorresp);
 
 			int percent;
 			if (nSoundCorresp)
@@ -600,8 +617,8 @@ public:
 	}
 	void RemoveSingleWordsInColumns()
 	{
-		//while (RemoveSingleWordsInColumnsOnce());
-		RemoveSingleWordsInColumnsOnce();
+		while (RemoveSingleWordsInColumnsOnce());
+		//RemoveSingleWordsInColumnsOnce();
 	}
 	int RemoveSingleWordsInColumnsOnce()
 	{
@@ -611,7 +628,7 @@ public:
 		int ncToDel = 0;
 
 		Correspondence* c;
-		Correspondence* cStart;
+		Correspondence* cStart = NULL;
 		for (CorrespondenceTree::Iterator it(&tCorrespondences); c = it.Next();)
 		{
 			if (it.IsStartOfGroup())
@@ -670,14 +687,19 @@ public:
 				cToDel[i]->RemoveFromGroup();
 				//ReaddRow(cToDel[i], true);
 				cToDel[i]->iUnique = tCorrespondences.GetUniqueID();
-				tCorrespondences.Add(cToDel[i]);
+
+				if (tCorrespondences.Add(cToDel[i]))
+					;//out(L"ААА!");
+//out(L"убрали из группы и вставили в древо:");
+//outrow(cToDel[i]);
 
 				if (!cMain->isBeingChanged)
 				{
 					//out(L"меняем заголовок ИЗ группы!");
 					//outrow(cMain);
-					cMain->isBeingChanged = true;//чтобы в этой группе не дважды
+					cMain->isBeingChanged = true;
 					tCorrespondences.Remove(cMain);
+
 					SetSingleColsToNull(cMain);
 
 					ReaddRow(cMain, false);
@@ -716,6 +738,7 @@ public:
 	{
 		Correspondence* c1,
 			*c2;
+		//CorrespondenceTree::COMPAREFLAGS cf = {false, true, true};
 		CorrespondenceTree::COMPAREFLAGS cf = { true, true, true };
 	Anew:
 		for (CorrespondenceTree::Iterator it1(&tCorrespondences); c1 = it1.Next();)
@@ -744,7 +767,7 @@ public:
 
 									c1->AddToGroup(c2);
 
-									FillMainRowWithMissingSounds(c1, true);
+									FillMainRowWithMissingSounds(c1);//, true);
 
 									//cToDel[ncToDel] = c1;
 									//ncToDel++;
@@ -786,6 +809,9 @@ public:
 	void OutputReconstructedSounds(Condition* cnd, InfoTree* trOut);
 	void OutputReconstructedWords(InfoTree* trOut);
 	void OutputDistances(Condition* cnd, DistanceMatrix* mtx, InfoTree* trOut);
+
+
 };
 
 #include "output.h"
+

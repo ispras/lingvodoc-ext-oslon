@@ -712,7 +712,7 @@ public:
 		LPTSTR word;
 
 		CopyFeatures(curFeatureValue, NULL);
-		Feature* feature, *ftLast;
+		Feature* feature, *ftLast = NULL;
 
 		table->UnsetRow(FT_CLASS);
 		table->NextRow(FT_CLASS);

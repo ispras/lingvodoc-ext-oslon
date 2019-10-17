@@ -47,7 +47,8 @@ public:
 	{
 		int nCols;
 		for (int i = 0; i < nComparisons; i++)
-			comparisons[i].Process(comparisons[i].condition, true, true);
+			comparisons[i].Process(comparisons[i].condition, false, true);
+		//comparisons[i].Process(comparisons[i].condition, true, true);
 		for (int i = 0; i < nComparisons; i++)
 			nCols = ReconstructSounds(i);
 

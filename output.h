@@ -512,7 +512,7 @@ void Comparison::OutputDeviationsWithMaterial(Condition* cnd, InfoTree* trOut, I
 	trOut->Add(NULL, IT_SECTIONBRK, inMult);
 }
 
-void Comparison::OutputCorrespondencesWithMaterial(Condition* cnd, InfoTree* trOut, bool doMakeTableForSingles)//нельзя тут повторять
+void Comparison::OutputCorrespondencesWithMaterial(Condition* cnd, InfoTree* trOut, bool doMakeTableForSingles)
 {
 	LPTSTR word;
 	Sound* sound;
@@ -533,6 +533,7 @@ void Comparison::OutputCorrespondencesWithMaterial(Condition* cnd, InfoTree* trO
 	{
 		//		inMultList = trOut->Add(NULL, IT_COLUMN | IT_EMPTYLINEBEFORE|IT_LINEBRKAFTER , inCnd);
 		inMult = trOut->Add(NULL, IT_COLUMN | IT_HORLINE, inCnd);
+		inOnce = inMultList = NULL;
 		//trOut->Add(NULL, IT_HORLINE, inMult);
 	}
 
