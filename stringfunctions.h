@@ -35,7 +35,7 @@ void _ltow(int n, wchar_t s[], int radix) //здесь radix всегда = 10
 	reverse(s);
 }
 
-void* _addcalc(float*d, LPTSTR s)
+void _addcalc(float*d, LPTSTR s)
 {
 	*d += wcstod(s, NULL);
 }

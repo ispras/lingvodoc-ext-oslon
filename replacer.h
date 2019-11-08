@@ -1,4 +1,4 @@
-#include "ipareplacements.h"
+п»ї#include "ipareplacements.h"
 
 class Replacer
 {
@@ -21,25 +21,27 @@ public:
 		}
 	};
 	IPA*				ipa;
-	Rule*				rules;
+	Rule**				rules;
 	LPTSTR				lang;
-	LPTSTR				textRules;
-	Pool<TCHAR>			pString;
+	LPTSTR				txtRules;
+	//Pool<TCHAR>			pString;
 	Pool<Rule>			pRules;
 	Pool<Condition>		pConditions;
 
-	Replacer() : pString(2000), pConditions(10), pRules(10)
+	Replacer() : pConditions(10), pRules(50)
 	{
-		textRules = NULL;
+		txtRules = NULL;
 
 		int nipaAll = 0xffff;
-		int sz = sizeof(Rule)*nipaAll;
-		rules = (Rule*)malloc(sz);//не new, чтоб избежать к-ра в цикле
+		int sz = sizeof(Rule*)*nipaAll;
+		rules = (Rule**)malloc(sz);//РЅРµ new, С‡С‚РѕР± РёР·Р±РµР¶Р°С‚СЊ Рє-СЂР° РІ С†РёРєР»Рµ
 		memset(rules, 0, sz);
 	}
 	~Replacer()
 	{
 		free(rules);
+		if (txtRules)
+			delete txtRules;
 	}
 	void Set(IPA* _ipa, LPTSTR _lang)
 	{
@@ -48,9 +50,13 @@ public:
 	}
 	Rule* CreateRule(LPTSTR replaceWhat, LPTSTR replaceBy)
 	{
-		Rule* rule = rules + replaceWhat[0];
-
-		if (rule->symbolToReplace[0]) //значит, уже есть, новое надо привесить к нему
+		Rule* rule = rules[replaceWhat[0]];
+		if (!rule)
+		{
+			rule = rules[replaceWhat[0]] = new (pRules.New()) Rule;
+		}
+		//if (rule->symbolToReplace[0]) //Р·РЅР°С‡РёС‚, СѓР¶Рµ РµСЃС‚СЊ, РЅРѕРІРѕРµ РЅР°РґРѕ РїСЂРёРІРµСЃРёС‚СЊ Рє РЅРµРјСѓ
+		else
 		{
 			Rule* ruleNew = new (pRules.New()) Rule;
 
@@ -66,11 +72,13 @@ public:
 		StrCpyWMax(rule->symbolToReplaceBy, replaceBy, 8);
 		return rule;
 	}
-	bool AddRules(LPTSTR _textRules)
+	void AddRules(LPTSTR _txtRules)
 	{
-		textRules = pString.New(_textRules, wcslen(_textRules) + 1);
+		txtRules = new TCHAR[wcslen(_txtRules) + 1];
+		//pString.New(_textRules, wcslen(_textRules)+1);
+		lstrcpy(txtRules, _txtRules);
 
-		Parser parser(textRules, L">,|_\r\n", PARSER_SKIPNEWLINE);
+		Parser parser(txtRules, L">,|_\r\n", PARSER_SKIPNEWLINE);
 
 		Rule* rule = NULL;
 		LPTSTR word;
@@ -93,7 +101,7 @@ public:
 				break;
 			case L',':
 			case L'\r':
-			case L'\0'://конец
+			case L'\0'://РєРѕРЅРµС†
 				if (isCond)
 				{
 					fNext = word;
@@ -112,7 +120,7 @@ public:
 	}
 	bool IsCharInTable(TCHAR chr)
 	{
-		return rules[chr].symbolToReplace[0] != L'\0';
+		return !!rules[chr];//.symbolToReplace[0] != L'\0';
 	}
 
 	void CopyOrReplaceSymbols(Rule* rule, LPTSTR* bIn, LPTSTR *bOut, Segmentizer* sgmntzr = NULL)
@@ -149,25 +157,36 @@ public:
 		JustCopySymbols(bIn, bOut, 1);
 	}
 
-	int Convert(LPTSTR bInBeg, LPTSTR bOutBeg)//, int szOut)
+	int Convert(LPTSTR bInBeg, LPTSTR bOutBeg, bool __isArchive)//, int szOut)
 	{
-		//1-й проход
+		//1-Р№ РїСЂРѕС…РѕРґ
 		LPTSTR bInEnd = bInBeg + wcslen(bInBeg);
 		LPTSTR bOut = bOutBeg;
 
 		LPTSTR bIn = bInBeg;
 		while (*bIn)
 		{
-			Replacer::Rule* rule = &rules[*bIn];
-			if (rule->condition)
-				JustCopySymbols(&bIn, &bOut, 1);
+
+			if (__isArchive && *bIn == L'Кѓ')
+				*bIn = L's';
+
+
+
+			Rule* rule = rules[*bIn];
+			if (!rule) goto JustCopy;
+			if (rule->condition)//РїРѕРєР° С‚Р°Рє, С‚.Рє. РЅРµ СЃРґРµР»Р°РЅРѕ РІРµС‚РІР»РµРЅРёРµ СѓСЃР»РѕРІРёР№
+			{
+			JustCopy:		JustCopySymbols(&bIn, &bOut, 1);
+			}
 			else
+			{
 				CopyOrReplaceSymbols(rule, &bIn, &bOut);
+			}
 		}
 		*bOut = L'\0';
-		//2-й проход
+		//2-Р№ РїСЂРѕС…РѕРґ
 
-		TCHAR buf[2000];//где-то выше проверять длину; длину буфера где-то задавать; или динамически то выделять
+		TCHAR buf[2000];//РіРґРµ-С‚Рѕ РІС‹С€Рµ РїСЂРѕРІРµСЂСЏС‚СЊ РґР»РёРЅСѓ; РґР»РёРЅСѓ Р±СѓС„РµСЂР° РіРґРµ-С‚Рѕ Р·Р°РґР°РІР°С‚СЊ; РёР»Рё РґРёРЅР°РјРёС‡РµСЃРєРё С‚Рѕ РІС‹РґРµР»СЏС‚СЊ
 		wcscpy(buf, bOutBeg);
 		bInBeg = buf;
 
@@ -178,16 +197,17 @@ public:
 		Sound* sdCur;
 		while (sdCur = sgmntzr.GetNext())
 		{
-			Replacer::Rule* rule = &rules[sgmntzr.Current1Char()];
+			Rule* rule = rules[sgmntzr.Current1Char()];
 			bIn = sgmntzr.CurrentPos();
 
+			if (!rule) goto JustCopy2;//РїРѕРєР° С‚Р°Рє, С‚.Рє. РЅРµ СЃРґРµР»Р°РЅРѕ РІРµС‚РІР»РµРЅРёРµ СѓСЃР»РѕРІРёР№
 			if (!rule->condition)
 			{
-				JustCopySymbols(&bIn, &bOut, 1);
+			JustCopy2:		JustCopySymbols(&bIn, &bOut, 1);
 			}
 			else
 			{
-				//у нас пока с условием может быть замена только ОДНОГО знака
+				//Сѓ РЅР°СЃ РїРѕРєР° СЃ СѓСЃР»РѕРІРёРµРј РјРѕР¶РµС‚ Р±С‹С‚СЊ Р·Р°РјРµРЅР° С‚РѕР»СЊРєРѕ РћР”РќРћР“Рћ Р·РЅР°РєР°
 				CopyOrReplaceSymbols(rule, &bIn, &bOut, &sgmntzr);
 			}
 		}

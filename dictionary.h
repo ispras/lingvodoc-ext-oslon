@@ -102,7 +102,7 @@ public:
 		delete phono;
 	}
 
-	int ReplaceSymbols(LPTSTR bIn, LPTSTR bOut/*, int szOut*/, int iReplacerToUse = RT_DEFAULT)//, LPTSTR lang = NULL)
+	int ReplaceSymbols(LPTSTR bIn, LPTSTR bOut/*, int szOut*/, int iReplacerToUse = RT_DEFAULT, bool __isArchive = false)//, LPTSTR lang = NULL)
 	{
 		switch (iReplacerToUse)
 		{
@@ -117,7 +117,7 @@ public:
 			return 0;
 		}
 
-		return replacers[iReplacerToUse].Convert(bIn, bOut);//, szOut);
+		return replacers[iReplacerToUse].Convert(bIn, bOut, __isArchive);//, szOut);
 	}
 
 
@@ -190,7 +190,11 @@ public:
 			if (dinfo.iReplacer == RT_NONE)
 				dinfo.iReplacer = GuessReplacer(wordOrig);
 
-			int szIPA = ReplaceSymbols(wordOrig, buf/*, 1000*/, dinfo.iReplacer);
+			//////////////////////////////////////////
+			bool __isArchive = (dinfo.name && wcsstr(dinfo.name, L"archive"));
+			//////////////////////////////////////////
+
+			int szIPA = ReplaceSymbols(wordOrig, buf/*, 1000*/, dinfo.iReplacer, __isArchive);
 			wordIPA = pString.New(buf, szIPA + 1);
 			ipa->SubmitWordForm(wordIPA);
 		}

@@ -486,7 +486,7 @@ Retranscribe(LPTSTR bufIn, LPTSTR bufOut, LPTSTR langIn, LPTSTR langOut, int fla
 {
 	Dictionary dic;
 
-	dic.ReplaceSymbols(bufIn, bufOut/*, 200*/, dic.GuessReplacer(bufIn));
+	dic.ReplaceSymbols(bufIn, bufOut/*, 200*/, dic.GuessReplacer(bufIn), 1);
 
 
 	//lstrcpy(bufOut, bufIn);
