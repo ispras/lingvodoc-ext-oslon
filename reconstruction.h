@@ -104,8 +104,8 @@ public:
 			}
 		}
 
-		cReconstr->formIPA = comparisons[0].dic.StoreString(_bOut);
-		cReconstr->formOrig = comparisons[0].dic.StoreString(_bOut);
+		cReconstr->formIPA = comparisons[0].llDicts.first->StoreString(_bOut);
+		cReconstr->formOrig = comparisons[0].llDicts.first->StoreString(_bOut);
 		cReconstr->isReconstructed = true;
 	}
 	void ReconstructWords()
@@ -121,7 +121,7 @@ public:
 		Comparison* cmp = &comparisons[iCmp];
 		Condition* cnd = cmp->condition;
 
-		int nCols = cmp->AddDictionary(L"ПРАЯЗЫК", 0);
+		int nCols = cmp->AddDictionary(L"ПРАЯЗЫК");
 
 		//for (int iRow = 0; iRow < cmp->nCorresp; iRow++)
 		Correspondence* crsp;

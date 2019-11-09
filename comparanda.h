@@ -94,6 +94,7 @@ public:
 		case ST_FRAGMENT:
 			return !CompareFragmentWith(cmp2);
 		case ST_SOUND:
+			//ТОЛЬКО В ОДНОМ СЛОВАРЕ!
 			return sound == cmp2->sound;
 		default:
 			return false;

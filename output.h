@@ -69,15 +69,15 @@ void Comparison::OutputLanguageList(InfoTree* trOut)
 	{
 		_ltow(i + 1, buf, 10);
 		wcscat(buf, L": ");
-		if (dictinfos[i].name)
-			wcscat(buf, dictinfos[i].name);
+		if (Dict(i)->dictinfo.name)
+			wcscat(buf, Dict(i)->dictinfo.name);
 
 		if (nCorresp)
 		{
 			wcscat(buf, L" (");
-			strcati(buf, dictinfos[i].nWords);
+			strcati(buf, Dict(i)->dictinfo.nWords);
 			wcscat(buf, L" форм = ");
-			strcati(buf, (dictinfos[i].nWords * 100) / nCorresp);
+			strcati(buf, (Dict(i)->dictinfo.nWords * 100) / nCorresp);
 			wcscat(buf, L"% от числа соотв.)");
 		}
 
@@ -104,9 +104,9 @@ void Comparison::SoundCorrespondenceNumbers(InfoTree* trOut, int threshold)
 
 		if (nSoundCorresp)
 		{
-			strcati(buf, dictinfos[i].nFilledSoundCorresp);
+			strcati(buf, Dict(i)->dictinfo.nFilledSoundCorresp);
 			wcscat(buf, L" звуков в неед. рядах = ");
-			strcati(buf, (dictinfos[i].nFilledSoundCorresp * 100) / nSoundCorresp);
+			strcati(buf, (Dict(i)->dictinfo.nFilledSoundCorresp * 100) / nSoundCorresp);
 			wcscat(buf, L"% от числа неед. рядов)");
 		}
 
@@ -129,7 +129,7 @@ void Comparison::OutputLanguageHeader(InfoTree* trOut, InfoNode* ndTo, bool isPr
 		//			trOut->Add(L"праформа", IT_TAB, ndTo);
 		//		else
 		//		{
-		trOut->Add(dictinfos[iCol].name, IT_TAB, ndTo);
+		trOut->Add(Dict(iCol)->dictinfo.name, IT_TAB, ndTo);
 		trOut->Add(L"", IT_TAB, ndTo);
 		//		}
 	}
@@ -394,7 +394,7 @@ void Comparison::OutputDeviationsWithMaterial(Condition* cnd, InfoTree* trOut, I
 					trOut->Add(NULL, IT_HORLINE, inMult);
 
 					trOut->Add(L"Словарь", IT_COLUMN | IT_SPACE, inMult);
-					trOut->Add(dictinfos[iColDiff].name, IT_LINEBRKAFTER, inMult);
+					trOut->Add(Dict(iColDiff)->dictinfo.name, IT_LINEBRKAFTER, inMult);
 					trOut->Add(NULL, IT_HORLINE, inMult);
 
 					trOut->Add(L"Простейший ряд", IT_COLUMN | IT_TAB, inMult);
@@ -630,12 +630,12 @@ void Comparison::OutputDistances(Condition* cnd, DistanceMatrix* mtx, InfoTree* 
 
 	trOut->Add(NULL, IT_TAB, inCnd);
 	for (int iCol = 0; iCol < nDicts; iCol++)
-		trOut->Add(dictinfos[iCol].name, IT_TAB, inCnd);
+		trOut->Add(Dict(iCol)->dictinfo.name, IT_TAB, inCnd);
 	inMtx = trOut->Add(NULL, IT_LINEBRK, inCnd);
 
 	for (int iRow = 0; iRow < nDicts; iRow++)
 	{
-		trOut->Add(dictinfos[iRow].name, IT_TAB, inMtx);
+		trOut->Add(Dict(iRow)->dictinfo.name, IT_TAB, inMtx);
 
 		for (int iCol = 0; iCol < nDicts;/*iRow;*/ iCol++)
 		{

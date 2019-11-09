@@ -45,13 +45,19 @@ class DictInfo : public OwnNew//надо это вмонтировать в са
 public:
 	int			iReplacer;
 	LPTSTR		name;
+	LPTSTR		sTranscRules;
 	int			nWords;
 	int			nFilledSoundCorresp;
-	DictInfo(LPTSTR _name)
+
+	DictInfo(LPTSTR _name, LPTSTR _sTranscRules)
 	{
 		nWords = 0;
 		nFilledSoundCorresp = 0;
 		name = _name;
+		if (_sTranscRules && _sTranscRules[0])
+			sTranscRules = _sTranscRules;
+		else
+			sTranscRules = NULL;
 		iReplacer = RT_NONE;
 	}
 	DictInfo()
@@ -59,12 +65,13 @@ public:
 		nWords = 0;
 		nFilledSoundCorresp = 0;
 		name = NULL;
+		sTranscRules = NULL;
 		iReplacer = RT_NONE;
 	}
 };
 
-
-class Dictionary
+class Dictionary;
+class Dictionary : public LinkedElement<Dictionary>
 {
 public:
 	WordFormTree		trWordForms;
@@ -78,10 +85,11 @@ public:
 	int					nWordForms;
 	DictInfo			dictinfo;
 public:
-	Dictionary(int what) : pString(0), pWordForms(0)
-	{
-		//ВРЕМЕННО
-	}
+	//С ЭТИМ СБИВАЕТСЯ ТАБЛИЦА ВИРТУАЛЬНЫХ Ф-ЦИЙ
+	//	Dictionary(int what) : pString(0), pWordForms(0)
+	//	{
+	//		//ВРЕМЕННО
+	//	}
 	Dictionary() : pString(5000), pWordForms(1000)
 	{
 		replacers = new Replacer[RT_COUNT];
@@ -102,7 +110,7 @@ public:
 		delete phono;
 	}
 
-	int ReplaceSymbols(LPTSTR bIn, LPTSTR bOut/*, int szOut*/, int iReplacerToUse = RT_DEFAULT, bool __isArchive = false)//, LPTSTR lang = NULL)
+	int ReplaceSymbols(LPTSTR bIn, LPTSTR bOut/*, int szOut*/, int iReplacerToUse = RT_DEFAULT)//, LPTSTR lang = NULL)
 	{
 		switch (iReplacerToUse)
 		{
@@ -117,7 +125,7 @@ public:
 			return 0;
 		}
 
-		return replacers[iReplacerToUse].Convert(bIn, bOut, __isArchive);//, szOut);
+		return replacers[iReplacerToUse].Convert(bIn, bOut);//, szOut);
 	}
 
 
@@ -179,7 +187,7 @@ public:
 
 		return true;
 	}
-	LPTSTR TranscribeWord(LPTSTR& wordOrig, DictInfo& dinfo)
+	LPTSTR TranscribeWord(LPTSTR& wordOrig)
 	{
 		TCHAR buf[1000];
 		LPTSTR wordIPA;
@@ -187,24 +195,25 @@ public:
 			wordIPA = NULL;
 		else
 		{
-			if (dinfo.iReplacer == RT_NONE)
-				dinfo.iReplacer = GuessReplacer(wordOrig);
+			if (dictinfo.iReplacer == RT_NONE)
+			{
+				dictinfo.iReplacer = GuessReplacer(wordOrig);
 
-			//////////////////////////////////////////
-			bool __isArchive = (dinfo.name && wcsstr(dinfo.name, L"archive"));
-			//////////////////////////////////////////
+				if (dictinfo.sTranscRules)
+					replacers[dictinfo.iReplacer].AddRules(dictinfo.sTranscRules);
+			}
 
-			int szIPA = ReplaceSymbols(wordOrig, buf/*, 1000*/, dinfo.iReplacer, __isArchive);
+			int szIPA = ReplaceSymbols(wordOrig, buf/*, 1000*/, dictinfo.iReplacer);
 			wordIPA = pString.New(buf, szIPA + 1);
 			ipa->SubmitWordForm(wordIPA);
 		}
 		return wordIPA;
 	}
-	void GetOrigIPAAndTranslation(Parser& parser, LPTSTR& wordOrig, LPTSTR& wordIPA, LPTSTR& wordTranslation, DictInfo& dinfo, bool isPhonData, LPTSTR& chrTranscr, LPTSTR& wLen, LPTSTR& wF1, LPTSTR& wF2, LPTSTR& wF3)
+	void GetOrigIPAAndTranslation(Parser& parser, LPTSTR& wordOrig, LPTSTR& wordIPA, LPTSTR& wordTranslation, bool isPhonData, LPTSTR& chrTranscr, LPTSTR& wLen, LPTSTR& wF1, LPTSTR& wF2, LPTSTR& wF3)
 	{
 		wordOrig = StoreString(parser.Current(), parser.LengthOfCurrentWord());
 
-		wordIPA = TranscribeWord(wordOrig, dinfo);
+		wordIPA = TranscribeWord(wordOrig);
 
 		wordTranslation = parser.Next();
 		wordTranslation = StoreString(wordTranslation, parser.LengthOfCurrentWord());
@@ -224,23 +233,22 @@ public:
 		}
 	}
 
-	void GetDictInfo(Parser& parser, DictInfo& dictinfo, LPTSTR wordOrig = NULL)
+	void GetDictInfo(Parser& parser, LPTSTR _sTransRules = NULL)
 	{
-		if (wordOrig)
-			wordOrig = StoreString(wordOrig);
-		else
-		{
-			wordOrig = StoreString(parser.Current(), parser.LengthOfCurrentWord());
-			LPTSTR wordAbbrName = parser.Next();
-		}
+		LPTSTR nameDict = StoreString(parser.Current(), parser.LengthOfCurrentWord());
+		LPTSTR sTransRules = parser.Next();
+		sTransRules = StoreString(sTransRules, parser.LengthOfCurrentWord());
 
-		new (&dictinfo) DictInfo(wordOrig);
+		//if (sTransRules ) out (sTransRules),out(nameDict);
+		//if (_sTransRules)
+		//	sTransRules = StoreString(_sTransRules);
+
+		new (&dictinfo) DictInfo(nameDict, sTransRules);
 	}
 	void AddWordList(LPTSTR sIn, int nRows)
 	{
 		Parser parser(sIn, L"\0", PARSER_NONNULLEND);
 		LPTSTR wordOrig, wordIPA, wordTranslation, /*надо бы избавиться*/ wchrTranscr = NULL, wLength = NULL, wF1 = NULL, wF2 = NULL, wF3 = NULL;
-
 
 		int nDicts = 1;
 		int iRow = -1, iCol = -1;
@@ -248,25 +256,24 @@ public:
 		{
 			if (!NextCol(iCol, iRow, nDicts, nRows)) break;
 
-			if (iRow == -1)
+			switch (iRow)
 			{
-				GetDictInfo(parser, dictinfo);
-			}
-			else
-			{
-				GetOrigIPAAndTranslation(parser, wordOrig, wordIPA, wordTranslation, dictinfo, false, wchrTranscr, wLength, wF1, wF2, wF3);
+			case -1:
+				GetDictInfo(parser);//, L"ʃ>s,ʃch>ʃ,tch>tʃ,ch>x");
+				break;
+			default:
+				GetOrigIPAAndTranslation(parser, wordOrig, wordIPA, wordTranslation, false, wchrTranscr, wLength, wF1, wF2, wF3);
 
-				WordForm* wfNew = new (pWordForms.New()) WordForm(wordIPA, wordOrig, wordTranslation); //создаются дубли-сироты этих объектов, если уже в дереве есть
+				//создаются дубли-сироты этих объектов, если уже в дереве есть
+				WordForm* wfNew = new (pWordForms.New()) WordForm(wordIPA, wordOrig, wordTranslation);
+
 				WordForm* wfFound = (WordForm*)trWordForms.Add(wfNew);
-				if (!wfFound)
-					nWordForms++;
+
+				if (!wfFound) nWordForms++;
 			}
 		}
 		ipa->EndSubmitWordForms();
 	}
-
-
-
 
 	void BuildIPATable(int iClass, InfoTree* trOut)
 	{

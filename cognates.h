@@ -1,5 +1,5 @@
-﻿
-#pragma once
+﻿#pragma once
+
 #include "datastructures.h"
 #include "parser.h"
 #include "ipa.h"
@@ -21,21 +21,24 @@ class Comparison
 public:
 	void* operator new (size_t size, void* memAlloc) { return memAlloc; }
 
-	Dictionary 			dic;
+	//Dictionary 			dic;
 	//Pool<TCHAR>		pString;
 
 	int			nDicts;
 	int 		nCorresp;
 	int			nSoundCorresp;
 	bool		isProcessed;
-	DictInfo*	dictinfos;
+	//DictInfo*	dictinfos;
 	Condition*	condition;
+
+	//Dictionary*	dics;
+	LinkedList<Dictionary> llDicts;
 
 
 	Correspondence*		corresps;
 	CorrespondenceTree 	tCorrespondences;
 
-	Comparison() : dic(-1), tCorrespondences(0)
+	Comparison() : tCorrespondences(0)
 	{
 	}
 	Comparison(int nRows, int nCols) : tCorrespondences(nCols)
@@ -53,8 +56,14 @@ public:
 		//corresps = new Correspondence[nRows];
 		corresps = (Correspondence*)malloc(nCorresp * sizeof(Correspondence));
 
-		dictinfos = (DictInfo*)malloc(nDicts * sizeof(DictInfo));//new DictInfo[nDicts];
-		for (int i = 0; i < nDicts; i++) new (&dictinfos[i]) DictInfo(L"?");
+		//dictinfos = (DictInfo*)malloc(nDicts * sizeof(DictInfo));//new DictInfo[nDicts];
+		//for (int i = 0; i < nDicts; i++) new (&dictinfos[i]) DictInfo(L"?");
+
+		//dics = new Dictionary[nDicts]
+		for (int i = 0; i < nDicts; i++)
+		{
+			llDicts.Add(new Dictionary);
+		}
 	}
 
 	~Comparison()
@@ -70,7 +79,7 @@ public:
 
 		//delete[] corresps; и т.п.
 		free(corresps);
-		free(dictinfos);
+		llDicts.DestroyAll();
 	}
 	void Reset()
 	{
@@ -88,16 +97,13 @@ public:
 			isProcessed = false;
 		}
 	}
-	int AddDictionary(LPTSTR sName, int iColNew)
+	int AddDictionary(LPTSTR sName)//, int iColNew)
 	{
-		nDicts++;
-		dictinfos = (DictInfo*)realloc(dictinfos, nDicts * sizeof(DictInfo));//new DictInfo[nDicts];
+		int iColNew = 0;//только в начало
 
-		for (int i = nDicts - 1; i > iColNew; i--)
-		{
-			memcpy(&dictinfos[i], &dictinfos[i - 1], sizeof(DictInfo));
-		}
-		new (&dictinfos[iColNew]) DictInfo(sName);
+		nDicts++;
+		llDicts.Add(new Dictionary, NULL);
+		new (&Dict(0)->dictinfo) DictInfo(sName, NULL);
 
 		for (int iRow = 0; iRow < nCorresp; iRow++)
 		{
@@ -113,24 +119,32 @@ public:
 	}
 	void InitEmpty()
 	{
-		for (int iCol = 0; iCol < nDicts; iCol++)
-			new (&dictinfos[iCol]) DictInfo;
-
+		//for (int iCol = 0; iCol < nDicts; iCol++)
+		//	new (&dictinfos[iCol]) DictInfo;
+		//???
 		for (int iRow = 0; iRow < nCorresp; iRow++)
 		{
 			new (&corresps[iRow]) Correspondence(nDicts, iRow);
 		}
 	}
+	Dictionary* Dict(int iDict)
+	{
+		Dictionary* d = llDicts.first;
+		for (int i = 0; i < iDict; d = d->next, i++);
+		return d;
+	}
+
 	void CopyDictionaryFrom(Comparison* cmpFrom, int iColFrom, int iColTo)
 	{
-		dictinfos[iColTo].name = cmpFrom->dictinfos[iColFrom].name;
+		Dictionary* dicTo = Dict(iColTo);
+		dicTo->dictinfo.name = cmpFrom->Dict(iColFrom)->dictinfo.name;
 
 		for (int iRow = 0; iRow < nCorresp; iRow++)
 		{
 			Comparandum* cFrom = &cmpFrom->corresps[iRow].comparanda[iColFrom];
 			Comparandum* cTo = &corresps[iRow].comparanda[iColTo];
-			new (&corresps[iRow].comparanda[iColTo]) Comparandum(dic.TranscribeWord(cFrom->formOrig, dictinfos[iColTo]), dic.StoreNonNullString(cFrom->formOrig), NULL, cFrom->isReconstructed);
-			if (cTo->formIPA) dictinfos[iColTo].nWords++;
+			new (&corresps[iRow].comparanda[iColTo]) Comparandum(dicTo->TranscribeWord(cFrom->formOrig), dicTo->StoreNonNullString(cFrom->formOrig), NULL, cFrom->isReconstructed);
+			if (cTo->formIPA) dicTo->dictinfo.nWords++;
 			//{
 			//	dic.ipa->SubmitWordForm(cTo->formIPA);
 			//	dictinfos[iColTo].nWords++;
@@ -141,6 +155,21 @@ public:
 			//в LoadAddress вызывается AddPointerTypeRef и портит тип!!!
 		}
 		//dic.ipa->EndSubmitWordForms();//это пока не надо, оно только пустые ряды убирает, что сейчас неважно
+	}
+	//ДУБЛИРУЕТ Dictionary::NextCol
+	//должен быть класс InputTable
+	bool NextCol(int& iCol, int& iRow, int nCols, int nRows)
+	{
+		if (iCol == nCols - 1)
+		{
+			(iRow)++;
+			if (iRow >= nRows)
+				return false;
+			iCol = 0;
+		}
+		else (iCol)++;
+
+		return true;
 	}
 	void AddCognateList(LPTSTR sIn, bool hasPhonData, int begCols = 0, int nCols = 0, int nColsAll = 0)
 	{
@@ -153,23 +182,25 @@ public:
 		int iColIn = -1, iCol = -1, iRow = -1;
 		while (parser.Next())
 		{
-			if (!dic.NextCol(iColIn, iRow, nColsAll, nCorresp)) break;
+			if (!NextCol(iColIn, iRow, nColsAll, nCorresp)) break;
 			if (iColIn >= begCols && iColIn < begCols + nCols)
 			{
 				iCol = iColIn - begCols;
 
+				Dictionary* dic = Dict(iCol);
+
 				if (iRow == -1)
-					dic.GetDictInfo(parser, dictinfos[iCol]);
+					dic->GetDictInfo(parser);
 				else
 				{
 					if (iCol == 0)
 						new (&corresps[iRow]) Correspondence(nDicts, iRow);
 
-					dic.GetOrigIPAAndTranslation(parser, wordOrig, wordIPA, wordTranslation, dictinfos[iCol], hasPhonData, wchrTranscr, wLength, wF1, wF2, wF3);
+					dic->GetOrigIPAAndTranslation(parser, wordOrig, wordIPA, wordTranslation, hasPhonData, wchrTranscr, wLength, wF1, wF2, wF3);
 					new (&corresps[iRow].comparanda[iCol]) Comparandum(wordIPA, wordOrig, wordTranslation, false, wchrTranscr, wLength, wF1, wF2, wF3);
 
 					if (wordIPA)
-						dictinfos[iCol].nWords++;
+						dic->dictinfo.nWords++;
 				}
 			}
 			else//надо перепрыгнуть через перевод
@@ -177,13 +208,20 @@ public:
 				parser.Next();
 			}
 		}
-		dic.ipa->EndSubmitWordForms();
+
+		EndSubmitForms();
+	}
+	void EndSubmitForms()
+	{
+		for (Dictionary* d = llDicts.first; d; d = d->next)
+			d->ipa->EndSubmitWordForms();
 	}
 	void AddCognateListText(LPTSTR sIn)
 	{
-		LPTSTR _sin = dic.StoreString(sIn);/*это просто копия*/
+		//LPTSTR _sin = StoreString(sIn);/*это просто копия*/
 
-		Parser parser(_sin, L"\t");
+		Parser parser(sIn, L"\t");
+		//Parser parser(_sin, L"\t");
 		LPTSTR wordOrig, wordIPA;
 
 		nCorresp = 1; //пока только одна строчка
@@ -196,10 +234,12 @@ public:
 		int iRow = -1, iCol = -1;
 		while (parser.Next())
 		{
-
 			iCol++;
-			wordOrig = dic.StoreString(parser.Current(), parser.LengthOfCurrentWord());
-			wordIPA = dic.TranscribeWord(wordOrig, dictinfos[iCol]);
+
+			Dictionary* dic = Dict(iCol);
+
+			wordOrig = dic->StoreString(parser.Current(), parser.LengthOfCurrentWord());
+			wordIPA = dic->TranscribeWord(wordOrig);
 
 			if (iCol == 0)
 			{
@@ -210,9 +250,9 @@ public:
 			new (&corresps[iRow].comparanda[iCol]) Comparandum(wordIPA, wordOrig, NULL, false);
 
 			if (wordIPA)
-				dictinfos[iCol].nWords++;
+				dic->dictinfo.nWords++;
 		}
-		dic.ipa->EndSubmitWordForms();
+		EndSubmitForms();
 	}
 	bool FillEmptySoundsInRow(Correspondence* crsp)//, bool isReadding = false)
 	{
@@ -238,6 +278,8 @@ public:
 		int typWas = ST_ERROR;
 		for (int iCol = 0; iCol < nDicts; iCol++)
 		{
+			Dictionary* dic = Dict(iCol);
+
 			if (!crsp->comparanda[iCol].sound || crsp->comparanda[iCol].typeOfSegment == ST_EMPTYAUTOFILL)
 				continue;
 
@@ -247,9 +289,6 @@ public:
 				break;
 			}
 			typWas = crsp->comparanda[iCol].typeOfSegment;
-
-			//			if (!crsp->comparanda[iCol].formIPA)
-			//				continue;
 
 			if (!soundFirst)
 				soundFirst = crsp->comparanda[iCol].sound;
@@ -263,12 +302,12 @@ public:
 			}
 			else if (soundSameExact)
 			{
-				if (soundSameExact == crsp->comparanda[iCol].sound)
+				if (!dic->ipa->CompareSoundsByText(soundSameExact, crsp->comparanda[iCol].sound))
 					crsp->nSoundsSame++;
 				else if (soundSame && soundSame != crsp->comparanda[iCol].sound)
 				{
-					Sound* sdBaseWas = dic.ipa->GetBaseSound(soundSame);
-					Sound* sdBaseThis = dic.ipa->GetBaseSound(crsp->comparanda[iCol].sound);
+					Sound* sdBaseWas = dic->ipa->GetBaseSound(soundSame);
+					Sound* sdBaseThis = dic->ipa->GetBaseSound(crsp->comparanda[iCol].sound);
 
 					if (sdBaseWas == sdBaseThis)
 					{
@@ -324,7 +363,7 @@ public:
 		for (int iCol = 0; iCol < nDicts; iCol++)
 		{
 			switch (crsp->comparanda[iCol].typeOfSegment = cnd->GetFirstMatchingFragment(
-				dic.ipa,
+				Dict(iCol)->ipa,
 				&crsp->comparanda[iCol].sound,
 				crsp->comparanda[iCol].formIPA,
 				crsp->comparanda[iCol].chrFragment))
@@ -344,21 +383,7 @@ public:
 
 		return true;
 	}
-	void _AcceptAndInsertRow(Correspondence* crsp)
-	{
-		for (int iCol = 0; iCol < nDicts; iCol++)
-		{
-			if (crsp->comparanda[iCol].sound && crsp->comparanda[iCol].typeOfSegment != ST_EMPTYAUTOFILL)
-				crsp->comparanda[iCol].isSoundInCognates = true;
-		}
 
-		Correspondence* cMain;
-		if (cMain = (Correspondence*)tCorrespondences.Add(crsp))
-		{
-			crsp->AddToGroup(cMain);
-			FillMainRowWithMissingSounds(crsp);
-		}
-	}
 	void AcceptAndInsertRow(Correspondence* crsp)
 	{
 		for (int iCol = 0; iCol < nDicts; iCol++)
@@ -385,7 +410,8 @@ public:
 
 		if (!crsp->crspMain)
 		{
-			tCorrespondences.Add(crsp);
+			if (tCorrespondences.Add(crsp))
+				;//	out("УЖЕ ЕСТЬ!");
 		}
 		else
 			FillMainRowWithMissingSounds(crsp);//, false);
@@ -482,7 +508,7 @@ public:
 				for (int iCol = 0; iCol < nDicts; iCol++)
 				{
 					if (c->comparanda[iCol].isSoundInCognates)
-						dictinfos[iCol].nFilledSoundCorresp++;
+						Dict(iCol)->dictinfo.nFilledSoundCorresp++;
 				}
 				it.TryExitGroup();
 			}
@@ -520,7 +546,7 @@ public:
 
 			int percent;
 			if (nSoundCorresp)
-				percent = (dictinfos[i].nFilledSoundCorresp * 100) / nSoundCorresp;
+				percent = (Dict(i)->dictinfo.nFilledSoundCorresp * 100) / nSoundCorresp;
 			else
 				percent = 0;
 
@@ -698,7 +724,8 @@ public:
 					//out(L"меняем заголовок ИЗ группы!");
 					//outrow(cMain);
 					cMain->isBeingChanged = true;
-					tCorrespondences.Remove(cMain);
+					if (!tCorrespondences.Remove(cMain))
+						;//out(L"ООООО!");
 
 					SetSingleColsToNull(cMain);
 

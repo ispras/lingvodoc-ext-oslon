@@ -536,6 +536,10 @@ public:
 	{
 		free(ipaAll);
 	}
+	bool CompareSoundsByText(Sound* s1, Sound* s2)
+	{
+		return !!wcscmp(s1->Symbol, s2->Symbol);
+	}
 	Sound* FindModifiedSound(Sound* sndBase, int* feature)
 	{
 		for (Sound* soundMod = sndBase->nextModified; soundMod; soundMod = soundMod->nextModified)

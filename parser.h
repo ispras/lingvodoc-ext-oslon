@@ -1,8 +1,11 @@
 #pragma once
 
 #define PARSER_SKIPNEWLINE		0x1
-#define PARSER_NONNULLEND		0x2
-#define PARSER_CHECKSIZE		0x4
+#define PARSER_SKIPSPACES		0x2
+#define PARSER_SKIPTABS			0x4
+#define PARSER_SKIPLINEBREAKS	0x8//не реализовано
+#define PARSER_NONNULLEND		0x20
+#define PARSER_CHECKSIZE		0x40
 
 class Parser
 {
@@ -12,6 +15,7 @@ class Parser
 	LPTSTR 	seps;
 	int 	size;
 	int		flags;
+	int		nPostSpaces;
 	TCHAR	separatorLast;
 	bool	isPastEnd;
 public:
@@ -25,12 +29,14 @@ public:
 		old = NULL;
 		pos = text = _text;
 		size = _size;
+		nPostSpaces = 0;
 	}
 	void ResetText(LPTSTR _text)
 	{
 		isPastEnd = false;
 		old = NULL;
 		pos = text = _text;
+		nPostSpaces = 0;
 	}
 	bool IsItemEmpty()
 	{
@@ -58,10 +64,12 @@ public:
 	}
 	int LengthOfCurrentWord()
 	{
-		return pos - old - 1;
+		return pos - old - 1 - nPostSpaces;
 	}
 	LPTSTR Next() //пишет нули в исходную строку
 	{
+		nPostSpaces = 0;
+
 		if (isPastEnd)
 			return NULL;
 
@@ -74,9 +82,10 @@ public:
 			}
 		}
 
+		bool wasNotSpace = false;
+
 		for (old = pos; ; pos++)
 		{
-
 			if ((flags & PARSER_NONNULLEND) && (flags & PARSER_CHECKSIZE))
 			{
 				if (pos >= text + size)
@@ -84,6 +93,16 @@ public:
 					isPastEnd = true;
 					return NULL;
 				}
+			}
+
+			if (!wasNotSpace)
+			{
+				if (*pos == L' ' && (flags & PARSER_SKIPSPACES))
+					old++;
+				else if (*pos == L'\t' && (flags & PARSER_SKIPTABS))
+					old++;
+				else
+					wasNotSpace = true;
 			}
 
 			int iSep = -1;
@@ -99,24 +118,32 @@ public:
 						goto EndSepCycle;
 					}
 					else if (!(flags & PARSER_NONNULLEND) && *pos == L'\0')
-					{
-						separatorLast = *pos;
-						pos++;
 						isPastEnd = true;
-						return old;
-					}
-					else
-					{
-						separatorLast = *pos;
-						*pos = L'\0';
-						pos++;
-						return old;
-					}
+
+					goto FoundSep;
 				}
 			} while (seps[iSep]);
 		EndSepCycle:;
 		}
 		return NULL;
+
+	FoundSep:
+		for (LPTSTR end = pos - 1; end > old; end--)
+		{
+			if ((*end == L' ' && (flags & PARSER_SKIPSPACES))
+				|| (*end == L'\t' && (flags & PARSER_SKIPTABS)))
+			{
+				*end = L'\0';
+				nPostSpaces++;
+			}
+			else
+				break;
+		}
+
+		separatorLast = *pos;
+		*pos = L'\0';
+		pos++;
+		return old;
 	}
 };
 

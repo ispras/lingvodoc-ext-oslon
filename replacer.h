@@ -24,6 +24,7 @@ public:
 	Rule**				rules;
 	LPTSTR				lang;
 	LPTSTR				txtRules;
+	//LPTSTR				txtRules[2];
 	//Pool<TCHAR>			pString;
 	Pool<Rule>			pRules;
 	Pool<Condition>		pConditions;
@@ -31,6 +32,7 @@ public:
 	Replacer() : pConditions(10), pRules(50)
 	{
 		txtRules = NULL;
+		//txtRules[0] = txtRules[1] = NULL;
 
 		int nipaAll = 0xffff;
 		int sz = sizeof(Rule*)*nipaAll;
@@ -40,29 +42,48 @@ public:
 	~Replacer()
 	{
 		free(rules);
+		//if (txtRules[0])
+		//	delete txtRules[0];
+		//if (txtRules[1])
+		//	delete txtRules[1];
 		if (txtRules)
 			delete txtRules;
+		//УТЕЧКА
 	}
 	void Set(IPA* _ipa, LPTSTR _lang)
 	{
 		ipa = _ipa;
 		lang = _lang;
 	}
-	Rule* CreateRule(LPTSTR replaceWhat, LPTSTR replaceBy)
+	Rule* CreateRule(LPTSTR replaceWhat, LPTSTR replaceBy, bool isConditional = false)
 	{
 		Rule* rule = rules[replaceWhat[0]];
 		if (!rule)
 		{
 			rule = rules[replaceWhat[0]] = new (pRules.New()) Rule;
 		}
-		//if (rule->symbolToReplace[0]) //значит, уже есть, новое надо привесить к нему
 		else
 		{
 			Rule* ruleNew = new (pRules.New()) Rule;
 
+			int szNewToReplace = wcslen(replaceWhat);
+
+
 			Rule *ruleLast = rule;
 			for (Rule* r = rule->nextSame; r; r = r->nextSame)
+			{
+				int szOldToReplace = wcslen(r->symbolToReplace);
+				if (szNewToReplace >= szOldToReplace || (szNewToReplace == szOldToReplace && isConditional && !r->condition))
+				{
+					rule->nextSame = r;
+					break;
+				}
+
 				ruleLast = r;
+			}
+			if (!ruleLast)
+				ruleLast = rules[replaceWhat[0]] = rule;
+
 			ruleLast->nextSame = ruleNew;
 
 			rule = ruleNew;
@@ -75,16 +96,16 @@ public:
 	void AddRules(LPTSTR _txtRules)
 	{
 		txtRules = new TCHAR[wcslen(_txtRules) + 1];
-		//pString.New(_textRules, wcslen(_textRules)+1);
 		lstrcpy(txtRules, _txtRules);
 
-		Parser parser(txtRules, L">,|_\r\n", PARSER_SKIPNEWLINE);
+		Parser parser(txtRules, L">,|_\r\n", PARSER_SKIPNEWLINE | PARSER_SKIPSPACES | PARSER_SKIPTABS);
 
 		Rule* rule = NULL;
-		LPTSTR word;
-		LPTSTR fPrev, fThis, fNext;
-		fPrev = fThis = fNext = NULL;
 		bool isCond = false;
+
+		LPTSTR word, fPrev, fThis, fNext;
+		fPrev = fThis = fNext = NULL;
+
 		while (word = parser.Next())
 		{
 			switch (parser.Separator())
@@ -94,7 +115,7 @@ public:
 				break;
 			case L'|':
 				isCond = true;
-				rule = CreateRule(fThis, word);
+				rule = CreateRule(fThis, word, true);
 				break;
 			case L'_':
 				fPrev = word;
@@ -109,7 +130,10 @@ public:
 				}
 				else
 				{
-					rule = CreateRule(fThis, word);
+					if (!fThis)
+						;//ВЫДАТЬ ОШИБКУ!!
+					else
+						rule = CreateRule(fThis, word);
 				}
 
 				rule = NULL;
@@ -121,6 +145,49 @@ public:
 	bool IsCharInTable(TCHAR chr)
 	{
 		return !!rules[chr];//.symbolToReplace[0] != L'\0';
+	}
+
+	bool ___CopyOrReplaceSymbols(Rule* rule, LPTSTR* bIn, LPTSTR *bOut, Segmentizer* sgmntzr = NULL, int level = 0)
+	{
+		//if (doCondtionFirst && rule->condition)
+
+		if (rule->nextSame)
+		{
+			if (___CopyOrReplaceSymbols(rule->nextSame, bIn, bOut, sgmntzr, level + 1))
+				return true;
+		}
+
+		int szToReplace = wcslen(rule->symbolToReplace);
+
+		bool isSymbolsOK;
+
+		if (szToReplace <= 1)
+			isSymbolsOK = true;
+		else
+		{
+			isSymbolsOK = !wcsncmp(*bIn, rule->symbolToReplace, szToReplace);
+		}
+
+		if (isSymbolsOK && rule->condition)
+		{
+			isSymbolsOK = rule->condition->Check(sgmntzr);
+		}
+
+		if (szToReplace == 0)
+		{
+			JustCopySymbols(bIn, bOut, 1);
+			return true;
+		}
+		else if (isSymbolsOK)
+		{
+			ReplaceSymbols(bIn, bOut, szToReplace, rule->symbolToReplaceBy);
+			return true;
+		}
+
+		if (level == 0)
+			JustCopySymbols(bIn, bOut, 1);
+
+		return false;
 	}
 
 	void CopyOrReplaceSymbols(Rule* rule, LPTSTR* bIn, LPTSTR *bOut, Segmentizer* sgmntzr = NULL)
@@ -157,7 +224,7 @@ public:
 		JustCopySymbols(bIn, bOut, 1);
 	}
 
-	int Convert(LPTSTR bInBeg, LPTSTR bOutBeg, bool __isArchive)//, int szOut)
+	int Convert(LPTSTR bInBeg, LPTSTR bOutBeg)//, int szOut)
 	{
 		//1-й проход
 		LPTSTR bInEnd = bInBeg + wcslen(bInBeg);
@@ -166,22 +233,12 @@ public:
 		LPTSTR bIn = bInBeg;
 		while (*bIn)
 		{
-
-			if (__isArchive && *bIn == L'ʃ')
-				*bIn = L's';
-
-
-
 			Rule* rule = rules[*bIn];
-			if (!rule) goto JustCopy;
-			if (rule->condition)//пока так, т.к. не сделано ветвление условий
-			{
-			JustCopy:		JustCopySymbols(&bIn, &bOut, 1);
-			}
+
+			if (!rule || rule->condition)
+				JustCopySymbols(&bIn, &bOut, 1);
 			else
-			{
 				CopyOrReplaceSymbols(rule, &bIn, &bOut);
-			}
 		}
 		*bOut = L'\0';
 		//2-й проход
@@ -200,11 +257,8 @@ public:
 			Rule* rule = rules[sgmntzr.Current1Char()];
 			bIn = sgmntzr.CurrentPos();
 
-			if (!rule) goto JustCopy2;//пока так, т.к. не сделано ветвление условий
-			if (!rule->condition)
-			{
-			JustCopy2:		JustCopySymbols(&bIn, &bOut, 1);
-			}
+			if (!rule || !rule->condition)
+				JustCopySymbols(&bIn, &bOut, 1);
 			else
 			{
 				//у нас пока с условием может быть замена только ОДНОГО знака
@@ -215,5 +269,4 @@ public:
 
 		return bOut - bOutBeg;
 	}
-
 };

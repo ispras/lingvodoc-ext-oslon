@@ -82,6 +82,10 @@ PhonemicAnalysis_GetAllOutput(LPTSTR bufIn, int nRows, LPTSTR bufOut, int)
 		dic.BuildIPATable(FT_CONSONANT, &trIPAConsonants);
 		dic.BuildIPATable(FT_UNKNOWNSOUND, &trIPANotFound);
 
+		trOut.HorLine();
+		trOut.Add(dic.dictinfo.name, 0);
+		//trOut.HorLine();
+
 		trOut.AddSubtree(&trIPAConsonants, L"Согласные звуки", IT_COLUMN | IT_EMPTYLINEBEFORE);//, IT_TAB);
 		trOut.AddSubtree(&trIPAVowels, L"Гласные звуки", IT_COLUMN | IT_EMPTYLINEBEFORE);//, IT_TAB);
 		trOut.AddSubtree(&trIPANotFound, L"Неопознанные знаки", IT_COLUMN | IT_EMPTYLINEBEFORE, 0);
@@ -229,13 +233,13 @@ CognateDistanceAnalysis_GetAllOutput(LPTSTR bufIn, int nCols, int nRows, LPTSTR 
 			cmp.OutputLanguageList(&trOut);
 
 
-		DistanceMatrix mtxSum(cmp.dic.ipa, cmp.nDicts);
+		DistanceMatrix mtxSum(cmp.llDicts.first->ipa, cmp.nDicts);
 
 		for (Condition* cnd = qry.FirstCondition(); cnd; cnd = qry.NextCondition())
 		{
 			cmp.Process(cnd, true, true);
 
-			DistanceMatrix mtx(cmp.dic.ipa, cmp.nDicts);
+			DistanceMatrix mtx(cmp.llDicts.first->ipa, cmp.nDicts);
 
 
 			cmp.CalculateDistances(&mtxSum, cnd->intExtra);
@@ -484,9 +488,12 @@ int __declspec(dllexport)
 #endif
 Retranscribe(LPTSTR bufIn, LPTSTR bufOut, LPTSTR langIn, LPTSTR langOut, int flags)
 {
+#ifdef DEBUGMEM
+	MemDbg _m;
+#endif
 	Dictionary dic;
 
-	dic.ReplaceSymbols(bufIn, bufOut/*, 200*/, dic.GuessReplacer(bufIn), 1);
+	dic.ReplaceSymbols(bufIn, bufOut/*, 200*/, dic.GuessReplacer(bufIn));
 
 
 	//lstrcpy(bufOut, bufIn);
@@ -503,6 +510,9 @@ int __declspec(dllexport)
 #endif
 GetPhonemeDifference(LPTSTR bufIn, LPTSTR bufOut)
 {
+#ifdef DEBUGMEM
+	MemDbg _m;
+#endif
 	InfoTree trOut(L"МЕЖФОНЕМНОЕ РАССТОЯНИЕ");
 	Dictionary dic;
 	Comparandum cmp[2];
@@ -570,8 +580,9 @@ int __declspec(dllexport)
 #endif
 ExtractCognateRows(LPTSTR bufIn, LPTSTR bufOut)
 {
-	Dictionary dic;
-
+#ifdef DEBUGMEM
+	MemDbg _m;
+#endif
 	Comparison cmp(0, 0);
 	InfoTree trOut(L"ЕДИНИЧНЫЙ РЯД");
 
