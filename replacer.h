@@ -69,8 +69,8 @@ public:
 			int szNewToReplace = wcslen(replaceWhat);
 
 
-			Rule *ruleLast = rule;
-			for (Rule* r = rule->nextSame; r; r = r->nextSame)
+			Rule *ruleLast = NULL;
+			for (Rule* r = rule; r; r = r->nextSame)
 			{
 				int szOldToReplace = wcslen(r->symbolToReplace);
 				if (szNewToReplace >= szOldToReplace || (szNewToReplace == szOldToReplace && isConditional && !r->condition))
@@ -82,9 +82,9 @@ public:
 				ruleLast = r;
 			}
 			if (!ruleLast)
-				ruleLast = rules[replaceWhat[0]] = rule;
-
-			ruleLast->nextSame = ruleNew;
+				rules[replaceWhat[0]] = ruleNew;
+			else
+				ruleLast->nextSame = ruleNew;
 
 			rule = ruleNew;
 		}
