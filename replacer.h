@@ -73,7 +73,7 @@ public:
 			for (Rule* r = rule; r; r = r->nextSame)
 			{
 				int szOldToReplace = wcslen(r->symbolToReplace);
-				if (szNewToReplace >= szOldToReplace || (szNewToReplace == szOldToReplace && isConditional && !r->condition))
+				if (szNewToReplace > szOldToReplace || (szNewToReplace == szOldToReplace && isConditional && !r->condition))
 				{
 					rule->nextSame = r;
 					break;
