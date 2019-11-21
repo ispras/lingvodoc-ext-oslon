@@ -2,17 +2,33 @@
 #include "ipa.h"
 #include "phonology.h"
 
+#define	WF_HASLINK 0x1
+
 class WordForm : public BNode
 {
 public:
+	int		flags;
 	LPTSTR	formIPA;
 	LPTSTR	formOrig;
 	LPTSTR	wordTranslation;
-	WordForm(LPTSTR _formIPA, LPTSTR _formOrig, LPTSTR _wordTranslation)
+	WordForm(LPTSTR _formIPA, LPTSTR _formOrig, LPTSTR _wordTranslation, int _flags = 0)
 	{
+		flags = _flags;
 		formOrig = _formOrig;
 		formIPA = _formIPA;
 		wordTranslation = _wordTranslation;
+	}
+	int CompareTranslationWith(WordForm* w2, int nSymb)
+	{
+		if (!wordTranslation || !w2->wordTranslation)
+			return 10;
+		int sz1 = wcslen(wordTranslation);
+		int sz2 = wcslen(w2->wordTranslation);
+		if (sz1 < nSymb)
+			nSymb == sz1;
+		if (sz2 < nSymb)
+			nSymb == sz2;
+		return wcsncmp(wordTranslation, w2->wordTranslation, nSymb);
 	}
 };
 
@@ -266,7 +282,6 @@ public:
 
 				//создаются дубли-сироты этих объектов, если уже в дереве есть
 				WordForm* wfNew = new (pWordForms.New()) WordForm(wordIPA, wordOrig, wordTranslation);
-
 				WordForm* wfFound = (WordForm*)trWordForms.Add(wfNew);
 
 				if (!wfFound) nWordForms++;

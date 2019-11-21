@@ -72,12 +72,12 @@ void Comparison::OutputLanguageList(InfoTree* trOut)
 		if (Dict(i)->dictinfo.name)
 			wcscat(buf, Dict(i)->dictinfo.name);
 
-		if (nCorresp)
+		if (nRowsAll)
 		{
 			wcscat(buf, L" (");
 			strcati(buf, Dict(i)->dictinfo.nWords);
 			wcscat(buf, L" форм = ");
-			strcati(buf, (Dict(i)->dictinfo.nWords * 100) / nCorresp);
+			strcati(buf, (Dict(i)->dictinfo.nWords * 100) / nRowsAll);
 			wcscat(buf, L"% от числа соотв.)");
 		}
 
@@ -576,7 +576,7 @@ void Comparison::OutputReconstructedWords(InfoTree* trOut)//нельзя тут 
 	InfoNode* inMult = trOut->Add(L"Реконструкции", IT_COLUMN | IT_EMPTYLINEBEFORE | IT_LINEBRKAFTER, NULL);
 	OutputLanguageHeader(trOut, inMult, true);
 
-	for (int iRow = 0; iRow < nCorresp; iRow++)
+	for (int iRow = 0; iRow < nRowsAll; iRow++)
 	{
 		//if (formIPACur = cmp[0].corresps[iRow].comparanda[iCol].formIPA)
 		for (int iCol = 0; iCol < nDicts; iCol++)

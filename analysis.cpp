@@ -43,7 +43,10 @@
 #include "dictionary.h"
 #include "comparanda.h"
 #include "distances.h"
-#include "cognates.h"
+#include "comparison.h"
+#include "comparisonwithdistances.h"
+#include "comparisonwithacoustics.h"
+#include "comparisonwithguess.h"
 #include "reconstruction.h"
 #include "multireconstruction.h"
 
@@ -124,6 +127,94 @@ extern "C" {int
 #else
 int __declspec(dllexport)
 #endif
+GuessCognates_GetAllOutput(LPTSTR bufIn, int nCols, int nRowsCorresp, int nRowsRest, LPTSTR bufOut, int flags)
+{
+	if (nCols < 1 || nCols > 1000)
+		return -1;
+
+	int nRows = nRowsCorresp + nRowsRest;
+	int szOutput = nRows * nCols * 150 + 100000;
+
+	if (!bufIn)
+		return szOutput;
+#ifdef DEBUGMEM
+	MemDbg _m;
+#endif
+	try
+	{
+		bool isBinary = flags == 2;
+		nRowsCorresp -= 1;// потому что там ещё и заголовок
+
+		ComparisonWithGuess cmp(nRowsCorresp, nRowsRest, nCols);
+		//		InfoTree trOut(isBinary ? NULL : L"АВТОСООТВЕТСТВИЯ");//gcc не хочет!
+		LPTSTR title;
+		if (!isBinary) title = L"АВТОСООТВЕТСТВИЯ (ПОКА ПО ПЕРЕВОДУ)"; else title = NULL;
+		InfoTree trOut(title);
+
+		cmp.Input(bufIn);
+
+		cmp.Process();
+
+		//if (!isBinary)
+		//	cmp.OutputLanguageList(&trOut);
+		//cmp.Output(&trOut);
+
+
+
+
+
+
+		Query qry;
+		qry.AddCondition(L"Г", L"#", NULL, QF_ITERATE, L"Соответствия по начальному гласному");
+		qry.AddCondition(L"С", L"#", NULL, QF_ITERATE, L"Соответствия по начальному согласному");
+		qry.AddCondition(L"Г", L"С", NULL, QF_ITERATE, L"Соответствия по гласному первого слога после согласного", 0, 1);
+		qry.AddCondition(L"С", L"Г", NULL, QF_ITERATE, L"Соответствия по согласному после гласного первого слога", 0, 1);
+		qry.AddCondition(L"Г", L"С", NULL, QF_ITERATE, L"Соответствия по гласному второго слога", 0, 2);
+
+		if (!isBinary)
+			cmp.OutputLanguageList(&trOut);
+
+		for (Condition* cnd = qry.FirstCondition(); cnd; cnd = qry.NextCondition())
+		{
+			//cmp.Process(cnd, false, false);
+			//cmp.Process(cnd, false, true);
+			//cmp.Process(cnd, true, false);
+			((Comparison*)&cmp)->Process(cnd, false, false);
+			cmp.OutputCorrespondencesWithMaterial(cnd, &trOut);
+		}
+
+
+
+
+
+
+
+
+		OutputString output(szOutput, 20, nCols * 2, isBinary);
+		output.Build(trOut.ndRoot);
+
+		if (isBinary)
+			output.OutputTableSizes(bufOut);
+		output.OutputData(bufOut);
+
+		return output.OutputSize;
+	}
+	catch (...)
+	{
+		return -2;
+	}
+}
+#ifdef __linux__ 
+}
+#endif
+
+
+
+#ifdef __linux__ 
+extern "C" {int
+#else
+int __declspec(dllexport)
+#endif
 CognateAnalysis_GetAllOutput(LPTSTR bufIn, int nCols, int nRows, LPTSTR bufOut, int flags)
 {
 	if (nCols < 1 || nCols > 1000)
@@ -149,11 +240,6 @@ CognateAnalysis_GetAllOutput(LPTSTR bufIn, int nCols, int nRows, LPTSTR bufOut, 
 		cmp.AddCognateList(bufIn, false);
 
 		Query qry;
-		//		qry.AddCondition(L"Г", L"#", NULL, QF_ITERATE, 								L"Соответствия по начальному гласному");
-		//		qry.AddCondition(L"Г", L"С", NULL, QF_OBJECTONLYONCE|QF_ITERATE, 			L"Соответствия по гласному после первого согласного");
-		//		qry.AddCondition(L"С", L"#", NULL, QF_ITERATE,		 						L"Соответствия по начальному согласному");
-
-
 		qry.AddCondition(L"Г", L"#", NULL, QF_ITERATE, L"Соответствия по начальному гласному");
 		qry.AddCondition(L"С", L"#", NULL, QF_ITERATE, L"Соответствия по начальному согласному");
 		qry.AddCondition(L"Г", L"С", NULL, QF_ITERATE, L"Соответствия по гласному первого слога после согласного", 0, 1);
@@ -216,7 +302,7 @@ CognateDistanceAnalysis_GetAllOutput(LPTSTR bufIn, int nCols, int nRows, LPTSTR 
 		bool isBinary = flags == 2;
 		nRows -= 1;// потому что там ещё и заголовок
 
-		Comparison cmp(nRows, nCols);
+		ComparisonWithDistances cmp(nRows, nCols);
 		LPTSTR title;
 		if (!isBinary) title = L"ВЫЧИСЛЕНИЕ ПОПАРНЫХ РАССТОЯНИЙ"; else title = NULL;
 		InfoTree trOut(title);

@@ -17,7 +17,7 @@ public:
 	{
 		Reset_();
 	}
-	Comparandum(LPTSTR _formIPA, LPTSTR _formOrig, LPTSTR _translation, bool _isReconstructed, LPTSTR _chrTranscr = NULL, LPTSTR _wLength = NULL, LPTSTR _wF1 = NULL, LPTSTR _wF2 = NULL, LPTSTR _wF3 = NULL)
+	Comparandum(LPTSTR _formIPA, LPTSTR _formOrig, LPTSTR _translation, bool _isReconstructed = false, LPTSTR _chrTranscr = NULL, LPTSTR _wLength = NULL, LPTSTR _wF1 = NULL, LPTSTR _wF2 = NULL, LPTSTR _wF3 = NULL)
 	{
 		formIPA = _formIPA;
 		formOrig = _formOrig;

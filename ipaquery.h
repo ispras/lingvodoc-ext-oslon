@@ -14,6 +14,8 @@
 #define ST_FRAGMENT				12
 #define ST_FRAGMENTMAYBE		13
 
+#define MAX_SZCONDTIONTEXT		10
+
 class Condition;//надо без этого!
 class Condition : public LinkedElement<Condition>, public OwnNew
 {
@@ -31,15 +33,23 @@ public:
 	public:
 		int 		flag;
 		int			feature[FT_NFEATURETYPES];
-		LPTSTR		txtCondition;
+		TCHAR		txtCondition[MAX_SZCONDTIONTEXT];
+		//LPTSTR		txtCondition;
 		short		wasAlready;
 		Sound*		sound;
 
 		Segment(LPTSTR _txt)
 		{
-			if (_txt) if (!_txt[0]) _txt = NULL; //у нас логический && неправильный
+			if (_txt && !_txt[0]) _txt = NULL;
 
-			txtCondition = _txt;
+			if (!_txt)
+				txtCondition[0] = L'\0';
+			else
+			{
+				wcsncpy(txtCondition, _txt, MAX_SZCONDTIONTEXT);
+				txtCondition[MAX_SZCONDTIONTEXT] = L'\0';
+			}
+
 			wasAlready = false;
 			flag = QF_NOTHING;
 
@@ -49,7 +59,7 @@ public:
 		}
 		bool Init(IPA* ipa)
 		{
-			if (!txtCondition) return false;
+			if (!txtCondition[0]) return false;
 
 			LPTSTR txtFeature;
 
@@ -126,10 +136,10 @@ public:
 	LPTSTR AutoTitle(LPTSTR buf, int szPad = 0)
 	{
 		buf[0] = L'\0';
-		if (sgPrev.txtCondition)
+		if (sgPrev.txtCondition[0])
 			wcscat(buf, sgPrev.txtCondition);
 		wcscat(buf, L"_");
-		if (sgNext.txtCondition)
+		if (sgNext.txtCondition[0])
 			wcscat(buf, sgNext.txtCondition);
 
 		if (szPad)

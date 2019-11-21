@@ -110,7 +110,7 @@ public:
 	}
 	void ReconstructWords()
 	{
-		for (int iRow = 0; iRow < comparisons[0].nCorresp; iRow++)
+		for (int iRow = 0; iRow < comparisons[0].nRowsAll; iRow++)
 		{
 			ReconstructWord(iRow, &comparisons[0].corresps[iRow].comparanda[0]);//, formIPACur);
 		}
@@ -123,7 +123,7 @@ public:
 
 		int nCols = cmp->AddDictionary(L"ПРАЯЗЫК");
 
-		//for (int iRow = 0; iRow < cmp->nCorresp; iRow++)
+		//for (int iRow = 0; iRow < cmp->nRowsAll; iRow++)
 		Correspondence* crsp;
 		for (CorrespondenceTree::Iterator it(&cmp->tCorrespondences); crsp = it.Next();)
 		{
