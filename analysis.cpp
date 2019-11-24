@@ -155,34 +155,31 @@ GuessCognates_GetAllOutput(LPTSTR bufIn, int nCols, int nRowsCorresp, int nRowsR
 
 		cmp.Process();
 
-		//if (!isBinary)
-		//	cmp.OutputLanguageList(&trOut);
-		//cmp.Output(&trOut);
-
-
-
-
-
-
-		Query qry;
-		qry.AddCondition(L"Г", L"#", NULL, QF_ITERATE, L"Соответствия по начальному гласному");
-		qry.AddCondition(L"С", L"#", NULL, QF_ITERATE, L"Соответствия по начальному согласному");
-		qry.AddCondition(L"Г", L"С", NULL, QF_ITERATE, L"Соответствия по гласному первого слога после согласного", 0, 1);
-		qry.AddCondition(L"С", L"Г", NULL, QF_ITERATE, L"Соответствия по согласному после гласного первого слога", 0, 1);
-		qry.AddCondition(L"Г", L"С", NULL, QF_ITERATE, L"Соответствия по гласному второго слога", 0, 2);
-
 		if (!isBinary)
 			cmp.OutputLanguageList(&trOut);
+		cmp.Output(&trOut);
 
-		for (Condition* cnd = qry.FirstCondition(); cnd; cnd = qry.NextCondition())
-		{
-			//cmp.Process(cnd, false, false);
-			//cmp.Process(cnd, false, true);
-			//cmp.Process(cnd, true, false);
-			((Comparison*)&cmp)->Process(cnd, false, false);
-			cmp.OutputCorrespondencesWithMaterial(cnd, &trOut);
-		}
 
+
+
+		/*
+
+				Query qry;
+				qry.AddCondition(L"Г", L"#", NULL, QF_ITERATE,						L"Соответствия по начальному гласному");
+				qry.AddCondition(L"С", L"#", NULL, QF_ITERATE,						L"Соответствия по начальному согласному");
+				qry.AddCondition(L"Г", L"С", NULL, QF_ITERATE,						L"Соответствия по гласному первого слога после согласного", 0, 1);
+				qry.AddCondition(L"С", L"Г", NULL, QF_ITERATE,						L"Соответствия по согласному после гласного первого слога", 0, 1);
+				qry.AddCondition(L"Г", L"С", NULL, QF_ITERATE,						L"Соответствия по гласному второго слога", 0, 2);
+
+				for (Condition* cnd = qry.FirstCondition(); cnd; cnd = qry.NextCondition())
+				{
+					//cmp.Process(cnd, false, false);
+					//cmp.Process(cnd, false, true);
+					//cmp.Process(cnd, true, false);
+					((Comparison*)&cmp)->Process(cnd, false, false);
+					cmp.OutputCorrespondencesWithMaterial(cnd, &trOut);
+				}
+		*/
 
 
 

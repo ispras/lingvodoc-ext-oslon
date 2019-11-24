@@ -15,7 +15,7 @@ public:
 				for (int iRow = 0; iRow < nDicts; iRow++)
 				{
 					for (int iCol = 0; iCol < nDicts; iCol++)
-					{	
+					{
 						mtx->GetDistance(iRow, iCol, &c->comparanda[iRow], &c->comparanda[iCol], factor, true);
 					}
 				}
@@ -36,7 +36,7 @@ public:
 				percent = (Dict(i)->dictinfo.nFilledSoundCorresp * 100) / nSoundCorresp;
 			else
 				percent = 0;
-				
+
 			if (percent < threshold)
 			{
 				for (int ii = 0; ii < nDicts; ii++)
