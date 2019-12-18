@@ -122,7 +122,7 @@ public:
 				memcpy(&corresps[iRow].comparanda[i], &corresps[iRow].comparanda[i - 1], sizeof(Comparandum));
 			}
 
-			new (&corresps[iRow].comparanda[iColNew]) Comparandum(NULL, NULL, NULL, false);
+			new (&corresps[iRow].comparanda[iColNew]) Comparandum(NULL);
 		}
 		return nDicts;
 	}
