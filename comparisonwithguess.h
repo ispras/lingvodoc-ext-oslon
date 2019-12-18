@@ -1,122 +1,183 @@
 ﻿class ComparisonWithGuess : public Comparison
 {
-	int 	nRowsCorresp;
-	int		nRowsNoCorresp;
+	//	int 	nRowsCorresp;
+	//	int		nRowsNoCorresp;
 public:
-	ComparisonWithGuess(int _nRowsCorresp, int _nRowsNoCorresp, int nCols) : Comparison((_nRowsCorresp + _nRowsNoCorresp) * 2, nCols)
+	ComparisonWithGuess(int _nRowsCorresp, int nCols, int _nRowsNoCorresp) : Comparison(_nRowsCorresp, nCols, _nRowsNoCorresp)
 	{
-		nRowsCorresp = _nRowsCorresp;
-		nRowsNoCorresp = _nRowsNoCorresp;
+		//	nRowsAll = 0;
 	}
-	void Input(LPTSTR sIn, bool hasPhonData = false, int begCols = 0, int nCols = 0, int nColsAll = 0)
+
+	void ProcessAndOutput(InfoTree* trOut, Condition* cndMatch, int iDictThis, bool doLookMeaning)
 	{
-		Parser parser(sIn, L"\0", PARSER_NONNULLEND);
-		LPTSTR wordOrig = NULL, wordIPA = NULL, wordTranslation = NULL, wchrTranscr = NULL, wLength = NULL, wF1 = NULL, wF2 = NULL, wF3 = NULL;
-		WordForm* wfFirstInRow;
+		TCHAR buf[1000];
 
-		if (!nColsAll) nColsAll = nDicts;
-		if (!nCols) nCols = nDicts;
+		int const maxnWF = 100;
 
-		int iColIn = -1, iCol = -1, iRow = -1;
-		while (parser.Next())
+		WordForm*** wfsOrphans = new WordForm**[nDicts];
+		int* nsOrphans = new int[nDicts];
+		for (int i = 0; i < nDicts; i++) wfsOrphans[i] = new WordForm*[maxnWF];
+
+		//for (int iDictThis = 0; iDictThis < nDicts; iDictThis++)
+		//{
+		Dictionary* dic = Dict(iDictThis);
+
+		_ltow(iDictThis + 1, buf, 10); wcscat(buf, L": ");
+		if (dic->dictinfo.name) wcscat(buf, dic->dictinfo.name);
+		trOut->Add(buf, IT_LINEBRKAFTER);
+
+		trOut->HorLine();
+
+		WordForm* wordThis;
+		for (BTree::Walker w(&dic->trWordForms); wordThis = (WordForm*)w.Next();)
 		{
-			if (!NextCol(iColIn, iRow, nColsAll, nRowsCorresp + nRowsNoCorresp)) break;
-			if (iColIn >= begCols && iColIn < begCols + nCols)
+			if (wordThis->flags & WF_HASLINK) continue;
+
+			trOut->Add(L"Предложения для", IT_SPACE);
+			trOut->Add(wordThis->formOrig, IT_SPACE);
+			trOut->Add(wordThis->wordTranslation, IT_MARRQUOTES | IT_COLUMN);
+			//trOut->HorLine();
+
+			Comparandum cmpThis(wordThis);
+			cmpThis.typeOfSegment = cndMatch->GetFirstMatchingFragment(
+				dic->ipa,
+				&cmpThis.sound,
+				(cmpThis.wf ? cmpThis.wf->formIPA : NULL),//БЕЗ СКОБОК: неверно число аргументов: GetFirstMatchingFragment.
+				cmpThis.chrFragment);
+
+			for (int i = 0; i < nDicts; i++)
+				nsOrphans[i] = 0;
+			bool isMatchingRows = false;
+			bool nMatchingOrphanRows = 0;
+			Correspondence* corr;
+			for (CorrespondenceTree::Iterator it(&tCorrespondences); corr = it.Next();)
 			{
-				iCol = iColIn - begCols;
+				Comparandum* cmp = &corr->comparanda[iDictThis];
 
-				Dictionary* dic = Dict(iCol);
-				if (iCol == 0)
-					wfFirstInRow = NULL;
+				if (cmp->wf == wordThis) continue;
 
-				if (iRow == -1)
-					dic->GetDictInfo(parser);
-				else
+				if (!cmpThis.IsEqualTo(cmp)) continue;
+
+				bool isMeaningBad = false;
+				if (doLookMeaning)
 				{
-					dic->GetOrigIPAAndTranslation(parser, wordOrig, wordIPA, wordTranslation, hasPhonData, wchrTranscr, wLength, wF1, wF2, wF3);
-					//new (&corresps[iRow].comparanda[iCol]) Comparandum(wordIPA, wordOrig, wordTranslation, false, wchrTranscr, wLength, wF1, wF2, wF3);
-
-					if (wordIPA)
+					for (int iCol = 0; iCol < nDicts; iCol++)
 					{
-						int flag = 0;
-						if (iRow < nRowsCorresp)
+						if (isMeaningBad = (corr->comparanda[iCol].wf && wordThis->CompareTranslationWith(corr->comparanda[iCol].wf, 3)))
+							break;
+					}
+				}
+
+				if (!isMeaningBad)
+				{
+					if (!isMatchingRows)
+					{
+						OutputLanguageHeader(trOut);
+						trOut->Add(L"Уже имеющиеся ряды", IT_COLUMN);
+						trOut->HorLine();
+
+						isMatchingRows = true;
+					}
+
+					OutputCorrespondence(corr, trOut);
+				}
+				if (corr->IsInGroup()) continue;
+
+				for (int iDictOrphan = 0; iDictOrphan < nDicts; iDictOrphan++)
+				{
+					Dictionary* dic = Dict(iDictOrphan);
+
+					Comparandum* cmpMatching = &corr->comparanda[iDictOrphan];
+
+					WordForm* wordOrphan;
+					for (BTree::Walker w(&dic->trWordForms); wordOrphan = (WordForm*)w.Next();)
+					{
+						if (wordOrphan == wordThis) continue;
+						if (wordOrphan->flags & WF_HASLINK) continue;
+
+						Comparandum cmpOrphan(wordOrphan);
+						cmpOrphan.typeOfSegment = cndMatch->GetFirstMatchingFragment(
+							dic->ipa,
+							&cmpOrphan.sound,
+							(cmpOrphan.wf ? cmpOrphan.wf->formIPA : NULL),
+							cmpOrphan.chrFragment);
+
+						//НЕПРАВИЛЬНО!!!
+						//if (cmpOrphan.IsEqualTo(cmpMatching) && (!doLookMeaning || (doLookMeaning && !wordThis->CompareTranslationWith(wordOrphan, 3))))
+						if (!cmpOrphan.IsEqualTo(cmpMatching)) continue;
+						if (doLookMeaning && wordThis->CompareTranslationWith(wordOrphan, 3)) continue;
+						if (nsOrphans[iDictOrphan] >= maxnWF) continue;
+
+						//СДЕЛАТЬ!!!
+						//wfsOrphans[iDictOrphan][nsOrphans[iDictOrphan]++] = wordOrphan;
+
+						WordForm**wfs = wfsOrphans[iDictOrphan];
+
+						bool isFound = false;
+						for (int i = 0; i < nsOrphans[iDictOrphan]; i++)
 						{
-							if (wfFirstInRow)
+							if (wfs[i] == wordOrphan)
 							{
-								flag = WF_HASLINK;
-								wfFirstInRow->flags |= flag;//будет ставиться много раз для первого слова
+								isFound = true;
+								break;
 							}
 						}
 
-						WordForm* wfNew = new (dic->pWordForms.New()) WordForm(wordIPA, wordOrig, wordTranslation, flag);
-						WordForm* wfFound = (WordForm*)dic->trWordForms.Add(wfNew);
-						if (!wfFound) dic->dictinfo.nWords++;
-
-						if (!wfFirstInRow)
-							wfFirstInRow = wfNew;
+						if (!isFound)
+						{
+							int ii = nsOrphans[iDictOrphan];
+							nsOrphans[iDictOrphan]++;
+							wfs[ii] = wordOrphan;
+							if (nMatchingOrphanRows < nsOrphans[iDictOrphan])
+								nMatchingOrphanRows = nsOrphans[iDictOrphan];
+						}
 					}
 				}
 			}
-			else//перепрых перевод
+			if (nMatchingOrphanRows)
 			{
-				parser.Next();
-			}
-		}
-
-		EndSubmitForms();
-	}
-	void Process()
-	{
-		int iRowCorresp = -1;
-		for (int iCol = 0; iCol < nDicts; iCol++)
-		{
-			WordForm* word;
-			Dictionary* dic = Dict(iCol);
-
-			for (BTree::Walker w(&dic->trWordForms); word = (WordForm*)w.Next();)
-			{
-				if (word->flags & WF_HASLINK) continue;
-
-				iRowCorresp++;
-
-				new (&corresps[iRowCorresp]) Correspondence(nDicts, iRowCorresp);
-				new (&corresps[iRowCorresp].comparanda[iCol]) Comparandum(word->formIPA, word->formOrig, word->wordTranslation);
-
-				if (!FindCorrespondences(iCol, word, &corresps[iRowCorresp]))
+				trOut->HorLine();
+				trOut->Add(L"Слова-сироты", IT_COLUMN);
+				if (!isMatchingRows)
+					OutputLanguageHeader(trOut);
+				else
+					trOut->HorLine();
+				for (int iRow = 0; iRow < nMatchingOrphanRows; iRow++)
 				{
-					free(corresps[iRowCorresp].comparanda);
-					iRowCorresp--;
-					//corresps[iRow].~Correspondence();
-				}
-				else if (iRowCorresp == nRowsAll - 1)
-					goto Done;
-			}
-		}
-	Done:
-		nRowsAll = iRowCorresp + 1;
-	}
-	int FindCorrespondences(int iColPivot, WordForm* wPivot, Correspondence* c)
-	{
-		int nFound = 0;
-		for (int iCol = 0; iCol < nDicts; iCol++)
-		{
-			if (iCol == iColPivot) continue;
-
-			WordForm* word;
-			Dictionary* dic = Dict(iCol);
-
-			for (BTree::Walker w(&dic->trWordForms); word = (WordForm*)w.Next();)
-			{
-				if (!wPivot->CompareTranslationWith(word, 3))
-				{
-					nFound++;
-					word->flags |= WF_HASLINK;
-					new (&c->comparanda[iCol]) Comparandum(word->formIPA, word->formOrig, word->wordTranslation);
+					for (int i = 0; i < nDicts; i++)
+					{
+						if (iRow < nsOrphans[i])
+						{
+							WordForm**wfs = wfsOrphans[i];
+							/////////////////////////////СДЕЛАТЬ!
+							trOut->Add(wfs[iRow]->formOrig, IT_TAB);
+							trOut->Add(wfs[iRow]->wordTranslation, IT_MARRQUOTES | IT_TAB);
+						}
+						else
+						{
+							trOut->Add(NULL, IT_TAB);
+							trOut->Add(NULL, IT_TAB);
+						}
+					}
 				}
 			}
+
+			if (isMatchingRows || nMatchingOrphanRows)
+				trOut->HorLine();
+			else
+				trOut->Add(L"НЕТ", IT_LINEBRKAFTER);
+			//if (isMatchingRows) break;									
 		}
-		return nFound;
+		//trOut->HorLine();
+	//}
+
+	//trOut->HorLine();
+		for (int i = 0; i < nDicts; i++) delete[] wfsOrphans[i];
+		delete[] wfsOrphans;
+		delete[] nsOrphans;
 	}
+
+
 	void Output(InfoTree* trOut)
 	{
 		LPTSTR word;
@@ -124,13 +185,13 @@ public:
 
 		InfoNode* inTo;
 
-		inTo = trOut->Add(L"Предложения — только по переводу", IT_COLUMN | IT_LINEBRKBEFORE, NULL, false);
+		inTo = trOut->Add(L"Предложения" /*— только по переводу"*/, IT_COLUMN | IT_LINEBRKBEFORE, NULL, false);
 		trOut->Add(NULL, IT_HORLINE, inTo);
 
 		Correspondence* c;
 		//for (CorrespondenceTree::Iterator it(&tCorrespondences); c = it.Next();)
 		//{
-		for (int iRow = 0; iRow < nRowsAll; iRow++)
+		for (int iRow = 0; iRow < nRowsCorresp; iRow++)
 		{
 			c = &corresps[iRow];
 			//if (it.IsStartOfGroup())
@@ -141,9 +202,10 @@ public:
 
 			for (int iCol = 0; iCol < nDicts; iCol++)
 			{
-				trOut->Add(c->comparanda[iCol].formOrig, IT_TAB, inTo);
+				WordForm* wf = c->comparanda[iCol].wf;
+				trOut->Add((wf ? wf->formOrig : NULL), IT_TAB, inTo);
 				//trOut->Add(c->comparanda[iCol].formIPA, IT_TAB, inTo);
-				trOut->Add(c->comparanda[iCol].translation, IT_MARRQUOTES | IT_TAB, inTo);
+				trOut->Add((wf ? wf->wordTranslation : NULL), IT_MARRQUOTES | IT_TAB, inTo);
 			}
 
 			//if (it.IsEndOfGroup())

@@ -26,6 +26,10 @@ public:
 
 	int			nDicts;
 	int 		nRowsAll;
+
+	int 		nRowsCorresp;
+	int			nRowsNoCorresp;
+
 	int			nSoundCorresp;
 	bool		isProcessed;
 	//DictInfo*	dictinfos;
@@ -41,10 +45,15 @@ public:
 	Comparison() : tCorrespondences(0)
 	{
 	}
-	Comparison(int nRows, int nCols) : tCorrespondences(nCols)
+	Comparison(int _nRowsCorresp, int nCols, int _nRowsNoCorresp = 0) : tCorrespondences(nCols)
 	{
 		nDicts = nCols;
-		nRowsAll = nRows;
+
+		nRowsCorresp = _nRowsCorresp;
+		nRowsNoCorresp = _nRowsNoCorresp;
+
+		nRowsAll = nRowsCorresp + nRowsNoCorresp;
+
 		nSoundCorresp = 0;
 
 		AllocDictData();
@@ -143,16 +152,21 @@ public:
 		{
 			Comparandum* cFrom = &cmpFrom->corresps[iRow].comparanda[iColFrom];
 			Comparandum* cTo = &corresps[iRow].comparanda[iColTo];
-			new (&corresps[iRow].comparanda[iColTo]) Comparandum(dicTo->TranscribeWord(cFrom->formOrig), dicTo->StoreNonNullString(cFrom->formOrig), NULL, cFrom->isReconstructed);
-			if (cTo->formIPA) dicTo->dictinfo.nWords++;
-			//{
-			//	dic.ipa->SubmitWordForm(cTo->formIPA);
-			//	dictinfos[iColTo].nWords++;
-			//}
 
-			//НЕ СДЕЛАНО!
-			//new (cTo) Comparandum(dic.StoreString(cFrom->formIPA), dic.StoreString(cFrom->formOrig), NULL);
-			//в LoadAddress вызывается AddPointerTypeRef и портит тип!!!
+			WordForm* wfNew;
+
+			if (!cFrom->wf)
+				wfNew = NULL;
+			else
+			{
+				wfNew = new (dicTo->pWordForms.New())
+					WordForm(dicTo->TranscribeWord(cFrom->wf->formOrig),
+						dicTo->StoreNonNullString(cFrom->wf->formOrig),
+						NULL);
+			}
+
+			new (&corresps[iRow].comparanda[iColTo]) Comparandum(wfNew, cFrom->isReconstructed);
+			if (wfNew) dicTo->dictinfo.nWords++;
 		}
 		//dic.ipa->EndSubmitWordForms();//это пока не надо, оно только пустые ряды убирает, что сейчас неважно
 	}
@@ -171,10 +185,11 @@ public:
 
 		return true;
 	}
-	void AddCognateList(LPTSTR sIn, bool hasPhonData, int begCols = 0, int nCols = 0, int nColsAll = 0)
+	void Input(LPTSTR sIn, bool hasPhonData = false, int begCols = 0, int nCols = 0, int nColsAll = 0)
 	{
 		Parser parser(sIn, L"\0", PARSER_NONNULLEND);
 		LPTSTR wordOrig = NULL, wordIPA = NULL, wordTranslation = NULL, wchrTranscr = NULL, wLength = NULL, wF1 = NULL, wF2 = NULL, wF3 = NULL;
+		WordForm* wfFirstInRow;
 
 		if (!nColsAll) nColsAll = nDicts;
 		if (!nCols) nCols = nDicts;
@@ -188,6 +203,7 @@ public:
 				iCol = iColIn - begCols;
 
 				Dictionary* dic = Dict(iCol);
+				if (iCol == 0) wfFirstInRow = NULL;
 
 				if (iRow == -1)
 					dic->GetDictInfo(parser);
@@ -197,10 +213,29 @@ public:
 						new (&corresps[iRow]) Correspondence(nDicts, iRow);
 
 					dic->GetOrigIPAAndTranslation(parser, wordOrig, wordIPA, wordTranslation, hasPhonData, wchrTranscr, wLength, wF1, wF2, wF3);
-					new (&corresps[iRow].comparanda[iCol]) Comparandum(wordIPA, wordOrig, wordTranslation, false, wchrTranscr, wLength, wF1, wF2, wF3);
 
+					WordForm* wfNew = NULL;
 					if (wordIPA)
-						dic->dictinfo.nWords++;
+					{
+						int flag = 0;
+						if (iRow < nRowsCorresp)
+						{
+							if (wfFirstInRow)
+							{
+								flag = WF_HASLINK;
+								wfFirstInRow->flags |= flag;//будет ставиться много раз для первого слова
+							}
+						}
+
+						wfNew = new (dic->pWordForms.New()) WordForm(wordIPA, wordOrig, wordTranslation, flag);
+						WordForm* wfFound = (WordForm*)dic->trWordForms.Add(wfNew);
+						if (!wfFound) dic->dictinfo.nWords++;
+
+						if (!wfFirstInRow)
+							wfFirstInRow = wfNew;
+					}
+
+					new (&corresps[iRow].comparanda[iCol]) Comparandum(wfNew, false, wchrTranscr, wLength, wF1, wF2, wF3);
 				}
 			}
 			else//надо перепрыгнуть через перевод
@@ -247,7 +282,7 @@ public:
 				new (&corresps[iRow]) Correspondence(nDicts, iRow);
 			}
 
-			new (&corresps[iRow].comparanda[iCol]) Comparandum(wordIPA, wordOrig, NULL, false);
+			new (&corresps[iRow].comparanda[iCol]) Comparandum(new (dic->pWordForms.New()) WordForm(wordIPA, wordOrig, NULL));
 
 			if (wordIPA)
 				dic->dictinfo.nWords++;
@@ -351,7 +386,7 @@ public:
 		crsp->nSoundsEmpty = 0;
 		for (int iCol = 0; iCol < nDicts; iCol++)
 		{
-			if (!crsp->comparanda[iCol].formIPA)
+			if (!crsp->comparanda[iCol].wf)
 				crsp->nSoundsEmpty++;
 		}
 		return crsp->nSoundsEmpty;
@@ -365,7 +400,7 @@ public:
 			switch (crsp->comparanda[iCol].typeOfSegment = cnd->GetFirstMatchingFragment(
 				Dict(iCol)->ipa,
 				&crsp->comparanda[iCol].sound,
-				crsp->comparanda[iCol].formIPA,
+				(crsp->comparanda[iCol].wf ? crsp->comparanda[iCol].wf->formIPA : NULL),
 				crsp->comparanda[iCol].chrFragment))
 			{
 			case ST_ERROR:
@@ -453,7 +488,7 @@ public:
 
 		for (int i_nEmtpy = 0; i_nEmtpy <= nDicts; i_nEmtpy++)
 		{
-			for (int iRow = 0; iRow < nRowsAll; iRow++)
+			for (int iRow = 0; iRow < nRowsCorresp; iRow++)
 			{
 				if (i_nEmtpy != CountEmptyColsInRow(&corresps[iRow]))//вроде это не глупость, т.к. сперва надо добавить более полные
 					continue;
@@ -550,7 +585,7 @@ public:
 		for (int iCol = 0; iCol < nDicts; iCol++)
 		{
 			cTo->comparanda[iCol].isSoundInCognates = cFrom->comparanda[iCol].isSoundInCognates;
-			if (!cTo->comparanda[iCol].isSoundInCognates && !cTo->comparanda[iCol].formOrig)
+			if (!cTo->comparanda[iCol].isSoundInCognates && !cTo->comparanda[iCol].wf)
 			{
 				cTo->comparanda[iCol].sound = NULL;
 				cTo->comparanda[iCol].typeOfSegment = ST_NONE;
@@ -571,7 +606,7 @@ public:
 			{
 				cMain->comparanda[iCol].isSoundInCognates = false;
 
-				if (!cMain->comparanda[iCol].formIPA)
+				if (!cMain->comparanda[iCol].wf)
 				{//т.е. обнуляем только те, что были добавлены ниже
 					cMain->comparanda[iCol].sound = NULL;
 					cMain->comparanda[iCol].typeOfSegment = ST_NONE;
@@ -630,7 +665,7 @@ public:
 
 			for (int iCol = 0; iCol < nDicts; iCol++)
 			{
-				if (c->comparanda[iCol].formIPA)
+				if (c->comparanda[iCol].wf)
 				{
 					nInCol[iCol]++;
 					cInCol[iCol] = c;
@@ -785,13 +820,14 @@ public:
 
 	void OutputLanguageList(InfoTree* trOut);
 	void SoundCorrespondenceNumbers(InfoTree* trOut, int threshold);
-	void OutputLanguageHeader(InfoTree* trOut, InfoNode* ndTo, bool isProtoSounds);
+	void OutputLanguageHeader(InfoTree* trOut, InfoNode* ndTo = NULL, bool isProtoSounds = false);
 	void OutputPhoneticHeader(InfoTree* trOut, InfoNode* ndTo);
 	void OutputSoundsHeader(Correspondence* c, InfoTree* trOut, InfoNode* inTo, bool skipTransl, bool onlyWithForms, int fSep, int fLine);
 	void OutputCognatesRow(Correspondence* c, InfoTree* trOut, InfoNode* inTo, bool isPhonData, int fLine);
 	void OutputCognate(Comparandum* cmp, InfoTree* trOut, InfoNode* inTo, bool isPhonData, int fLine, CognateList* cl);
 	void OutputCognatesBySound(Correspondence* cGroupTop, Correspondence* cOther, int iColDiff, InfoTree* trOut, InfoNode* inMult, InfoTree* trCld, Correspondence* cEqual);
 	void OutputDeviationsWithMaterial(Condition* cnd, InfoTree* trOut, InfoTree* trCld);
+	void OutputCorrespondence(Correspondence* c, InfoTree* trOut, InfoNode* inTo = NULL);
 	void OutputCorrespondencesWithMaterial(Condition* cnd, InfoTree* trOut, bool doMakeTableForSingles = false);
 	void OutputReconstructedSounds(Condition* cnd, InfoTree* trOut);
 	void OutputReconstructedWords(InfoTree* trOut);

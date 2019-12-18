@@ -339,9 +339,9 @@ public:
 		sgmtzr = _sgmtzr;
 		ResetConditions();
 	}
-	Condition* AddCondition(LPTSTR _ftThis, LPTSTR _ftPrev, LPTSTR _ftNext, int flags = 0, LPTSTR _title = NULL, int _extraInt = 0, int _iSyllable = -1)
+	Condition* AddCondition(LPTSTR _ftThis, LPTSTR _ftPrev, LPTSTR _ftNext, int flags = 0, LPTSTR _title = NULL, int _extraInt = 0, int _iSyllable = -1, int _iIterate = 2)
 	{
-		Condition* c = ::new Condition(_ftThis, _ftPrev, _ftNext, flags, _title, _extraInt, 2, _iSyllable);
+		Condition* c = ::new Condition(_ftThis, _ftPrev, _ftNext, flags, _title, _extraInt, _iIterate, _iSyllable);
 
 		llConditions.Add(c);
 

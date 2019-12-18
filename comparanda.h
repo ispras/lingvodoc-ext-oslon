@@ -1,9 +1,10 @@
 ﻿class Comparandum : public OwnNew
 {
 public:
-	LPTSTR 		formIPA;
-	LPTSTR 		formOrig;
-	LPTSTR 		translation;
+	WordForm*	wf;
+	//LPTSTR 		formIPA;
+	//LPTSTR 		formOrig;
+	//LPTSTR 		translation;
 	LPTSTR		wLength, wF1, wF2, wF3;
 	Sound*		sound;
 	int			typeOfSegment;
@@ -17,11 +18,21 @@ public:
 	{
 		Reset_();
 	}
-	Comparandum(LPTSTR _formIPA, LPTSTR _formOrig, LPTSTR _translation, bool _isReconstructed = false, LPTSTR _chrTranscr = NULL, LPTSTR _wLength = NULL, LPTSTR _wF1 = NULL, LPTSTR _wF2 = NULL, LPTSTR _wF3 = NULL)
+	//Comparandum(WordForm* _wf): wf(_wf)
+	//{
+		//formIPA = wf->formIPA;
+		//formOrig = wf->formOrig;
+		//translation = wf->wordTranslation;
+	//	isReconstructed = false;
+	//}
+
+	Comparandum(WordForm* _wf, bool _isReconstructed = false, LPTSTR _chrTranscr = NULL, LPTSTR _wLength = NULL, LPTSTR _wF1 = NULL, LPTSTR _wF2 = NULL, LPTSTR _wF3 = NULL)
+		//	Comparandum(LPTSTR _formIPA, LPTSTR _formOrig, LPTSTR _translation, bool _isReconstructed = false, LPTSTR _chrTranscr = NULL, LPTSTR _wLength = NULL, LPTSTR _wF1 = NULL, LPTSTR _wF2 = NULL, LPTSTR _wF3 = NULL)
 	{
-		formIPA = _formIPA;
-		formOrig = _formOrig;
-		translation = _translation;
+		wf = _wf;
+		//formIPA = _formIPA;
+		//formOrig = _formOrig;
+		//translation = _translation;
 		isReconstructed = _isReconstructed;
 
 		wF1 = _wF1;

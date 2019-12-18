@@ -127,13 +127,13 @@ extern "C" {int
 #else
 int __declspec(dllexport)
 #endif
-GuessCognates_GetAllOutput(LPTSTR bufIn, int nCols, int nRowsCorresp, int nRowsRest, LPTSTR bufOut, int flags)
+GuessCognates_GetAllOutput(LPTSTR bufIn, int nCols, int nRowsCorresp, int nRowsRest, int iDictThis, int doLookMeaning, LPTSTR bufOut, int flags)
 {
 	if (nCols < 1 || nCols > 1000)
 		return -1;
 
 	int nRows = nRowsCorresp + nRowsRest;
-	int szOutput = nRows * nCols * 150 + 100000;
+	int szOutput = nRows * nCols * 2000 + 100000;
 
 	if (!bufIn)
 		return szOutput;
@@ -145,56 +145,49 @@ GuessCognates_GetAllOutput(LPTSTR bufIn, int nCols, int nRowsCorresp, int nRowsR
 		bool isBinary = flags == 2;
 		nRowsCorresp -= 1;// потому что там ещё и заголовок
 
-		ComparisonWithGuess cmp(nRowsCorresp, nRowsRest, nCols);
+		ComparisonWithGuess cmp(nRowsCorresp, nCols, nRowsRest);
 		//		InfoTree trOut(isBinary ? NULL : L"АВТОСООТВЕТСТВИЯ");//gcc не хочет!
 		LPTSTR title;
-		if (!isBinary) title = L"АВТОСООТВЕТСТВИЯ (ПОКА ПО ПЕРЕВОДУ)"; else title = NULL;
+		if (!isBinary) title = L"АВТОСООТВЕТСТВИЯ"; else title = NULL;
 		InfoTree trOut(title);
 
 		cmp.Input(bufIn);
 
-		cmp.Process();
-
 		if (!isBinary)
 			cmp.OutputLanguageList(&trOut);
-		cmp.Output(&trOut);
 
 
+		Query qry;
+		Condition* cnd = qry.AddCondition(NULL, L"#", NULL, QF_ITERATE, L"Соответствия по начальному звуку");
+		cmp.Process(cnd, false, false);
 
 
-		/*
+		//cmp.ProcessGuess();
 
-				Query qry;
-				qry.AddCondition(L"Г", L"#", NULL, QF_ITERATE,						L"Соответствия по начальному гласному");
-				qry.AddCondition(L"С", L"#", NULL, QF_ITERATE,						L"Соответствия по начальному согласному");
-				qry.AddCondition(L"Г", L"С", NULL, QF_ITERATE,						L"Соответствия по гласному первого слога после согласного", 0, 1);
-				qry.AddCondition(L"С", L"Г", NULL, QF_ITERATE,						L"Соответствия по согласному после гласного первого слога", 0, 1);
-				qry.AddCondition(L"Г", L"С", NULL, QF_ITERATE,						L"Соответствия по гласному второго слога", 0, 2);
+/*
 
-				for (Condition* cnd = qry.FirstCondition(); cnd; cnd = qry.NextCondition())
-				{
-					//cmp.Process(cnd, false, false);
-					//cmp.Process(cnd, false, true);
-					//cmp.Process(cnd, true, false);
-					((Comparison*)&cmp)->Process(cnd, false, false);
-					cmp.OutputCorrespondencesWithMaterial(cnd, &trOut);
-				}
-		*/
+		Query qry;
+		qry.AddCondition(L"Г", L"#", NULL, QF_ITERATE,						L"Соответствия по начальному гласному");
+		qry.AddCondition(L"С", L"#", NULL, QF_ITERATE,						L"Соответствия по начальному согласному");
+		qry.AddCondition(L"Г", L"С", NULL, QF_ITERATE,						L"Соответствия по гласному первого слога после согласного", 0, 1);
+		qry.AddCondition(L"С", L"Г", NULL, QF_ITERATE,						L"Соответствия по согласному после гласного первого слога", 0, 1);
+		qry.AddCondition(L"Г", L"С", NULL, QF_ITERATE,						L"Соответствия по гласному второго слога", 0, 2);
 
+		for (Condition* cnd = qry.FirstCondition(); cnd; cnd = qry.NextCondition())
+		{
+			//cmp.Process(cnd, false, false);
+			//cmp.Process(cnd, false, true);
+			//cmp.Process(cnd, true, false);
+			((Comparison*)&cmp)->Process(cnd, false, false);
+			cmp.OutputCorrespondencesWithMaterial(cnd, &trOut);
+		}
+*/
 
+		cmp.ProcessAndOutput(&trOut, cnd, iDictThis, doLookMeaning);
 
+		//cmp.OutputCorrespondencesWithMaterial(cnd, &trOut, true);
 
-
-
-
-		OutputString output(szOutput, 20, nCols * 2, isBinary);
-		output.Build(trOut.ndRoot);
-
-		if (isBinary)
-			output.OutputTableSizes(bufOut);
-		output.OutputData(bufOut);
-
-		return output.OutputSize;
+		return trOut.Output(bufOut, szOutput, 20, nCols * 2, isBinary);
 	}
 	catch (...)
 	{
@@ -234,7 +227,7 @@ CognateAnalysis_GetAllOutput(LPTSTR bufIn, int nCols, int nRows, LPTSTR bufOut, 
 		if (!isBinary) title = L"ЭТИМОЛОГИЧЕСКИЙ АНАЛИЗ"; else title = NULL;
 		InfoTree trOut(title);
 
-		cmp.AddCognateList(bufIn, false);
+		cmp.Input(bufIn, false);
 
 		Query qry;
 		qry.AddCondition(L"Г", L"#", NULL, QF_ITERATE, L"Соответствия по начальному гласному");
@@ -255,14 +248,7 @@ CognateAnalysis_GetAllOutput(LPTSTR bufIn, int nCols, int nRows, LPTSTR bufOut, 
 			cmp.OutputCorrespondencesWithMaterial(cnd, &trOut);
 		}
 
-		OutputString output(szOutput, 20, nCols * 2, isBinary);
-		output.Build(trOut.ndRoot);
-
-		if (isBinary)
-			output.OutputTableSizes(bufOut);
-		output.OutputData(bufOut);
-
-		return output.OutputSize;
+		return trOut.Output(bufOut, szOutput, 20, nCols * 2, isBinary);
 	}
 	catch (...)
 	{
@@ -304,7 +290,7 @@ CognateDistanceAnalysis_GetAllOutput(LPTSTR bufIn, int nCols, int nRows, LPTSTR 
 		if (!isBinary) title = L"ВЫЧИСЛЕНИЕ ПОПАРНЫХ РАССТОЯНИЙ"; else title = NULL;
 		InfoTree trOut(title);
 
-		cmp.AddCognateList(bufIn, false);
+		cmp.Input(bufIn, false);
 
 		Query qry;
 
@@ -345,14 +331,7 @@ CognateDistanceAnalysis_GetAllOutput(LPTSTR bufIn, int nCols, int nRows, LPTSTR 
 		}
 
 
-		OutputString output(szOutput, 20, nCols * 2, isBinary);
-		output.Build(trOut.ndRoot);
-
-		if (isBinary)
-			output.OutputTableSizes(bufOut);
-		output.OutputData(bufOut);
-
-		return output.OutputSize;
+		return trOut.Output(bufOut, szOutput, 20, nCols * 2, isBinary);
 	}
 	catch (...)
 	{
@@ -392,7 +371,7 @@ CognateAcousticAnalysis_GetAllOutput(LPTSTR bufIn, int nCols, int nRows, LPTSTR 
 		InfoTree trOut(title);
 		InfoTree trCld(NULL);
 
-		cmp.AddCognateList(bufIn, true);
+		cmp.Input(bufIn, true);
 
 		Query qry;
 		//qry.AddCondition(L"Г", L"#", NULL, 0,                     L"Отклонения по начальному гласному");
@@ -480,14 +459,7 @@ CognateReconstruct_GetAllOutput(LPTSTR bufIn, int nCols, int nRows, LPTSTR bufOu
 		trOut.Add(NULL, IT_SECTIONBRK, NULL);
 		rc.comparisons[0].OutputReconstructedWords(&trOut);
 
-		OutputString output(szOutput, 20, nCols * 2, isBinary);
-		output.Build(trOut.ndRoot);
-
-		if (isBinary)
-			output.OutputTableSizes(bufOut);
-		output.OutputData(bufOut);
-
-		return output.OutputSize;
+		return trOut.Output(bufOut, szOutput, 20, nCols * 2, isBinary);
 	}
 	catch (...)
 	{
@@ -545,14 +517,7 @@ CognateMultiReconstruct_GetAllOutput(LPTSTR bufIn, int* pnCols, int nGroups, int
 		trOut.Add(NULL, IT_SECTIONBRK, NULL);
 		rc.comparisons[0].OutputReconstructedWords(&trOut);
 
-		OutputString output(szOutput, 20, nCols * 2, isBinary);
-		output.Build(trOut.ndRoot);
-
-		if (isBinary)
-			output.OutputTableSizes(bufOut);
-		output.OutputData(bufOut);
-
-		return output.OutputSize;
+		return trOut.Output(bufOut, szOutput, 20, nCols * 2, isBinary);
 	}
 	catch (...)
 	{

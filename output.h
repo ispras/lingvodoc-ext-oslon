@@ -129,7 +129,11 @@ void Comparison::OutputLanguageHeader(InfoTree* trOut, InfoNode* ndTo, bool isPr
 		//			trOut->Add(L"праформа", IT_TAB, ndTo);
 		//		else
 		//		{
-		trOut->Add(Dict(iCol)->dictinfo.name, IT_TAB, ndTo);
+		TCHAR buf[500];
+		_ltow(iCol + 1, buf, 10);
+		wcscat(buf, L": ");
+		wcscat(buf, Dict(iCol)->dictinfo.name);
+		trOut->Add(buf, IT_TAB, ndTo);
 		trOut->Add(L"", IT_TAB, ndTo);
 		//		}
 	}
@@ -177,7 +181,7 @@ void Comparison::OutputSoundsHeader(Correspondence* c, InfoTree* trOut, InfoNode
 
 		bool isSoundOK;
 		if (onlyWithForms)
-			isSoundOK = !!c->comparanda[iCol].formIPA;
+			isSoundOK = !!c->comparanda[iCol].wf;
 		else
 			isSoundOK = c->comparanda[iCol].isSoundInCognates;
 
@@ -212,8 +216,8 @@ void Comparison::OutputCognatesRow(Correspondence* c, InfoTree* trOut, InfoNode*
 
 void Comparison::OutputCognate(Comparandum* cmp, InfoTree* trOut, InfoNode* inTo, bool isPhonData, int fLine, CognateList* cl)
 {
-	trOut->Add(cmp->formOrig, IT_TAB, inTo);
-	trOut->Add(cmp->translation, IT_MARRQUOTES | IT_TAB, inTo);
+	trOut->Add((cmp->wf ? cmp->wf->formOrig : NULL), IT_TAB, inTo);
+	trOut->Add((cmp->wf ? cmp->wf->wordTranslation : NULL), IT_MARRQUOTES | IT_TAB, inTo);
 
 	if (isPhonData)
 	{
@@ -271,7 +275,7 @@ void Comparison::OutputCognatesBySound(Correspondence* cGroupTop, Correspondence
 				CognateList cl(trOut, inMult, trCld);
 				for (itExtra.TryEnterGroup(); cExtra; cExtra = itExtra.Next())
 				{
-					if (cExtra->comparanda[iColDiff].formOrig)
+					if (cExtra->comparanda[iColDiff].wf)
 					{
 						if (!isRegExtra)
 						{
@@ -344,7 +348,7 @@ void Comparison::OutputDeviationsWithMaterial(Condition* cnd, InfoTree* trOut, I
 			int nDiff = 0, iColDiff;
 			for (int iCol = 0; (iCol < nDicts) && nDiff <= 1; iCol++)
 			{
-				if (cOther->comparanda[iCol].formIPA)
+				if (cOther->comparanda[iCol].wf)
 				{
 					if (!cGroupTop->comparanda[iCol].IsEqualTo(&cOther->comparanda[iCol]))
 					{
@@ -361,7 +365,7 @@ void Comparison::OutputDeviationsWithMaterial(Condition* cnd, InfoTree* trOut, I
 					bool isSomethingInGroup = false;
 					for (itGroup.TryEnterGroup(); cGroup; cGroup = itGroup.Next())
 					{
-						if (cGroup->comparanda[iColDiff].formOrig)
+						if (cGroup->comparanda[iColDiff].wf)
 						{
 							isSomethingInGroup = true;
 							break;
@@ -431,7 +435,7 @@ void Comparison::OutputDeviationsWithMaterial(Condition* cnd, InfoTree* trOut, I
 
 						for (itGroup.TryEnterGroup(); cGroup; cGroup = itGroup.Next())
 						{
-							if (cGroup->comparanda[iColDiff].formOrig)
+							if (cGroup->comparanda[iColDiff].wf)
 							{
 								OutputCognate(&cGroup->comparanda[iColDiff], trOut, inMult, true, IT_LINEBRK, &cl);
 							}
@@ -479,7 +483,7 @@ void Comparison::OutputDeviationsWithMaterial(Condition* cnd, InfoTree* trOut, I
 						CognateList cl(trOut, inMult, trCld);
 						for (itOther.TryEnterGroup(); cOther; cOther = itOther.Next())
 						{
-							if (cOther->comparanda[iColDiff].formOrig)
+							if (cOther->comparanda[iColDiff].wf)
 							{
 								OutputCognate(&cOther->comparanda[iColDiff], trOut, inMult, true, IT_LINEBRK, &cl);
 							}
@@ -511,8 +515,17 @@ void Comparison::OutputDeviationsWithMaterial(Condition* cnd, InfoTree* trOut, I
 	//		trOut->Add(NULL, IT_HORLINE, inMult);
 	trOut->Add(NULL, IT_SECTIONBRK, inMult);
 }
+void Comparison::OutputCorrespondence(Correspondence* c, InfoTree* trOut, InfoNode* inTo)
+{
+	for (int iCol = 0; iCol < nDicts; iCol++)
+	{
+		WordForm* wf = c->comparanda[iCol].wf;
+		trOut->Add((wf ? wf->formOrig : NULL), IT_TAB, inTo);
+		trOut->Add((wf ? wf->wordTranslation : NULL), IT_MARRQUOTES | IT_TAB, inTo);
+	}
+}
 
-void Comparison::OutputCorrespondencesWithMaterial(Condition* cnd, InfoTree* trOut, bool doMakeTableForSingles)
+void Comparison::OutputCorrespondencesWithMaterial(Condition* cnd, InfoTree* trOut, bool doMakeTablesForSingles)
 {
 	LPTSTR word;
 	Sound* sound;
@@ -521,7 +534,7 @@ void Comparison::OutputCorrespondencesWithMaterial(Condition* cnd, InfoTree* trO
 
 	inCnd = trOut->Add(cnd->title, IT_COLUMN | IT_LINEBRKBEFORE, NULL, false, cnd);
 
-	if (!doMakeTableForSingles)
+	if (!doMakeTablesForSingles)
 	{
 		inMultList = trOut->Add(L"Оглавление (только неединичные соответствия)", IT_COLUMN | IT_EMPTYLINEBEFORE | IT_LINEBRKAFTER, inCnd);
 		inMult = trOut->Add(L"Материал — неединичные соответствия", IT_COLUMN | IT_EMPTYLINEBEFORE | IT_LINEBRKAFTER, inCnd);
@@ -531,9 +544,9 @@ void Comparison::OutputCorrespondencesWithMaterial(Condition* cnd, InfoTree* trO
 	}
 	else
 	{
-		//		inMultList = trOut->Add(NULL, IT_COLUMN | IT_EMPTYLINEBEFORE|IT_LINEBRKAFTER , inCnd);
-		inMult = trOut->Add(NULL, IT_COLUMN | IT_HORLINE, inCnd);
-		inOnce = inMultList = NULL;
+		inMultList = trOut->Add(L"Оглавление", IT_COLUMN | IT_EMPTYLINEBEFORE | IT_LINEBRKAFTER, inCnd);
+		inMult = trOut->Add(L"Материал", IT_COLUMN | IT_EMPTYLINEBEFORE | IT_LINEBRKAFTER, inCnd);
+		inOnce = NULL;// inMult;
 		//trOut->Add(NULL, IT_HORLINE, inMult);
 	}
 
@@ -542,29 +555,32 @@ void Comparison::OutputCorrespondencesWithMaterial(Condition* cnd, InfoTree* trO
 	Correspondence* c;
 	for (CorrespondenceTree::Iterator it(&tCorrespondences); c = it.Next();)
 	{
-		if (it.IsStartOfGroup() || doMakeTableForSingles)
-		{
-			if (!doMakeTableForSingles)
-				OutputSoundsHeader(c, trOut, inMultList, false, false, IT_DASH, IT_LINEBRK);
+		//НЕ РАЗБ.!
+		//if (it.IsStartOfGroup() || (doMakeTablesForSingles && !c->IsInGroup()))
 
+		switch (it.IsStartOfGroup())
+		{
+		case false:
+			if (c->IsInGroup() || !doMakeTablesForSingles) break;
+		case true:
+			OutputSoundsHeader(c, trOut, inMultList, false, false, IT_DASH, IT_LINEBRK);
 			inTo = inMult;
 			OutputSoundsHeader(c, trOut, inTo, true, false, IT_TAB, IT_HORLINE);
 		}
 
+		OutputCorrespondence(c, trOut, inTo);
 
-		for (int iCol = 0; iCol < nDicts; iCol++)
+		switch (it.IsEndOfGroup())
 		{
-			trOut->Add(c->comparanda[iCol].formOrig, IT_TAB, inTo);
-			trOut->Add(c->comparanda[iCol].translation, IT_MARRQUOTES | IT_TAB, inTo);
-		}
-
-		if (it.IsEndOfGroup() || doMakeTableForSingles)
-		{
+		case false:
+			if (c->IsInGroup() || !doMakeTablesForSingles) break;
+		case true:
 			trOut->Add(NULL, IT_HORLINE, inTo);
-			inTo = inOnce;
+			if (!doMakeTablesForSingles)
+				inTo = inOnce;
 		}
 	}
-	if (!doMakeTableForSingles)
+	if (!doMakeTablesForSingles)
 	{
 		trOut->Add(NULL, IT_HORLINE, inOnce);
 		trOut->Add(NULL, IT_SECTIONBRK, inOnce);
@@ -581,10 +597,11 @@ void Comparison::OutputReconstructedWords(InfoTree* trOut)//нельзя тут 
 		//if (formIPACur = cmp[0].corresps[iRow].comparanda[iCol].formIPA)
 		for (int iCol = 0; iCol < nDicts; iCol++)
 		{
-			if (corresps[iRow].comparanda[0].formIPA)//реконструкция
+			if (corresps[iRow].comparanda[0].wf)//реконструкция
 			{
-				trOut->Add(corresps[iRow].comparanda[iCol].formOrig, IT_TAB | (IT_ASTERISK*(corresps[iRow].comparanda[iCol].isReconstructed)), inMult);
-				trOut->Add(corresps[iRow].comparanda[iCol].translation, IT_MARRQUOTES | IT_TAB, inMult);
+				WordForm* wf = corresps[iRow].comparanda[iCol].wf;
+				trOut->Add((wf ? wf->formOrig : NULL), IT_TAB | (IT_ASTERISK*(corresps[iRow].comparanda[iCol].isReconstructed)), inMult);
+				trOut->Add((wf ? wf->wordTranslation : NULL), IT_MARRQUOTES | IT_TAB, inMult);
 			}
 		}
 	}

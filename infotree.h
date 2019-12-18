@@ -149,6 +149,7 @@ public:
 		}
 		return NULL;
 	}
+	int Output(LPTSTR bufOut, int szOutput, int szTab, int nCols, bool isBinary);
 };
 
 
@@ -501,3 +502,15 @@ public:
 		OutputSize += (posOut - bufOut);
 	}
 };
+
+int InfoTree::Output(LPTSTR bufOut, int szOutput, int szTab, int nCols, bool isBinary)
+{
+	OutputString output(szOutput, szTab, nCols, isBinary);
+	output.Build(ndRoot);
+
+	if (isBinary)
+		output.OutputTableSizes(bufOut);
+	output.OutputData(bufOut);
+
+	return output.OutputSize;
+}

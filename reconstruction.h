@@ -22,7 +22,7 @@ public:
 		{
 			new (&comparisons[i]) Comparison(nRows, nCols);
 			if (bufIn)
-				comparisons[i].AddCognateList(bufIn, false, begCols, nCols, nCallsAll);
+				comparisons[i].Input(bufIn, false, begCols, nCols, nCallsAll);
 			else
 				comparisons[i].InitEmpty();
 		}
@@ -83,7 +83,7 @@ public:
 					switch (comparisons[i].condition->GetFirstMatchingFragment(
 						ipa,
 						NULL,//&sd,
-						comparisons[i].corresps[iRow].comparanda[iCol].formIPA,
+						(comparisons[i].corresps[iRow].comparanda[iCol].wf ? comparisons[i].corresps[iRow].comparanda[iCol].wf->formIPA : NULL),
 						NULL))//chr))
 					{
 					case ST_ERROR:
@@ -104,8 +104,10 @@ public:
 			}
 		}
 
-		cReconstr->formIPA = comparisons[0].llDicts.first->StoreString(_bOut);
-		cReconstr->formOrig = comparisons[0].llDicts.first->StoreString(_bOut);
+		LPTSTR formIPA = comparisons[0].llDicts.first->StoreString(_bOut);
+
+		if (formIPA)
+			cReconstr->wf = new (comparisons[0].llDicts.first->pWordForms.New()) WordForm(formIPA, comparisons[0].llDicts.first->StoreString(_bOut), NULL);
 		cReconstr->isReconstructed = true;
 	}
 	void ReconstructWords()
@@ -144,6 +146,8 @@ public:
 					if (!CopyIfFragment(c, crsp, cmp))
 						FindAverageSoundOrFragment(c, crsp, cmp, cnd);
 				}
+				//if (!crsp->comparanda[0].sound)
+				//	CopySoundOrFragment(c, &crsp->comparanda[1]);
 				crsp->comparanda[0].isReconstructed = true;
 			}
 			//else
