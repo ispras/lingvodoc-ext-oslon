@@ -20,6 +20,8 @@ public:
 	}
 	int CompareTranslationWith(WordForm* w2, int nSymb)
 	{
+		//if (!wcscmp(L"salix (ива)",wordTranslation))
+		//out(w2->wordTranslation);
 		if (!wordTranslation || !w2->wordTranslation)
 			return 10;
 		int sz1 = wcslen(wordTranslation);
@@ -28,6 +30,17 @@ public:
 			nSymb == sz1;
 		if (sz2 < nSymb)
 			nSymb == sz2;
+
+		TCHAR bufCmp[50]; bufCmp[nSymb] = L'\0';
+		wcsncpy(bufCmp, wordTranslation, nSymb);
+
+		bool isFound;
+		if (isFound = !!wcsstr(w2->wordTranslation, bufCmp))
+			return 0;//тут надо выдавать какой-то код, если важна степень точности
+
+		wcsncpy(bufCmp, w2->wordTranslation, nSymb);
+		if (isFound = !!wcsstr(wordTranslation, bufCmp))
+			return 0;
 		return wcsncmp(wordTranslation, w2->wordTranslation, nSymb);
 	}
 };

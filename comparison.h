@@ -203,7 +203,8 @@ public:
 				iCol = iColIn - begCols;
 
 				Dictionary* dic = Dict(iCol);
-				if (iCol == 0) wfFirstInRow = NULL;
+				if (iCol == 0)
+					wfFirstInRow = NULL;
 
 				if (iRow == -1)
 					dic->GetDictInfo(parser);

@@ -54,21 +54,37 @@ public:
 			{
 				Comparandum* cmp = &corr->comparanda[iDictThis];
 
-				if (cmp->wf == wordThis) continue;
+				//if (cmp->wf == wordThis) continue;
+				if (corr->nSoundsEmpty == nDicts - 1)//значит сирота, в т.ч. wordThis
+					continue;
 
-				if (!cmpThis.IsEqualTo(cmp)) continue;
+				switch (cmp->typeOfSegment)
+				{
+				case ST_FRAGMENT:
+					if (!cmpThis.IsEqualTo(cmp)) continue;
+					break;
+				case ST_EMPTYAUTOFILL:
+				case ST_NONE:
+					bool isSomeOtherColMatching = false;
+					for (int iCol = 0; iCol < nDicts; iCol++)
+					{
+						if (isSomeOtherColMatching = cmpThis.IsEqualTo(&corr->comparanda[iCol]))
+							break;
+					}
+					if (!isSomeOtherColMatching) continue;
+				}
 
-				bool isMeaningBad = false;
+				bool isMeaningOK = true;
 				if (doLookMeaning)
 				{
 					for (int iCol = 0; iCol < nDicts; iCol++)
 					{
-						if (isMeaningBad = (corr->comparanda[iCol].wf && wordThis->CompareTranslationWith(corr->comparanda[iCol].wf, 3)))
+						if (isMeaningOK = (corr->comparanda[iCol].wf && !wordThis->CompareTranslationWith(corr->comparanda[iCol].wf, 3)))
 							break;
 					}
 				}
 
-				if (!isMeaningBad)
+				if (isMeaningOK)
 				{
 					if (!isMatchingRows)
 					{
