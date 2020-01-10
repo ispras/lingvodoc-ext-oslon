@@ -105,8 +105,10 @@ public:
 		case ST_FRAGMENT:
 			return !CompareFragmentWith(cmp2);
 		case ST_SOUND:
+			//ВРЕМЕННО
+			return !wcscmp(sound->Symbol, cmp2->sound->Symbol);
 			//ТОЛЬКО В ОДНОМ СЛОВАРЕ!
-			return sound == cmp2->sound;
+	//			return sound == cmp2->sound;
 		default:
 			return false;
 		}

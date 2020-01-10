@@ -8,7 +8,7 @@ public:
 		//	nRowsAll = 0;
 	}
 
-	void ProcessAndOutput(InfoTree* trOut, Condition* cndMatch, int iDictThis, bool doLookMeaning)
+	void ProcessAndOutput(InfoTree* trOut, Condition** cndMatch, int nCnd, int iDictThis, bool doLookMeaning)
 	{
 		TCHAR buf[1000];
 
@@ -38,75 +38,77 @@ public:
 			trOut->Add(wordThis->wordTranslation, IT_MARRQUOTES | IT_COLUMN);
 			//trOut->HorLine();
 
-			Comparandum cmpThis(wordThis);
-			cmpThis.typeOfSegment = cndMatch->GetFirstMatchingFragment(
-				dic->ipa,
-				&cmpThis.sound,
-				(cmpThis.wf ? cmpThis.wf->formIPA : NULL),
-				cmpThis.chrFragment);
-
 			for (int i = 0; i < nDicts; i++)
 				nsOrphans[i] = 0;
 			bool isMatchingRows = false;
 			bool nMatchingOrphanRows = 0;
 
-			if (nRowsNotOrphan < 10)//ПРОИЗВОЛЬНО!
+			for (int iCnd = 0; iCnd < nCnd; iCnd++)
 			{
-				nMatchingOrphanRows = LookForMatchingOrphans(wordThis, cndMatch, &cmpThis, NULL, wfsOrphans, nsOrphans, true, nMatchingOrphanRows, maxnWF);
-			}
-			else
-			{
-				Correspondence* corr;
-				for (CorrespondenceTree::Iterator it(&tCorrespondences); corr = it.Next();)
+				Comparandum cmpThis(wordThis);
+				cmpThis.typeOfSegment = cndMatch[iCnd]->GetFirstMatchingFragment(
+					dic->ipa,
+					&cmpThis.sound,
+					(cmpThis.wf ? cmpThis.wf->formIPA : NULL),
+					cmpThis.chrFragment);
+				if (nRowsNotOrphan < 10)//ПРОИЗВОЛЬНО!
 				{
-					Comparandum* cmp = &corr->comparanda[iDictThis];
-
-					//if (cmp->wf == wordThis) continue;
-					if (corr->nSoundsEmpty == nDicts - 1)//значит сирота, в т.ч. wordThis
-						continue;
-
-					switch (cmp->typeOfSegment)
+					nMatchingOrphanRows = LookForMatchingOrphans(wordThis, cndMatch[iCnd], &cmpThis, NULL, wfsOrphans, nsOrphans, true, nMatchingOrphanRows, maxnWF);
+				}
+				else
+				{
+					Correspondence* corr;
+					for (CorrespondenceTree::Iterator it(&tCorrespondences); corr = it.Next();)
 					{
-					case ST_FRAGMENT:
-						if (!cmpThis.IsEqualTo(cmp)) continue;
-						break;
-					case ST_EMPTYAUTOFILL:
-					case ST_NONE:
-						bool isSomeOtherColMatching = false;
-						for (int iCol = 0; iCol < nDicts; iCol++)
-						{
-							if (isSomeOtherColMatching = cmpThis.IsEqualTo(&corr->comparanda[iCol]))
-								break;
-						}
-						if (!isSomeOtherColMatching) continue;
-					}
+						Comparandum* cmp = &corr->comparanda[iDictThis];
 
-					bool isMeaningOK = true;
-					if (doLookMeaning)
-					{
-						for (int iCol = 0; iCol < nDicts; iCol++)
-						{
-							if (isMeaningOK = (corr->comparanda[iCol].wf && !wordThis->CompareTranslationWith(corr->comparanda[iCol].wf, 3)))
-								break;
-						}
-					}
+						//if (cmp->wf == wordThis) continue;
+						if (corr->nSoundsEmpty == nDicts - 1)//значит сирота, в т.ч. wordThis
+							continue;
 
-					if (isMeaningOK)
-					{
-						if (!isMatchingRows)
+						switch (cmp->typeOfSegment)
 						{
-							OutputLanguageHeader(trOut);
-							trOut->Add(L"Уже имеющиеся ряды", IT_COLUMN);
-							trOut->HorLine();
-
-							isMatchingRows = true;
+						case ST_FRAGMENT:
+							if (!cmpThis.IsEqualTo(cmp)) continue;
+							break;
+						case ST_EMPTYAUTOFILL:
+						case ST_NONE:
+							bool isSomeOtherColMatching = false;
+							for (int iCol = 0; iCol < nDicts; iCol++)
+							{
+								if (isSomeOtherColMatching = cmpThis.IsEqualTo(&corr->comparanda[iCol]))
+									break;
+							}
+							if (!isSomeOtherColMatching) continue;
 						}
 
-						OutputCorrespondence(corr, trOut);
-					}
-					if (corr->IsInGroup()) continue;
+						bool isMeaningOK = true;
+						if (doLookMeaning)
+						{
+							for (int iCol = 0; iCol < nDicts; iCol++)
+							{
+								if (isMeaningOK = (corr->comparanda[iCol].wf && !wordThis->CompareTranslationWith(corr->comparanda[iCol].wf, 3)))
+									break;
+							}
+						}
 
-					nMatchingOrphanRows = LookForMatchingOrphans(wordThis, cndMatch, &cmpThis, corr, wfsOrphans, nsOrphans, doLookMeaning, nMatchingOrphanRows, maxnWF);
+						if (isMeaningOK)
+						{
+							if (!isMatchingRows)
+							{
+								OutputLanguageHeader(trOut);
+								trOut->Add(L"Уже имеющиеся ряды", IT_COLUMN);
+								trOut->HorLine();
+
+								isMatchingRows = true;
+							}
+
+							OutputCorrespondence(corr, trOut);
+						}
+						if (corr->IsInGroup()) continue;
+
+						nMatchingOrphanRows = LookForMatchingOrphans(wordThis, cndMatch[iCnd], &cmpThis, corr, wfsOrphans, nsOrphans, doLookMeaning, nMatchingOrphanRows, maxnWF);
+					}
 				}
 			}
 			if (nMatchingOrphanRows)
@@ -155,8 +157,6 @@ public:
 
 	int LookForMatchingOrphans(WordForm* wordThis, Condition* cndMatch, Comparandum* cmpMatching, Correspondence* corr, WordForm*** wfsOrphans, int* nsOrphans, bool doLookMeaning, int nMatchingOrphanRows, int maxnWF)
 	{
-		;
-
 		for (int iDictOrphan = 0; iDictOrphan < nDicts; iDictOrphan++)
 		{
 			Dictionary* dic = Dict(iDictOrphan);
