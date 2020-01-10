@@ -29,6 +29,7 @@ public:
 
 	int 		nRowsCorresp;
 	int			nRowsNoCorresp;
+	int			nRowsNotOrphan;
 
 	int			nSoundCorresp;
 	bool		isProcessed;
@@ -55,6 +56,7 @@ public:
 		nRowsAll = nRowsCorresp + nRowsNoCorresp;
 
 		nSoundCorresp = 0;
+		nRowsNotOrphan = 0;
 
 		AllocDictData();
 
@@ -206,12 +208,20 @@ public:
 				if (iCol == 0)
 					wfFirstInRow = NULL;
 
+				if (iRow == 81)
+					iRow = iRow;
+
 				if (iRow == -1)
 					dic->GetDictInfo(parser);
 				else
 				{
 					if (iCol == 0)
 						new (&corresps[iRow]) Correspondence(nDicts, iRow);
+					if (iRow < nRowsCorresp && iCol == begCols + nCols - 1)
+					{
+						if (wfFirstInRow && wfFirstInRow->flags & WF_HASLINK)
+							nRowsNotOrphan++;
+					}
 
 					dic->GetOrigIPAAndTranslation(parser, wordOrig, wordIPA, wordTranslation, hasPhonData, wchrTranscr, wLength, wF1, wF2, wF3);
 

@@ -158,8 +158,16 @@ GuessCognates_GetAllOutput(LPTSTR bufIn, int nCols, int nRowsCorresp, int nRowsR
 
 
 		Query qry;
-		Condition* cnd = qry.AddCondition(NULL, L"#", NULL, QF_ITERATE, L"Соответствия по начальному звуку");
-		cmp.Process(cnd, false, false);
+		Condition* cnd;
+
+		if (cmp.nRowsNotOrphan > 10)
+		{
+			cnd = qry.AddCondition(NULL, L"#", NULL, QF_ITERATE, L"Соответствия по двум начальным сегментам");
+			cmp.Process(cnd, false, false);
+		}
+		else
+			cnd = qry.AddCondition(L"С", NULL, NULL, QF_ITERATE | QF_OBJECTONLYONCE, L"Соответствия по первому согласному");
+
 
 
 		//cmp.ProcessGuess();
