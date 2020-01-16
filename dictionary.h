@@ -20,16 +20,14 @@ public:
 	}
 	int CompareTranslationWith(WordForm* w2, int nSymb)
 	{
-		//if (!wcscmp(L"salix (ива)",wordTranslation))
-		//out(w2->wordTranslation);
 		if (!wordTranslation || !w2->wordTranslation)
 			return 10;
 		int sz1 = wcslen(wordTranslation);
 		int sz2 = wcslen(w2->wordTranslation);
 		if (sz1 < nSymb)
-			nSymb == sz1;
+			nSymb = sz1;
 		if (sz2 < nSymb)
-			nSymb == sz2;
+			nSymb = sz2;
 
 		TCHAR bufCmp[50]; bufCmp[nSymb] = L'\0';
 		wcsncpy(bufCmp, wordTranslation, nSymb);
