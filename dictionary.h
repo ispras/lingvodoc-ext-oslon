@@ -32,12 +32,12 @@ public:
 		TCHAR bufCmp[50]; bufCmp[nSymb] = L'\0';
 		wcsncpy(bufCmp, wordTranslation, nSymb);
 
-		bool isFound;
-		if (isFound = !!wcsstr(w2->wordTranslation, bufCmp))
+		//		bool isFound;
+		if (wcsstr(w2->wordTranslation, bufCmp))
 			return 0;//тут надо выдавать какой-то код, если важна степень точности
 
 		wcsncpy(bufCmp, w2->wordTranslation, nSymb);
-		if (isFound = !!wcsstr(wordTranslation, bufCmp))
+		if (wcsstr(wordTranslation, bufCmp))
 			return 0;
 		return wcsncmp(wordTranslation, w2->wordTranslation, nSymb);
 	}
