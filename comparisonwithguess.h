@@ -41,7 +41,7 @@ public:
 			for (int i = 0; i < nDicts; i++)
 				nsOrphans[i] = 0;
 			bool isMatchingRows = false;
-			bool nMatchingOrphanRows = 0;
+			int nMatchingOrphanRows = 0;
 
 			for (int iCnd = 0; iCnd < nCnd; iCnd++)
 			{
