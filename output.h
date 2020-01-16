@@ -8,10 +8,10 @@ public:
 	TCHAR F3[30];
 	int n;
 	InfoTree* trOut;
-	InfoNode *inMult;
+	InfoNode* inMult;
 	InfoTree* trCld;
 
-	CognateList(InfoTree* _trOut, InfoNode *_inMult, InfoTree* _trCld = NULL)
+	CognateList(InfoTree* _trOut, InfoNode* _inMult, InfoTree* _trCld = NULL)
 	{
 		trOut = _trOut;
 		inMult = _inMult;
@@ -321,7 +321,7 @@ void Comparison::OutputCognatesBySound(Correspondence* cGroupTop, Correspondence
 
 void Comparison::OutputDeviationsWithMaterial(Condition* cnd, InfoTree* trOut, InfoTree* trCld)
 {
-	InfoNode* inCnd, *inMult;//, *inTo;//, *inOnce, *inMultList;
+	InfoNode* inCnd, * inMult;//, *inTo;//, *inOnce, *inMultList;
 
 	inMult = inCnd = trOut->Add(cnd->title, IT_COLUMN | IT_LINEBRKBEFORE | IT_LINEBRKAFTER, NULL, false, cnd);
 
@@ -331,7 +331,7 @@ void Comparison::OutputDeviationsWithMaterial(Condition* cnd, InfoTree* trOut, I
 	int nDeviations;
 	TCHAR bufn[300];
 
-	Correspondence* cGroup, *cGroupTop;
+	Correspondence* cGroup, * cGroupTop;
 	for (CorrespondenceTree::Iterator itGroup(&tCorrespondences, true); cGroupTop = cGroup = itGroup.Next();) //всё верно, надо сразу на следующий прыгать (он сразу будет первым)
 	{
 		if (cGroup->dataExtra)//уже был в отклонениях (т.е. в ряду №2)
@@ -530,7 +530,7 @@ void Comparison::OutputCorrespondencesWithMaterial(Condition* cnd, InfoTree* trO
 	LPTSTR word;
 	Sound* sound;
 
-	InfoNode* inCnd, *inMult, *inOnce, *inMultList;
+	InfoNode* inCnd, * inMult, * inOnce, * inMultList;
 
 	inCnd = trOut->Add(cnd->title, IT_COLUMN | IT_LINEBRKBEFORE, NULL, false, cnd);
 
@@ -600,7 +600,7 @@ void Comparison::OutputReconstructedWords(InfoTree* trOut)//нельзя тут 
 			if (corresps[iRow].comparanda[0].wf)//реконструкция
 			{
 				WordForm* wf = corresps[iRow].comparanda[iCol].wf;
-				trOut->Add((wf ? wf->formOrig : NULL), IT_TAB | (IT_ASTERISK*(corresps[iRow].comparanda[iCol].isReconstructed)), inMult);
+				trOut->Add((wf ? wf->formOrig : NULL), IT_TAB | (IT_ASTERISK * (corresps[iRow].comparanda[iCol].isReconstructed)), inMult);
 				trOut->Add((wf ? wf->wordTranslation : NULL), IT_MARRQUOTES | IT_TAB, inMult);
 			}
 		}
@@ -613,7 +613,7 @@ void Comparison::OutputReconstructedSounds(Condition* cnd, InfoTree* trOut)//н�
 	LPTSTR word;
 	Sound* sound;
 
-	InfoNode* inCnd, *inMult,/* *inOnce,*/ *inMultList;
+	InfoNode* inCnd, * inMult,/* *inOnce,*/* inMultList;
 
 	inMultList = trOut->Add(cnd->title, IT_COLUMN | IT_LINEBRKBEFORE | IT_LINEBRKAFTER, NULL, false, cnd);
 	inMult = trOut->Add(NULL, IT_COLUMN | IT_HORLINE);
@@ -639,7 +639,7 @@ void Comparison::OutputDistances(Condition* cnd, DistanceMatrix* mtx, InfoTree* 
 	LPTSTR word;
 	Sound* sound;
 
-	InfoNode* inCnd, *inMtx;
+	InfoNode* inCnd, * inMtx;
 
 	inCnd = trOut->Add(cnd->title, IT_COLUMN | IT_LINEBRKBEFORE | IT_LINEBRKAFTER, NULL, false, cnd);
 	trOut->Add(NULL, IT_LINEBRK, inCnd);

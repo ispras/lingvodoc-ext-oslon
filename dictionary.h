@@ -49,7 +49,7 @@ class WordFormTree : public BTree
 {
 public:
 
-	int CompareNodes(BNode* _nd1, BNode* _nd2, void*_)
+	int CompareNodes(BNode* _nd1, BNode* _nd2, void* _)
 	{
 		WordForm* nd1 = (WordForm*)_nd1;//поэтому надо шаблонно!!
 		WordForm* nd2 = (WordForm*)_nd2;
@@ -106,10 +106,10 @@ public:
 	WordFormTree		trWordForms;
 	Pool<WordForm>		pWordForms; //(500) — нельзя в старом C++
 	Pool<TCHAR>			pString;
-	IPA*				ipa;
-	Phonology*			phono;
+	IPA* ipa;
+	Phonology* phono;
 	//Replacer			replacers[RT_COUNT];
-	Replacer*			replacers;
+	Replacer* replacers;
 	int					iReplacer;
 	int					nWordForms;
 	DictInfo			dictinfo;
@@ -307,7 +307,7 @@ public:
 	{
 		trOut->Add(NULL, IT_HORLINE);
 
-		SoundTable::Sound* sound, *soundPrev = NULL;
+		SoundTable::Sound* sound, * soundPrev = NULL;
 
 		InfoNode* ndSound = NULL;
 		int iColPrev = -1, iRowPrev = 0;
@@ -432,7 +432,7 @@ public:
 
 		for (BTree::Walker w(&trWordForms); word = (WordForm*)w.Next();)
 		{
-			Sound* sdCur, *sdNext = NULL, *sdPrev = NULL;
+			Sound* sdCur, * sdNext = NULL, * sdPrev = NULL;
 			Segmentizer sgmntzr(ipa, word->formIPA);
 
 			qry.SetSegmentizer(&sgmntzr);//вызовет ResetConditions
@@ -452,10 +452,10 @@ public:
 								{
 									int isDiff = lstrcmp(word->formOrig, word->formIPA);
 
-									trOut->Add(word->formOrig, IT_SPACE | (IT_COMMA*(!word->wordTranslation && !isDiff)), ndIter);
+									trOut->Add(word->formOrig, IT_SPACE | (IT_COMMA * (!word->wordTranslation && !isDiff)), ndIter);
 
 									if (isDiff)
-										trOut->Add(word->formIPA, IT_SQRBRK | IT_SPACE | (IT_COMMA*(!word->wordTranslation)), ndIter);
+										trOut->Add(word->formIPA, IT_SQRBRK | IT_SPACE | (IT_COMMA * (!word->wordTranslation)), ndIter);
 
 									if (word->wordTranslation)
 										trOut->Add(word->wordTranslation, IT_MARRQUOTES | IT_SPACE | IT_COMMA, ndIter);

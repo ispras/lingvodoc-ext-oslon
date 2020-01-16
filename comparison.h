@@ -34,13 +34,13 @@ public:
 	int			nSoundCorresp;
 	bool		isProcessed;
 	//DictInfo*	dictinfos;
-	Condition*	condition;
+	Condition* condition;
 
 	//Dictionary*	dics;
 	LinkedList<Dictionary> llDicts;
 
 
-	Correspondence*		corresps;
+	Correspondence* corresps;
 	CorrespondenceTree 	tCorrespondences;
 
 	Comparison() : tCorrespondences(0)
@@ -319,8 +319,8 @@ public:
 */
 		bool wasNotEmpty = false;
 		Sound* soundSame = NULL,
-			*soundSameExact = NULL,
-			*soundFirst = NULL;
+			* soundSameExact = NULL,
+			* soundFirst = NULL;
 		int typWas = ST_ERROR;
 		for (int iCol = 0; iCol < nDicts; iCol++)
 		{
@@ -655,8 +655,8 @@ public:
 	int RemoveSingleWordsInColumnsOnce()
 	{
 		int* nInCol = new int[nDicts];
-		Correspondence** cInCol = new Correspondence*[nDicts];
-		Correspondence** cToDel = new Correspondence*[nRowsAll];
+		Correspondence** cInCol = new Correspondence * [nDicts];
+		Correspondence** cToDel = new Correspondence * [nRowsAll];
 		int ncToDel = 0;
 
 		Correspondence* c;
@@ -770,7 +770,7 @@ public:
 	void ConflateRows()
 	{
 		Correspondence* c1,
-			*c2;
+			* c2;
 		//CorrespondenceTree::COMPAREFLAGS cf = {false, true, true};
 		CorrespondenceTree::COMPAREFLAGS cf = { true, true, true };
 	Anew:

@@ -14,9 +14,9 @@ public:
 
 		int const maxnWF = 100;
 
-		WordForm*** wfsOrphans = new WordForm**[nDicts];
+		WordForm*** wfsOrphans = new WordForm * *[nDicts];
 		int* nsOrphans = new int[nDicts];
-		for (int i = 0; i < nDicts; i++) wfsOrphans[i] = new WordForm*[maxnWF];
+		for (int i = 0; i < nDicts; i++) wfsOrphans[i] = new WordForm * [maxnWF];
 
 		//for (int iDictThis = 0; iDictThis < nDicts; iDictThis++)
 		//{
@@ -125,7 +125,7 @@ public:
 					{
 						if (iRow < nsOrphans[i])
 						{
-							WordForm**wfs = wfsOrphans[i];
+							WordForm** wfs = wfsOrphans[i];
 							/////////////////////////////СДЕЛАТЬ!
 							trOut->Add(wfs[iRow]->formOrig, IT_TAB);
 							trOut->Add(wfs[iRow]->wordTranslation, IT_MARRQUOTES | IT_TAB);
@@ -184,7 +184,7 @@ public:
 				//СДЕЛАТЬ!!!
 				//wfsOrphans[iDictOrphan][nsOrphans[iDictOrphan]++] = wordOrphan;
 
-				WordForm**wfs = wfsOrphans[iDictOrphan];
+				WordForm** wfs = wfsOrphans[iDictOrphan];
 
 				bool isFound = false;
 				for (int i = 0; i < nsOrphans[iDictOrphan]; i++)

@@ -1,12 +1,12 @@
 ﻿class Comparandum : public OwnNew
 {
 public:
-	WordForm*	wf;
+	WordForm* wf;
 	//LPTSTR 		formIPA;
 	//LPTSTR 		formOrig;
 	//LPTSTR 		translation;
 	LPTSTR		wLength, wF1, wF2, wF3;
-	Sound*		sound;
+	Sound* sound;
 	int			typeOfSegment;
 	TCHAR		chrFragment[8];
 	TCHAR		chrTranscr[8];
@@ -131,21 +131,21 @@ public:
 	//Correspondence*	crspPrevSame;
 	union
 	{
-		Correspondence*	last;
-		Correspondence*	prev;
+		Correspondence* last;
+		Correspondence* prev;
 	};
 	union
 	{
-		Correspondence*	first;
-		Correspondence*	next;
+		Correspondence* first;
+		Correspondence* next;
 	};
-	Correspondence*	crspMain;
+	Correspondence* crspMain;
 
-	Comparandum*	comparanda;
+	Comparandum* comparanda;
 	int				rankAllSoundsSame;
 	int				nSoundsSame;
 	int				nSoundsEmpty;
-	void*			dataExtra;
+	void* dataExtra;
 	int				iUnique;
 	bool			isBeingChanged;
 
@@ -356,7 +356,7 @@ public:
 	{
 		bool			isInGroup;
 		bool			skipInsideGroup;
-		Correspondence*	crspCurrInGroup;
+		Correspondence* crspCurrInGroup;
 	public:
 		Iterator(CorrespondenceTree* _tree, bool _skipInsideGroup = false) : Walker(_tree)
 		{

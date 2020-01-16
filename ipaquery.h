@@ -21,7 +21,7 @@ class Condition : public LinkedElement<Condition>, public OwnNew
 {
 public:
 	LPTSTR		title;
-	void*		dataExtra;
+	void* dataExtra;
 	int			intExtra;
 	int			flags;
 	int			nIterate;
@@ -36,7 +36,7 @@ public:
 		TCHAR		txtCondition[MAX_SZCONDTIONTEXT];
 		//LPTSTR		txtCondition;
 		short		wasAlready;
-		Sound*		sound;
+		Sound* sound;
 
 		Segment(LPTSTR _txt)
 		{
@@ -175,7 +175,7 @@ public:
 		if (sgNext.flag == QF_NOTHING) sgNext.Init(sgmtzr->ipa);
 
 		Sound* sdThis = sgmtzr->Current(),
-			*sdAdjacent;
+			* sdAdjacent;
 
 		if (iSyllableToLook != -1)
 		{
