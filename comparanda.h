@@ -95,7 +95,7 @@ public:
 			//	return L"!!";
 		}
 	}
-	bool IsEqualTo(Comparandum* cmp2, bool doMatchDifferentTypes = false)
+	bool IsEqualTo(Comparandum* cmp2, bool doMatchDifferentTypes = false, bool doIgnoreModifiers = false)
 	{
 		if (typeOfSegment != cmp2->typeOfSegment)
 		{
@@ -111,7 +111,10 @@ public:
 			return !CompareFragmentWith(cmp2);
 		case ST_SOUND:
 			//ВРЕМЕННО
-			return !wcscmp(sound->Symbol, cmp2->sound->Symbol);
+			if (doIgnoreModifiers)
+				return !wcsncmp(sound->Symbol, cmp2->sound->Symbol, 1);
+			else
+				return !wcscmp(sound->Symbol, cmp2->sound->Symbol);
 			//ТОЛЬКО В ОДНОМ СЛОВАРЕ!
 	//			return sound == cmp2->sound;
 		default:

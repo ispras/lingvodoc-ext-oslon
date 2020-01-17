@@ -39,7 +39,7 @@ public:
 				nsOrphans[i] = 0;
 			bool isMatchingRows = false;
 			int nMatchingOrphanRows = 0;
-			bool isMeaningOK;
+			bool isMeaningOK = true;
 
 
 
@@ -182,7 +182,7 @@ public:
 				if (cmpThis.typeOfSegment == ST_ERROR)
 					return ST_UNEQUAL;
 
-				isEqual = cmpThis.IsEqualTo(&cmpInRow, true);
+				isEqual = cmpThis.IsEqualTo(&cmpInRow, true, true);
 				break;
 			case ST_ERROR:
 				wasNotFound = isEqual = (cmpThis.typeOfSegment == ST_ERROR && iCnd == 0);//ни там, ни там не нашли первого согласного (но это временно, ибо надо прописывать в условии)
