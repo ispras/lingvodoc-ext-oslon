@@ -161,21 +161,21 @@ GuessCognates_GetAllOutput(LPTSTR bufIn, int nCols, int nRowsCorresp, int nRowsR
 		Condition* cnd[2];
 		int nCnd;
 
-		if (cmp.nRowsNotOrphan > 10)
-		{
-			cnd[0] = qry.AddCondition(NULL, L"#", NULL, QF_ITERATE, L"Соответствия по двум начальным сегментам");
-			nCnd = 1;
-			cmp.Process(cnd[0], false, false);
-		}
-		else
-		{
+		//if (cmp.nRowsNotOrphan > 10)
+		//{
+		//	cnd[0] = qry.AddCondition(NULL, L"#", NULL, QF_ITERATE,		L"Соответствия по ... начальным сегментам");
+		//	nCnd = 1;
+		//	cmp.Process(cnd[0], false, false);
+		//}
+		//else
+		//{
 			//cnd[0] = qry.AddCondition(L"С", L"#", NULL, QF_ITERATE|QF_OBJECTONLYONCE, L"Соответствия по начальному согласному");
 			//cnd[0] = qry.AddCondition(L"С", L"Г", NULL, QF_ITERATE|QF_OBJECTONLYONCE, L"Соответствия по согласному после первого гласного", 0, 1);
 			//nCnd = 1;
-			cnd[0] = qry.AddCondition(L"С", L"#", NULL, QF_ITERATE | QF_OBJECTONLYONCE, L"Соответствия по начальному согласному");
-			cnd[1] = qry.AddCondition(L"С", L"Г", NULL, QF_ITERATE | QF_OBJECTONLYONCE, L"Соответствия по согласному после первого гласного", 0, 1);
-			nCnd = 2;
-		}
+		cnd[0] = qry.AddCondition(L"С", L"#", NULL, QF_ITERATE | QF_OBJECTONLYONCE, L"Соответствия по начальному согласному");
+		cnd[1] = qry.AddCondition(L"С", L"Г", NULL, QF_ITERATE | QF_OBJECTONLYONCE, L"Соответствия по согласному после первого гласного", 0, 1);
+		nCnd = 2;
+		//}
 
 
 
@@ -202,7 +202,7 @@ GuessCognates_GetAllOutput(LPTSTR bufIn, int nCols, int nRowsCorresp, int nRowsR
 
 		cmp.ProcessAndOutput(&trOut, cnd, nCnd, iDictThis, doLookMeaning);
 
-		//cmp.OutputCorrespondencesWithMaterial(cnd, &trOut, true);
+		//cmp.OutputCorrespondencesWithMaterial(cnd[0], &trOut, true);
 
 		return trOut.Output(bufOut, szOutput, 20, nCols * 2, isBinary);
 	}

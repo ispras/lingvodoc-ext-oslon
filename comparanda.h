@@ -95,10 +95,15 @@ public:
 			//	return L"!!";
 		}
 	}
-	bool IsEqualTo(Comparandum* cmp2)
+	bool IsEqualTo(Comparandum* cmp2, bool doMatchDifferentTypes = false)
 	{
 		if (typeOfSegment != cmp2->typeOfSegment)
-			return false;
+		{
+			if (!doMatchDifferentTypes)
+				return false;
+			else if ((typeOfSegment == ST_SOUND && cmp2->typeOfSegment == ST_FRAGMENT) || (typeOfSegment == ST_FRAGMENT && cmp2->typeOfSegment == ST_SOUND))
+				typeOfSegment = ST_SOUND;
+		}
 
 		switch (typeOfSegment)
 		{

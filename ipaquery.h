@@ -14,6 +14,11 @@
 #define ST_FRAGMENT				12
 #define ST_FRAGMENTMAYBE		13
 
+#define ST_EQUAL				100
+#define ST_BOTHNOTFOUND			101
+#define ST_ONEEMPTY				102
+#define ST_UNEQUAL				120
+
 #define MAX_SZCONDTIONTEXT		10
 
 class Condition;//надо без этого!
