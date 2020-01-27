@@ -7,7 +7,7 @@ public:
 	{
 		//	nRowsAll = 0;
 	}
-	void ProcessAndOutput(InfoTree* trOut, Condition** cndMatch, int nCnd, int iDictThis, bool doLookMeaning)
+	void ProcessAndOutput(InfoTree* trOut, Condition** cndMatch, int nCnd, int iDictThis, int lookMeaning)
 	{
 		TCHAR buf[1000];
 
@@ -83,11 +83,15 @@ public:
 					}
 
 					isMeaningOK = true;
-					if (doLookMeaning)
+					if (lookMeaning)
 					{
+						/////////////////////////////////////////////////////////
+						int __ns; if (lookMeaning == 1) __ns = 3; else __ns = -1;
+						/////////////////////////////////////////////////////////
+
 						for (int iCol = 0; iCol < nDicts; iCol++)
 						{
-							if (isMeaningOK = (corr->comparanda[iCol].wf && !wordThis->CompareTranslationWith(corr->comparanda[iCol].wf, 3)))
+							if (isMeaningOK = (corr->comparanda[iCol].wf && !wordThis->CompareTranslationWith(corr->comparanda[iCol].wf, __ns)))
 							{
 								break;
 							}
@@ -107,7 +111,7 @@ public:
 						OutputCorrespondence(corr, trOut);
 					}
 
-					nMatchingOrphanRows = LookForMatchingOrphans(wordThis, NULL, cndMatch, nCnd, true, corr, wfsOrphans, nsOrphans, doLookMeaning, nMatchingOrphanRows, maxnWF);
+					nMatchingOrphanRows = LookForMatchingOrphans(wordThis, NULL, cndMatch, nCnd, true, corr, wfsOrphans, nsOrphans, lookMeaning, nMatchingOrphanRows, maxnWF);
 
 				NextRow:;
 				}
@@ -219,7 +223,7 @@ public:
 			return ST_UNEQUAL;
 	}
 
-	int LookForMatchingOrphans(WordForm* wThis, Dictionary* dicThis, Condition** cndMatch, int nCnd, bool isAnd, Correspondence* corr, WordForm*** wfsOrphans, int* nsOrphans, bool doLookMeaning, int nMatchingOrphanRows, int maxnWF)
+	int LookForMatchingOrphans(WordForm* wThis, Dictionary* dicThis, Condition** cndMatch, int nCnd, bool isAnd, Correspondence* corr, WordForm*** wfsOrphans, int* nsOrphans, int lookMeaning, int nMatchingOrphanRows, int maxnWF)
 	{
 		for (int iDictOrphan = 0; iDictOrphan < nDicts; iDictOrphan++)
 		{
@@ -244,7 +248,20 @@ public:
 				}
 
 
-				if (doLookMeaning && wThis->CompareTranslationWith(wOrphan, 3)) continue;
+				//int __ns = (lookMeaning == 1) ? 3 : -1;//НЕ ПАШЕТ
+				//if (lookMeaning && wThis->CompareTranslationWith(wOrphan, __ns)) continue;
+				//if (lookMeaning && wThis->CompareTranslationWith(wOrphan, lookMeaning == 1 ? 3 : -1)) continue;//НЕ ПАШЕТ
+
+
+
+
+				if (lookMeaning)
+				{
+					int __ns;
+					if (lookMeaning == 1) __ns = 3; else __ns = -1;
+					if (wThis->CompareTranslationWith(wOrphan, __ns)) continue;
+				}
+
 				if (nsOrphans[iDictOrphan] >= maxnWF) continue;
 
 				//СДЕЛАТЬ!!!

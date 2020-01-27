@@ -22,6 +22,12 @@ public:
 	{
 		if (!wordTranslation || !w2->wordTranslation)
 			return 10;
+
+		if (nSymb == -1)
+		{
+			return wcscmp(wordTranslation, w2->wordTranslation);
+		}
+
 		int sz1 = wcslen(wordTranslation);
 		int sz2 = wcslen(w2->wordTranslation);
 		if (sz1 < nSymb)

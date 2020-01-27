@@ -127,7 +127,7 @@ extern "C" {int
 #else
 int __declspec(dllexport)
 #endif
-GuessCognates_GetAllOutput(LPTSTR bufIn, int nCols, int nRowsCorresp, int nRowsRest, int iDictThis, int doLookMeaning, LPTSTR bufOut, int flags)
+GuessCognates_GetAllOutput(LPTSTR bufIn, int nCols, int nRowsCorresp, int nRowsRest, int iDictThis, int lookMeaning, LPTSTR bufOut, int flags)
 {
 	if (nCols < 1 || nCols > 1000)
 		return -1;
@@ -200,7 +200,7 @@ GuessCognates_GetAllOutput(LPTSTR bufIn, int nCols, int nRowsCorresp, int nRowsR
 		}
 */
 
-		cmp.ProcessAndOutput(&trOut, cnd, nCnd, iDictThis, doLookMeaning);
+		cmp.ProcessAndOutput(&trOut, cnd, nCnd, iDictThis, lookMeaning);
 
 		//cmp.OutputCorrespondencesWithMaterial(cnd[0], &trOut, true);
 
