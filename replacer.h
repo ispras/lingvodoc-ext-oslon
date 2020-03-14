@@ -23,7 +23,7 @@ public:
 	IPA*				ipa;
 	Rule**				rules;
 	LPTSTR				lang;
-	LPTSTR				txtRules;
+	//LPTSTR				txtRules;
 	//LPTSTR				txtRules[2];
 	//Pool<TCHAR>			pString;
 	Pool<Rule>			pRules;
@@ -31,7 +31,7 @@ public:
 
 	Replacer() : pConditions(10), pRules(50)
 	{
-		txtRules = NULL;
+		//txtRules = NULL;
 		//txtRules[0] = txtRules[1] = NULL;
 
 		int nipaAll = 0xffff;
@@ -46,9 +46,8 @@ public:
 		//	delete txtRules[0];
 		//if (txtRules[1])
 		//	delete txtRules[1];
-		if (txtRules)
-			delete txtRules;
-		//УТЕЧКА
+		//if (txtRules)
+		//	delete txtRules;
 	}
 	void Set(IPA* _ipa, LPTSTR _lang)
 	{
@@ -73,7 +72,9 @@ public:
 			for (Rule* r = rule; r; r = r->nextSame)
 			{
 				int szOldToReplace = wcslen(r->symbolToReplace);
-				if (szNewToReplace > szOldToReplace || (szNewToReplace == szOldToReplace && isConditional && !r->condition))
+				if (szNewToReplace > szOldToReplace
+					|| (szNewToReplace == szOldToReplace && !r->condition)
+					)
 				{
 					rule->nextSame = r;
 					break;
@@ -95,7 +96,7 @@ public:
 	}
 	void AddRules(LPTSTR _txtRules)
 	{
-		txtRules = new TCHAR[wcslen(_txtRules) + 1];
+		LPTSTR txtRules = new TCHAR[wcslen(_txtRules) + 1];
 		lstrcpy(txtRules, _txtRules);
 
 		Parser parser(txtRules, L">,|_\r\n", PARSER_SKIPNEWLINE | PARSER_SKIPSPACES | PARSER_SKIPTABS);
@@ -141,6 +142,7 @@ public:
 				isCond = false;
 			}
 		}
+		delete[] txtRules;
 	}
 	bool IsCharInTable(TCHAR chr)
 	{
