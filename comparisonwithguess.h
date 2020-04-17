@@ -13,9 +13,9 @@ public:
 
 		int const maxnWF = 100;
 
-		WordForm*** wfsOrphans = new WordForm * *[nDicts];
+		WordForm*** wfsOrphans = new WordForm**[nDicts];
 		int* nsOrphans = new int[nDicts];
-		for (int i = 0; i < nDicts; i++) wfsOrphans[i] = new WordForm * [maxnWF];
+		for (int i = 0; i < nDicts; i++) wfsOrphans[i] = new WordForm*[maxnWF];
 
 		Dictionary* dic = Dict(iDictThis);
 
@@ -131,7 +131,7 @@ public:
 					{
 						if (iRow < nsOrphans[i])
 						{
-							WordForm** wfs = wfsOrphans[i];
+							WordForm**wfs = wfsOrphans[i];
 							/////////////////////////////СДЕЛАТЬ!
 							trOut->Add(wfs[iRow]->formOrig, IT_TAB);
 							trOut->Add(wfs[iRow]->wordTranslation, IT_MARRQUOTES | IT_TAB);
@@ -181,6 +181,7 @@ public:
 
 			switch (cmpInRow.typeOfSegment)
 			{
+			case ST_NULL://????
 			case ST_SOUND:
 			case ST_FRAGMENT:
 				if (cmpThis.typeOfSegment == ST_ERROR)
@@ -196,7 +197,7 @@ public:
 					return ST_UNEQUAL;
 				break;
 			case ST_EMPTYAUTOFILL://такого не бывает?
-			case ST_NONE:
+			case ST_EMPTY:
 				return ST_ONEEMPTY;
 			default:
 				return ST_ERROR;
@@ -267,7 +268,7 @@ public:
 				//СДЕЛАТЬ!!!
 				//wfsOrphans[iDictOrphan][nsOrphans[iDictOrphan]++] = wordOrphan;
 
-				WordForm** wfs = wfsOrphans[iDictOrphan];
+				WordForm**wfs = wfsOrphans[iDictOrphan];
 
 				bool isFound = false;
 				for (int i = 0; i < nsOrphans[iDictOrphan]; i++)
