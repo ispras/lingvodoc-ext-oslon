@@ -1,12 +1,12 @@
 ﻿class Comparandum : public OwnNew
 {
 public:
-	WordForm* wf;
+	WordForm*	wf;
 	//LPTSTR 		formIPA;
 	//LPTSTR 		formOrig;
 	//LPTSTR 		translation;
 	LPTSTR		wLength, wF1, wF2, wF3;
-	Sound* sound;
+	Sound*		sound;
 	int			typeOfSegment;
 	TCHAR		chrFragment[8];
 	TCHAR		chrTranscr[8];
@@ -52,7 +52,7 @@ public:
 		chrFragment[0] = L'\0';
 		isSoundInCognates = false;
 		isSingleInGroup = false;
-		typeOfSegment = ST_NONE;
+		typeOfSegment = ST_EMPTY;
 		sound = NULL;
 	}
 	void SetFragment(LPTSTR text)
@@ -80,7 +80,7 @@ public:
 			//ИСПРАВИТЬ!!! return chrFragment;
 			return &chrFragment[0];
 			//case ST_SOUND:
-		case ST_NONE:
+		case ST_EMPTY:
 			return NULL;
 		default:
 			//ИСПРАВИТЬ!!! return sound->Symbol;
@@ -111,10 +111,10 @@ public:
 			return !CompareFragmentWith(cmp2);
 		case ST_SOUND:
 			//ВРЕМЕННО
-			if (doIgnoreModifiers)
-				return !wcsncmp(sound->Symbol, cmp2->sound->Symbol, 1);
-			else
-				return !wcscmp(sound->Symbol, cmp2->sound->Symbol);
+				//if (doIgnoreModifiers)
+				//	return !wcsncmp(sound->Symbol, cmp2->sound->Symbol, 1);
+				//else
+			return !wcscmp(sound->Symbol, cmp2->sound->Symbol);
 			//ТОЛЬКО В ОДНОМ СЛОВАРЕ!
 	//			return sound == cmp2->sound;
 		default:
@@ -139,21 +139,21 @@ public:
 	//Correspondence*	crspPrevSame;
 	union
 	{
-		Correspondence* last;
-		Correspondence* prev;
+		Correspondence*	last;
+		Correspondence*	prev;
 	};
 	union
 	{
-		Correspondence* first;
-		Correspondence* next;
+		Correspondence*	first;
+		Correspondence*	next;
 	};
-	Correspondence* crspMain;
+	Correspondence*	crspMain;
 
-	Comparandum* comparanda;
+	Comparandum*	comparanda;
 	int				rankAllSoundsSame;
 	int				nSoundsSame;
 	int				nSoundsEmpty;
-	void* dataExtra;
+	void*			dataExtra;
 	int				iUnique;
 	bool			isBeingChanged;
 
@@ -254,6 +254,14 @@ public:
 	int CompareNodeSoundsEtc(Comparandum* cmp1, Comparandum* cmp2)
 	{
 		int res;
+
+		if (cmp1->typeOfSegment == ST_NULL && cmp2->typeOfSegment == ST_NULL)
+			return 0;
+		if (cmp1->typeOfSegment == ST_NULL && cmp2->typeOfSegment != ST_NULL)
+			return 1;
+		if (cmp1->typeOfSegment != ST_NULL && cmp2->typeOfSegment == ST_NULL)
+			return -1;
+
 		if (cmp1->typeOfSegment == ST_FRAGMENT && cmp2->typeOfSegment == ST_FRAGMENT)
 		{
 			if (res = cmp1->CompareFragmentWith(cmp2))
@@ -300,14 +308,17 @@ public:
 
 			bool isCanCompare;
 			if (cf->skipEmpty)
-				isCanCompare = (cmp1->sound && cmp1->typeOfSegment != ST_EMPTYAUTOFILL && cmp2->sound && cmp2->typeOfSegment != ST_EMPTYAUTOFILL);
+				isCanCompare = (cmp1->sound && cmp1->typeOfSegment != ST_EMPTYAUTOFILL
+					&& cmp2->sound && cmp2->typeOfSegment != ST_EMPTYAUTOFILL)
+				|| (cmp1->typeOfSegment == ST_NULL || cmp2->typeOfSegment == ST_NULL);
 			else
 				isCanCompare = true;
 
 			if (isCanCompare)
 			{
 				//isNonNull = true;
-				isNonNull = (cmp1->sound && cmp1->typeOfSegment != ST_EMPTYAUTOFILL && cmp2->sound && cmp2->typeOfSegment != ST_EMPTYAUTOFILL);
+				isNonNull = (cmp1->sound && cmp1->typeOfSegment != ST_EMPTYAUTOFILL
+					&& cmp2->sound && cmp2->typeOfSegment != ST_EMPTYAUTOFILL);
 
 				if (res = CompareNodeSoundsEtc(cmp1, cmp2))
 					return res;
@@ -364,7 +375,7 @@ public:
 	{
 		bool			isInGroup;
 		bool			skipInsideGroup;
-		Correspondence* crspCurrInGroup;
+		Correspondence*	crspCurrInGroup;
 	public:
 		Iterator(CorrespondenceTree* _tree, bool _skipInsideGroup = false) : Walker(_tree)
 		{

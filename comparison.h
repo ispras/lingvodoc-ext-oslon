@@ -34,13 +34,13 @@ public:
 	int			nSoundCorresp;
 	bool		isProcessed;
 	//DictInfo*	dictinfos;
-	Condition* condition;
+	Condition*	condition;
 
 	//Dictionary*	dics;
 	LinkedList<Dictionary> llDicts;
 
 
-	Correspondence* corresps;
+	Correspondence*		corresps;
 	CorrespondenceTree 	tCorrespondences;
 
 	Comparison() : tCorrespondences(0)
@@ -264,10 +264,10 @@ public:
 	}
 	void AddCognateListText(LPTSTR sIn)
 	{
-		//LPTSTR _sin = StoreString(sIn);/*это просто копия*/
+		LPTSTR _sin = StoreString(sIn);/*это просто копия*/
 
-		Parser parser(sIn, L"\t");
-		//Parser parser(_sin, L"\t");
+		//Parser parser(sIn, L"\t");
+		Parser parser(_sin, L"\t");
 		LPTSTR wordOrig, wordIPA;
 
 		nRowsAll = 1; //пока только одна строчка
@@ -319,14 +319,14 @@ public:
 */
 		bool wasNotEmpty = false;
 		Sound* soundSame = NULL,
-			* soundSameExact = NULL,
-			* soundFirst = NULL;
+			*soundSameExact = NULL,
+			*soundFirst = NULL;
 		int typWas = ST_ERROR;
 		for (int iCol = 0; iCol < nDicts; iCol++)
 		{
 			Dictionary* dic = Dict(iCol);
 
-			if (!crsp->comparanda[iCol].sound || crsp->comparanda[iCol].typeOfSegment == ST_EMPTYAUTOFILL)
+			if (!crsp->comparanda[iCol].sound || crsp->comparanda[iCol].typeOfSegment == ST_EMPTYAUTOFILL || crsp->comparanda[iCol].typeOfSegment == ST_NULL)
 				continue;
 
 			if (typWas != ST_ERROR && crsp->comparanda[iCol].typeOfSegment != typWas)
@@ -369,19 +369,14 @@ public:
 			}
 		}
 
+		if (!soundSame) soundSame = soundFirst;
+		if (!soundSame) return false;//строка выродилась
+
 		if (crsp->nSoundsEmpty)
 		{
-			if (!soundSame)
-				soundSame = soundFirst;
-
-			if (!soundSame)//строка выродилась
-			{
-				return false;
-			}
-
 			for (int iCol = 0; iCol < nDicts; iCol++)
 			{
-				if (!crsp->comparanda[iCol].sound/*formIPA*/)
+				if (crsp->comparanda[iCol].typeOfSegment != ST_NULL && !crsp->comparanda[iCol].sound/*formIPA*/)
 				{
 					crsp->comparanda[iCol].sound = soundSame;
 					crsp->comparanda[iCol].typeOfSegment = ST_EMPTYAUTOFILL;
@@ -405,6 +400,7 @@ public:
 	bool ExtractSoundsFromCognates(Correspondence* crsp, Condition* cnd)
 	{
 		bool wasFragment = false,
+			wasPrev = false,
 			wasFragmentMaybe = false;
 		for (int iCol = 0; iCol < nDicts; iCol++)
 		{
@@ -412,8 +408,11 @@ public:
 				Dict(iCol)->ipa,
 				&crsp->comparanda[iCol].sound,
 				(crsp->comparanda[iCol].wf ? crsp->comparanda[iCol].wf->formIPA : NULL),
-				crsp->comparanda[iCol].chrFragment))
+				crsp->comparanda[iCol].chrFragment
+				, &wasPrev))
 			{
+			case ST_NULL://т.е. факультативное ничто
+				break;
 			case ST_ERROR:
 				return false;
 			case ST_FRAGMENT:
@@ -424,6 +423,11 @@ public:
 			}
 		}
 
+		if (cnd->flags & QF_DELETENULLPREV)
+		{
+			if (!wasPrev) return false;
+		}
+
 		if ((cnd->sgThis.feature[FT_CLASS] == FT_VOWEL) && wasFragmentMaybe)
 			ConfirmOrAnnullMaybeDiphthongs(crsp, wasFragment);
 
@@ -432,12 +436,21 @@ public:
 
 	void AcceptAndInsertRow(Correspondence* crsp)
 	{
+		//if (crsp->comparanda[1].wf)
+		//if (!wcscmp(crsp->comparanda[1].wf->formOrig,L"gez, gez (Nom)"))
+		//int q=0;
 		for (int iCol = 0; iCol < nDicts; iCol++)
 		{
-			if (crsp->comparanda[iCol].sound && crsp->comparanda[iCol].typeOfSegment != ST_EMPTYAUTOFILL)
+			switch (crsp->comparanda[iCol].typeOfSegment)
+			{
+			case ST_NULL:
 				crsp->comparanda[iCol].isSoundInCognates = true;
+			case ST_EMPTYAUTOFILL:
+				break;
+			default:
+				crsp->comparanda[iCol].isSoundInCognates = !!crsp->comparanda[iCol].sound;
+			}
 		}
-
 
 		Correspondence* c;
 		CorrespondenceTree::COMPAREFLAGS cf = { true, false, false };
@@ -503,7 +516,6 @@ public:
 			{
 				if (i_nEmtpy != CountEmptyColsInRow(&corresps[iRow]))//вроде это не глупость, т.к. сперва надо добавить более полные
 					continue;
-
 				if (!ExtractSoundsFromCognates(&corresps[iRow], cnd))
 					continue;
 
@@ -548,18 +560,19 @@ public:
 
 		if (!FillEmptySoundsInRow(crsp))//, true))
 		{
-			//			out(L"выродилось!");
-			//			outrow(crsp, false, true);
+			//out(L"выродилось!");
+			//outrow(crsp, false, true);
 			return;
 		}
 
 		Correspondence* cFound = (Correspondence*)tCorrespondences.Add(crsp);
+		//out(cFound);
 		if (cFound)
 		{
-			//			out(L"не передобавился ряд:");
-			//			outrow(crsp);
-			//			out(L"ибо был такой:");
-			//			outrow(cFound);
+			//out(L"не передобавился ряд:");
+			//outrow(crsp);
+			//out(L"ибо был такой:");
+			//outrow(cFound);
 		}
 		//а лучше сразу добавлять их как-то правильно, а потом ещё раз, что ль, фильтровать???
 		//иначе все звуки стали нулями — но это временно! надо не ...
@@ -596,31 +609,33 @@ public:
 		for (int iCol = 0; iCol < nDicts; iCol++)
 		{
 			cTo->comparanda[iCol].isSoundInCognates = cFrom->comparanda[iCol].isSoundInCognates;
-			if (!cTo->comparanda[iCol].isSoundInCognates && !cTo->comparanda[iCol].wf)
+			if (cTo->comparanda[iCol].isSoundInCognates)
+			{
+				cTo->comparanda[iCol].sound = cFrom->comparanda[iCol].sound;
+				cTo->comparanda[iCol].typeOfSegment = cFrom->comparanda[iCol].typeOfSegment;
+				wcscpy(cTo->comparanda[iCol].chrFragment, cFrom->comparanda[iCol].chrFragment);
+			}
+			else if (!cTo->comparanda[iCol].wf)
 			{
 				cTo->comparanda[iCol].sound = NULL;
-				cTo->comparanda[iCol].typeOfSegment = ST_NONE;
+				cTo->comparanda[iCol].typeOfSegment = ST_EMPTY;
 			}
-			//cTo->comparanda[iCol].sound = cFrom->comparanda[iCol].sound;
-			//cTo->comparanda[iCol].typeOfSegment = cFrom->comparanda[iCol].typeOfSegment;
-			//cTo->comparanda[iCol].isSingleInGroup = cFrom->comparanda[iCol].isSingleInGroup;
-			//wcscpy(cTo->comparanda[iCol].chrFragment, cFrom->comparanda[iCol].chrFragment);
 		}
+		//cTo->comparanda[0].sound
 	}
 	void SetSingleColsToNull(Correspondence* cMain)
 	{
 		//tCorrespondences.Remove(cMain);
-
 		for (int iCol = 0; iCol < nDicts; iCol++)
 		{
 			if (cMain->comparanda[iCol].isSingleInGroup)
 			{
 				cMain->comparanda[iCol].isSoundInCognates = false;
 
-				if (!cMain->comparanda[iCol].wf)
+				if (!cMain->comparanda[iCol].wf && cMain->comparanda[iCol].typeOfSegment != ST_NULL)
 				{//т.е. обнуляем только те, что были добавлены ниже
 					cMain->comparanda[iCol].sound = NULL;
-					cMain->comparanda[iCol].typeOfSegment = ST_NONE;
+					cMain->comparanda[iCol].typeOfSegment = ST_EMPTY;
 				}
 			}
 		}
@@ -629,7 +644,6 @@ public:
 	void SetNextRowAsGroupHead(Correspondence* cMain)
 	{
 		Correspondence* cFirst = cMain->first;
-
 		tCorrespondences.Remove(cMain);
 
 		SetSingleColsToNull(cMain);
@@ -649,14 +663,14 @@ public:
 	}
 	void RemoveSingleWordsInColumns()
 	{
-		while (RemoveSingleWordsInColumnsOnce());
+		while (RemoveSingleWordsInColumnsOnce());//ломалось на коми
 		//RemoveSingleWordsInColumnsOnce();
 	}
 	int RemoveSingleWordsInColumnsOnce()
 	{
 		int* nInCol = new int[nDicts];
-		Correspondence** cInCol = new Correspondence * [nDicts];
-		Correspondence** cToDel = new Correspondence * [nRowsAll];
+		Correspondence** cInCol = new Correspondence*[nDicts];
+		Correspondence** cToDel = new Correspondence*[nRowsAll];
 		int ncToDel = 0;
 
 		Correspondence* c;
@@ -770,7 +784,7 @@ public:
 	void ConflateRows()
 	{
 		Correspondence* c1,
-			* c2;
+			*c2;
 		//CorrespondenceTree::COMPAREFLAGS cf = {false, true, true};
 		CorrespondenceTree::COMPAREFLAGS cf = { true, true, true };
 	Anew:

@@ -73,6 +73,8 @@ public:
 			{
 				int szOldToReplace = wcslen(r->symbolToReplace);
 				if (szNewToReplace > szOldToReplace
+					//|| (szNewToReplace == szOldToReplace && isConditional && !r->condition)
+					//|| (szNewToReplace == szOldToReplace && !isConditional && !r->condition)
 					|| (szNewToReplace == szOldToReplace && !r->condition)
 					)
 				{
@@ -172,7 +174,7 @@ public:
 
 		if (isSymbolsOK && rule->condition)
 		{
-			isSymbolsOK = rule->condition->Check(sgmntzr);
+			isSymbolsOK = (rule->condition->Check(sgmntzr) == ST_SOUND);
 		}
 
 		if (szToReplace == 0)
@@ -209,7 +211,7 @@ public:
 
 			if (isSymbolsOK && rule->condition)
 			{
-				isSymbolsOK = rule->condition->Check(sgmntzr);
+				isSymbolsOK = (rule->condition->Check(sgmntzr) == ST_SOUND);
 			}
 
 			if (szToReplace == 0)

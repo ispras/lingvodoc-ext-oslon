@@ -7,6 +7,7 @@
 #include <wctype.h>
 #include <stdlib.h>
 #include "unicode.h"
+#include "stringfunctions.h"
 #include "strings.h"
 //typedef LPTSTR string;
 #else
@@ -14,6 +15,7 @@
 //#include <wchar.h> пока не выходит
 #include "windows.h"
 #include "winnt.h"
+#include "strings.h"
 #include <seh.h>
 
 
@@ -22,13 +24,8 @@
 #endif
 
 #include "gui_win32.h"
-
-#endif
-
-
-
 #include "stringfunctions.h"
-
+#endif
 
 #ifdef DEBUGMEM
 #include "вывод отладки памяти.h"
@@ -248,8 +245,8 @@ CognateAnalysis_GetAllOutput(LPTSTR bufIn, int nCols, int nRows, LPTSTR bufOut, 
 
 		Query qry;
 		qry.AddCondition(L"Г", L"#", NULL, QF_ITERATE, L"Соответствия по начальному гласному");
-		qry.AddCondition(L"С", L"#", NULL, QF_ITERATE, L"Соответствия по начальному согласному");
-		qry.AddCondition(L"Г", L"С", NULL, QF_ITERATE, L"Соответствия по гласному первого слога после согласного", 0, 1);
+		qry.AddCondition(L"(С", L"#", NULL, QF_ITERATE, L"Соответствия по начальному согласному");
+		qry.AddCondition(L"Г", L"(С", NULL, QF_ITERATE | QF_DELETENULLPREV, L"Соответствия по гласному первого слога (после согласного)", 0, 1);
 		qry.AddCondition(L"С", L"Г", NULL, QF_ITERATE, L"Соответствия по согласному после гласного первого слога", 0, 1);
 		qry.AddCondition(L"Г", L"С", NULL, QF_ITERATE, L"Соответствия по гласному второго слога", 0, 2);
 
@@ -312,7 +309,7 @@ CognateDistanceAnalysis_GetAllOutput(LPTSTR bufIn, int nCols, int nRows, LPTSTR 
 		Query qry;
 
 		qry.AddCondition(L"Г", L"#", NULL, QF_ITERATE, L"Соответствия по начальному гласному (вес: 1)", 1);
-		qry.AddCondition(L"Г", L"С", NULL, QF_OBJECTONLYONCE | QF_ITERATE, L"Соответствия по гласному после первого согласного (вес: 1)", 1);
+		qry.AddCondition(L"Г", L"(С", NULL, QF_OBJECTONLYONCE | QF_DELETENULLPREV | QF_ITERATE, L"Соответствия по гласному первого слога (после согласного) (вес: 1)", 1);
 		qry.AddCondition(L"С", L"#", NULL, QF_ITERATE, L"Соответствия по начальному согласному (вес: 5)", 5);
 
 		if (!isBinary)
@@ -652,11 +649,12 @@ ExtractCognateRows(LPTSTR bufIn, LPTSTR bufOut)
 	InfoTree trOut(L"ЕДИНИЧНЫЙ РЯД");
 
 	cmp.AddCognateListText(bufIn);
+	cmp.nRowsCorresp = 1;
 
 	Query qry;
 	qry.AddCondition(L"Г", L"#", NULL, QF_ITERATE, L"Соответствия по начальному гласному");
-	qry.AddCondition(L"С", L"#", NULL, QF_ITERATE, L"Соответствия по начальному согласному");
-	qry.AddCondition(L"Г", L"С", NULL, QF_ITERATE, L"Соответствия по гласному первого слога после согласного", 0, 1);
+	qry.AddCondition(L"(С", L"#", NULL, QF_ITERATE, L"Соответствия по начальному согласному");
+	qry.AddCondition(L"Г", L"(С", NULL, QF_ITERATE | QF_DELETENULLPREV, L"Соответствия по гласному первого слога (после согласного)", 0, 1);
 	qry.AddCondition(L"С", L"Г", NULL, QF_ITERATE, L"Соответствия по согласному после гласного первого слога", 0, 1);
 	qry.AddCondition(L"Г", L"С", NULL, QF_ITERATE, L"Соответствия по гласному второго слога", 0, 2);
 

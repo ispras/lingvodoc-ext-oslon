@@ -6,27 +6,30 @@
 #define QF_ITERATE					0x40
 #define QF_OBJECTONLYONCE			0x100
 #define QF_CONTEXTONLYONCE			0x2000
+#define QF_OPTIONAL					0x4000
+#define QF_DELETENULLPREV			0x8000
 
 #define ST_ERROR				-1
-#define ST_NONE					0
+#define ST_EMPTY				0
 #define ST_EMPTYAUTOFILL		10
 #define ST_SOUND				11
 #define ST_FRAGMENT				12
 #define ST_FRAGMENTMAYBE		13
+#define ST_NULL					16
 
 #define ST_EQUAL				100
 #define ST_BOTHNOTFOUND			101
 #define ST_ONEEMPTY				102
 #define ST_UNEQUAL				120
 
-#define MAX_SZCONDTIONTEXT		10
+#define MAX_SZCONDTIONTEXT		20
 
 class Condition;//надо без этого!
 class Condition : public LinkedElement<Condition>, public OwnNew
 {
 public:
 	LPTSTR		title;
-	void* dataExtra;
+	void*		dataExtra;
 	int			intExtra;
 	int			flags;
 	int			nIterate;
@@ -41,7 +44,7 @@ public:
 		TCHAR		txtCondition[MAX_SZCONDTIONTEXT];
 		//LPTSTR		txtCondition;
 		short		wasAlready;
-		Sound* sound;
+		Sound*		sound;
 
 		Segment(LPTSTR _txt)
 		{
@@ -65,19 +68,21 @@ public:
 		bool Init(IPA* ipa)
 		{
 			if (!txtCondition[0]) return false;
-
+			flag = 0;
 			LPTSTR txtFeature;
 
 			switch (txtCondition[0])
 			{
 			case L'#':
-				flag = QF_BEGINNING;//в конце иначе	
+				flag |= QF_BEGINNING;//в конце иначе	
 				break;
 			case L'Г'://это временно, потом будут разные группы звуков, прямо внутри форм можно будет
 			case L'С':
 				txtFeature = txtCondition;
 				goto FindFeature;
-			case L'-':
+			case L'(':
+				flag |= QF_OPTIONAL;
+			case L'-'://это пока не действует
 			case L'+':
 				txtFeature = txtCondition + 1;
 			FindFeature:
@@ -88,33 +93,38 @@ public:
 					{
 						feature[ftFound->iType] = ftFound->value;
 						feature[FT_CLASS] = ftFound->iClass;
-						flag = QF_FEATURE;
+						flag |= QF_FEATURE;
 					}
 				}
 				break;
 			default:
 				if (sound = ipa->GetSound(txtCondition[0]))
-					flag = QF_SOUND;
+					flag |= QF_SOUND;
 			}
 			return true;
 		}
-		bool Check(Sound* sdThis, int iFType)
+		int Check(Sound* sdThis, int iFType = FT_NFEATURETYPES - 1) //последнее непонятно
 		{
-			if (flag & QF_FEATURE)
+			if (sdThis)
 			{
-				if (!CompareFeaturesOr(sdThis->feature, feature, iFType))//т.е. текущая годится как контекст в принципе, но только по классу, т.е. С или Г!!
+				if (flag & QF_FEATURE)
 				{
-					wasAlready++;
-					return true;
+					if (!CompareFeaturesOr(sdThis->feature, feature, iFType))//т.е. текущая годится как контекст в принципе, но только по классу, т.е. С или Г!!
+					{
+						wasAlready++;
+						return ST_SOUND;
+					}
 				}
-				else
-					return false;
+				else if (flag & QF_SOUND)
+				{
+					if (sdThis == sound)
+						return ST_SOUND;
+				}
 			}
-			else if (flag & QF_SOUND)
-			{
-				return (sdThis == sound);
-			}
-			return true;
+			if (flag & QF_OPTIONAL)
+				return ST_NULL;
+			else
+				return ST_EMPTY;
 		}
 	};
 
@@ -173,14 +183,14 @@ public:
 		return sgThis.feature[iFType] & val;
 	}
 
-	bool Check(Segmentizer* sgmtzr)
+	int Check(Segmentizer* sgmtzr, bool *wasLeft = NULL)
 	{
 		if (sgThis.flag == QF_NOTHING) sgThis.Init(sgmtzr->ipa);
 		if (sgPrev.flag == QF_NOTHING) sgPrev.Init(sgmtzr->ipa);
 		if (sgNext.flag == QF_NOTHING) sgNext.Init(sgmtzr->ipa);
 
 		Sound* sdThis = sgmtzr->Current(),
-			* sdAdjacent;
+			*sdAdjacent;
 
 		if (iSyllableToLook != -1)
 		{
@@ -193,56 +203,47 @@ public:
 					iCurSyllable++;
 			}
 			if (iCurSyllable != iSyllableToLook)
-				return false;
+				return ST_EMPTY;
 		}
 
 		if ((flags & QF_OBJECTONLYONCE) && (sgThis.wasAlready))
-			return false;
+			return ST_EMPTY;
 
 		if ((flags & QF_CONTEXTONLYONCE) && ((sgPrev.wasAlready) || (sgNext.wasAlready)))
-			return false;
+			return ST_EMPTY;
 		//		if ((flags & QF_OBJECTINCONTEXTONLYONCE) && wasObjectInContext)
 		//			return false;
 
+				//проставляет wasAlready??
 		sgPrev.Check(sdThis, FT_CLASS);
 		sgNext.Check(sdThis, FT_CLASS);
 
-		if (!sgThis.Check(sdThis, FT_CLASS))
-			return false;
+		int ret = sgThis.Check(sdThis, FT_CLASS);
+
+		if (ret == ST_EMPTY) return ST_EMPTY;
 
 		if (sgPrev.flag & QF_BEGINNING)
 		{
-			if (sgmtzr->IsFirst())
-				return true;
-			else
-				return false;
+			if (!sgmtzr->IsFirst()) return ST_EMPTY;
+		}
+		else if (sgPrev.flag != QF_NOTHING)
+		{
+			switch (sgPrev.Check(sgmtzr->PeekPrevious()))
+			{
+			case ST_EMPTY:
+				return ST_EMPTY;
+			case ST_SOUND:
+				if (wasLeft) *wasLeft = true;
+			}
 		}
 
-		if (sgPrev.flag != QF_NOTHING)
-		{
-			sdAdjacent = sgmtzr->PeekPrevious();
-			if (!sdAdjacent)
-				return false;
-			if (!CompareFeaturesOr(sdAdjacent->feature, sgPrev.feature))
-				return true;
-			else
-				return false;
-		}
 		if (sgNext.flag != QF_NOTHING)
-		{
-			sdAdjacent = sgmtzr->PeekNext();
-			if (!sdAdjacent)
-				return false;
-			if (!CompareFeaturesOr(sdAdjacent->feature, sgNext.feature))
-				return true;
-			else
-				return false;
-		}
+			if (sgNext.Check(sgmtzr->PeekNext()) == ST_EMPTY) return ST_EMPTY;
 
-		return true;
+		return ret;
 	}
 
-	int GetFirstMatchingFragment(IPA* ipa, Sound** sound, LPTSTR wIn, LPTSTR wOut)
+	int GetFirstMatchingFragment(IPA* ipa, Sound** sound, LPTSTR wIn, LPTSTR wOut, bool* wasPrev = NULL)
 	{
 		Segmentizer sgmntzr(ipa, wIn);
 		Reset();
@@ -250,25 +251,32 @@ public:
 		if (!wIn)
 		{
 			if (sound) *sound = NULL;
-			return ST_NONE;
+			return ST_EMPTY;
 		}
 
-		bool isYes = false;
+		int ret;
 		while (sgmntzr.GetNext())
 		{
-			isYes |= Check(&sgmntzr);
-			if (isYes) break;
+			ret = Check(&sgmntzr, wasPrev);
+			if (ret == ST_SOUND || ret == ST_NULL)
+				break;
 		}
 
-		if (!isYes)
+		switch (ret)
+		{
+		case ST_ERROR:
+		case ST_EMPTY:
 			return ST_ERROR;
+		case ST_NULL:
+			if (sound) *sound = NULL;
+			if (wOut) 	wcscpy(wOut, L"");
+			break;
+		case ST_SOUND:
+			if (sound) *sound = sgmntzr.Current();
+			if (wOut) 	wcscpy(wOut, (*sound)->Symbol);
+		}
 
-		if (sound) *sound = sgmntzr.Current();
-		if (wOut) 	wcscpy(wOut, (*sound)->Symbol);
-
-		int ret = ST_SOUND;
-
-		if (wOut && flags & QF_ITERATE)
+		if (ret == ST_SOUND && wOut && flags & QF_ITERATE)
 		{
 			Condition c(sgThis.txtCondition, NULL, NULL);//вот так неловко копируем условие
 			Sound* sPrev = sgmntzr.PeekPrevious(); //это пока так, ибо нет движения назад
@@ -278,7 +286,7 @@ public:
 
 			while ((sNext = sgmntzr.GetNext()) && i <= nIterate)
 			{
-				if (c.Check(&sgmntzr))
+				if (c.Check(&sgmntzr) == ST_SOUND)
 				{
 					ret = ST_FRAGMENT;
 					wcscat(wOut, sNext->Symbol);
@@ -372,7 +380,7 @@ public:
 			cndCur = cndCur->next;
 		return cndCur;
 	}
-	bool CheckCurrentCondition()//вроде лишнее
+	int CheckCurrentCondition()//вроде лишнее
 	{
 		if (!cndCur)
 			return false;

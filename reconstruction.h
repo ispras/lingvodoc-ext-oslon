@@ -87,7 +87,7 @@ public:
 						NULL))//chr))
 					{
 					case ST_ERROR:
-					case ST_NONE:
+					case ST_EMPTY:
 						break;
 					default:
 						txt = L"?";
