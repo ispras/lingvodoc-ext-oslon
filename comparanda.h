@@ -80,6 +80,8 @@ public:
 			//ИСПРАВИТЬ!!! return chrFragment;
 			return &chrFragment[0];
 			//case ST_SOUND:
+		case ST_NULL:
+			return NULL;
 		case ST_EMPTY:
 			return NULL;
 		default:

@@ -436,9 +436,6 @@ public:
 
 	void AcceptAndInsertRow(Correspondence* crsp)
 	{
-		//if (crsp->comparanda[1].wf)
-		//if (!wcscmp(crsp->comparanda[1].wf->formOrig,L"gez, gez (Nom)"))
-		//int q=0;
 		for (int iCol = 0; iCol < nDicts; iCol++)
 		{
 			switch (crsp->comparanda[iCol].typeOfSegment)
@@ -518,7 +515,6 @@ public:
 					continue;
 				if (!ExtractSoundsFromCognates(&corresps[iRow], cnd))
 					continue;
-
 				if (!FillEmptySoundsInRow(&corresps[iRow])) //значит пусто совсем
 					continue;
 

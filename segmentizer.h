@@ -58,6 +58,7 @@ public:
 			pOldInWord = pos;
 
 		TCHAR chr = *pos;
+
 		sound = soundBase = ipa->GetSound(chr);
 
 		if (doSearchModified)

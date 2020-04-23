@@ -47,13 +47,13 @@ public:
 	//	int GetDistance(int iRow, int iCol, Sound* s1, bool isS1, Sound* s2, bool isS2, int factor, bool doAdd = false)
 	int GetDistance(int iRow, int iCol, Comparandum* cmp1, Comparandum* cmp2, int factor, bool doAdd = false)
 	{
+		int distAll = 0;
+
 		bool isS1 = cmp1->isSoundInCognates;
 		bool isS2 = cmp2->isSoundInCognates;
 
 		Segmentizer sgmntzr1(ipa, cmp1->chrFragment);
 		Segmentizer sgmntzr2(ipa, cmp2->chrFragment);
-
-		int distAll = 0;
 
 		Sound* s1 = NULL;
 		Sound* s2 = NULL;
@@ -117,6 +117,9 @@ public:
 			}
 			else if (isNotSameType)
 				dist = 0;
+			else if ((cmp1->typeOfSegment == ST_NULL && (cmp2->typeOfSegment == ST_SOUND || cmp2->typeOfSegment == ST_FRAGMENT))
+				|| (cmp2->typeOfSegment == ST_NULL && (cmp1->typeOfSegment == ST_SOUND || cmp1->typeOfSegment == ST_FRAGMENT)))
+				dist = 4;
 			else
 				dist = 0;
 
@@ -130,8 +133,6 @@ public:
 			langs[iRow].dist[iCol] += distAll;
 		else
 			langs[iRow].dist[iCol] = distAll;
-
-
 
 		return distAll;
 	}

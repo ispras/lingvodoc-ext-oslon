@@ -7,7 +7,6 @@
 #include <wctype.h>
 #include <stdlib.h>
 #include "unicode.h"
-#include "stringfunctions.h"
 #include "strings.h"
 //typedef LPTSTR string;
 #else
@@ -24,8 +23,13 @@
 #endif
 
 #include "gui_win32.h"
-#include "stringfunctions.h"
+
 #endif
+
+
+
+#include "stringfunctions.h"
+
 
 #ifdef DEBUGMEM
 #include "вывод отладки памяти.h"
@@ -308,9 +312,9 @@ CognateDistanceAnalysis_GetAllOutput(LPTSTR bufIn, int nCols, int nRows, LPTSTR 
 
 		Query qry;
 
-		qry.AddCondition(L"Г", L"#", NULL, QF_ITERATE, L"Соответствия по начальному гласному (вес: 1)", 1);
-		qry.AddCondition(L"Г", L"(С", NULL, QF_OBJECTONLYONCE | QF_DELETENULLPREV | QF_ITERATE, L"Соответствия по гласному первого слога (после согласного) (вес: 1)", 1);
-		qry.AddCondition(L"С", L"#", NULL, QF_ITERATE, L"Соответствия по начальному согласному (вес: 5)", 5);
+		//		qry.AddCondition(L"Г", L"#", NULL, QF_ITERATE,	 					L"Соответствия по начальному гласному (вес: 1)", 1);
+		//		qry.AddCondition(L"Г", L"(С", NULL, QF_OBJECTONLYONCE|QF_DELETENULLPREV|QF_ITERATE, 	L"Соответствия по гласному первого слога (после согласного) (вес: 1)", 1);
+		qry.AddCondition(L"(С", L"#", NULL, QF_ITERATE, L"Соответствия по начальному согласному (вес: 5)", 5);
 
 		if (!isBinary)
 			cmp.OutputLanguageList(&trOut);
@@ -323,7 +327,6 @@ CognateDistanceAnalysis_GetAllOutput(LPTSTR bufIn, int nCols, int nRows, LPTSTR 
 			cmp.Process(cnd, true, true);
 
 			DistanceMatrix mtx(cmp.llDicts.first->ipa, cmp.nDicts);
-
 
 			cmp.CalculateDistances(&mtxSum, cnd->intExtra);
 
@@ -590,26 +593,38 @@ GetPhonemeDifference(LPTSTR bufIn, LPTSTR bufOut)
 
 	Parser parser(bufIPA, L" ");
 	for (int i = 0; parser.Next() && i <= 1; i++)
-		cmp[i].SetFragment(parser.Current());
+	{
+		if (parser.Current()[0] == L'@')
+			cmp[i].typeOfSegment = ST_NULL;
+		else
+			cmp[i].SetFragment(parser.Current());
+	}
 
 	trOut.Add(NULL, IT_HORLINE);
 
 	for (int i = 0; i <= 1; i++)
 	{
-		Segmentizer sgmntzr(dic.ipa, cmp[i].Text());
-
-		Sound* s;
-		while (s = sgmntzr.GetNext())
+		if (cmp[i].typeOfSegment != ST_NULL)
 		{
-			in = trOut.Add(s->Symbol, IT_SQRBRK | IT_LINEBRKAFTER);
-			for (int iFType = 0; iFType < FT_NFEATURETYPES; iFType++)
-			{
-				trOut.Add(dic.ipa->nameFeature[iFType], IT_COLUMN | IT_TAB);
-				trOut.Add(strcpyh(buf, s->feature[iFType], 8), IT_COLUMN | IT_TAB);
+			Segmentizer sgmntzr(dic.ipa, cmp[i].Text());
 
-				dic.ipa->GetFeatureNames(s->feature, iFType, buf);
-				trOut.Add(buf, IT_LINEBRKAFTER);
+			Sound* s;
+			while (s = sgmntzr.GetNext())
+			{
+				in = trOut.Add(s->Symbol, IT_SQRBRK | IT_LINEBRKAFTER);
+				for (int iFType = 0; iFType < FT_NFEATURETYPES; iFType++)
+				{
+					trOut.Add(dic.ipa->nameFeature[iFType], IT_COLUMN | IT_TAB);
+					trOut.Add(strcpyh(buf, s->feature[iFType], 8), IT_COLUMN | IT_TAB);
+
+					dic.ipa->GetFeatureNames(s->feature, iFType, buf);
+					trOut.Add(buf, IT_LINEBRKAFTER);
+				}
 			}
+		}
+		else
+		{
+			in = trOut.Add(cmp[i].Text(), IT_LINEBRKAFTER);
 		}
 		trOut.Add(NULL, IT_HORLINE);
 	}
