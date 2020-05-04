@@ -7,7 +7,7 @@ public:
 	{
 		//	nRowsAll = 0;
 	}
-	void ProcessAndOutput(InfoTree* trOut, Condition** cndMatch, int nCnd, int iDictThis, int lookMeaning)
+	void ProcessAndOutput(InfoTree* trOut, Condition** cndMatch, int nCnd, int iDictThis, int lookMeaning, int onlyOrphans)
 	{
 		TCHAR buf[1000];
 
@@ -28,7 +28,7 @@ public:
 		WordForm* wordThis;
 		for (BTree::Walker w(&dic->trWordForms); wordThis = (WordForm*)w.Next();)
 		{
-			if (wordThis->flags & WF_HASLINK) continue;
+			if (onlyOrphans && wordThis->flags & WF_HASLINK) continue;
 
 			trOut->Add(L"Предложения для", IT_SPACE);
 			trOut->Add(wordThis->formOrig, IT_SPACE);
@@ -40,10 +40,6 @@ public:
 			bool isMatchingRows = false;
 			int nMatchingOrphanRows = 0;
 			bool isMeaningOK = true;
-
-
-
-
 
 			if (nRowsNotOrphan < 10)//ПРОИЗВОЛЬНО!
 				nMatchingOrphanRows = LookForMatchingOrphans(wordThis, dic, cndMatch, nCnd, false, NULL, wfsOrphans, nsOrphans, true, nMatchingOrphanRows, maxnWF);
