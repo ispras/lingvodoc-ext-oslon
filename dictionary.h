@@ -235,7 +235,6 @@ public:
 				if (dictinfo.sTranscRules)
 					replacers[dictinfo.iReplacer].AddRules(dictinfo.sTranscRules);
 			}
-
 			int szIPA = ReplaceSymbols(wordOrig, buf/*, 1000*/, dictinfo.iReplacer);
 			wordIPA = pString.New(buf, szIPA + 1);
 			ipa->SubmitWordForm(wordIPA);

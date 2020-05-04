@@ -28,13 +28,14 @@ public:
 	//Pool<TCHAR>			pString;
 	Pool<Rule>			pRules;
 	Pool<Condition>		pConditions;
+	int 				nipaAll;
 
 	Replacer() : pConditions(10), pRules(50)
 	{
 		//txtRules = NULL;
 		//txtRules[0] = txtRules[1] = NULL;
 
-		int nipaAll = 0xffff;
+		nipaAll = 0xffff;
 		int sz = sizeof(Rule*)*nipaAll;
 		rules = (Rule**)malloc(sz);//не new, чтоб избежать к-ра в цикле
 		memset(rules, 0, sz);
@@ -237,6 +238,17 @@ public:
 		LPTSTR bIn = bInBeg;
 		while (*bIn)
 		{
+			TCHAR unsigned b = *bIn;
+			if (b < 0 || b >= nipaAll)
+				//if (*bIn >= nipaAll)
+				//ПУТАНИЦА СО ЗНАКОМ ИЗ-ЗА ЗНАКОВОСТИ wchar_t
+			{
+				wcsncpy(bOut, L"?", 1);
+				bOut++;
+				bIn++;
+				continue;
+			}
+
 			Rule* rule = rules[*bIn];
 
 			if (!rule || rule->condition)
@@ -247,8 +259,8 @@ public:
 		*bOut = L'\0';
 		//2-й проход
 
-		TCHAR buf[2000];//где-то выше проверять длину; длину буфера где-то задавать; или динамически то выделять
-		wcscpy(buf, bOutBeg);
+		TCHAR buf[2001];//где-то выше проверять длину; длину буфера где-то задавать; или динамически то выделять
+		wcsncpy(buf, bOutBeg, 2000);
 		bInBeg = buf;
 
 		Segmentizer sgmntzr(ipa, bInBeg, false);

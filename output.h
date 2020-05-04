@@ -522,6 +522,7 @@ void Comparison::OutputCorrespondence(Correspondence* c, InfoTree* trOut, InfoNo
 	for (int iCol = 0; iCol < nDicts; iCol++)
 	{
 		WordForm* wf = c->comparanda[iCol].wf;
+
 		trOut->Add((wf ? wf->formOrig : NULL), IT_TAB, inTo);
 		trOut->Add((wf ? wf->wordTranslation : NULL), IT_MARRQUOTES | IT_TAB, inTo);
 	}
