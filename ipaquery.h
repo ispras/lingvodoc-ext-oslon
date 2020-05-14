@@ -254,7 +254,7 @@ public:
 			return ST_EMPTY;
 		}
 
-		int ret;
+		int ret = ST_ERROR;
 		while (sgmntzr.GetNext())
 		{
 			ret = Check(&sgmntzr, wasPrev);

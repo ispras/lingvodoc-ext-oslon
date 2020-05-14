@@ -208,9 +208,6 @@ public:
 				if (iCol == 0)
 					wfFirstInRow = NULL;
 
-				if (iRow == 81)
-					iRow = iRow;
-
 				if (iRow == -1)
 					dic->GetDictInfo(parser);
 				else

@@ -159,51 +159,13 @@ GuessCognates_GetAllOutput(LPTSTR bufIn, int nCols, int nRowsCorresp, int nRowsR
 
 
 		Query qry;
-		Condition* cnd[2];
-		int nCnd;
+		const int nCnd = 2;
+		Condition* cnd[nCnd];
 
-		//if (cmp.nRowsNotOrphan > 10)
-		//{
-		//	cnd[0] = qry.AddCondition(NULL, L"#", NULL, QF_ITERATE,		L"Соответствия по ... начальным сегментам");
-		//	nCnd = 1;
-		//	cmp.Process(cnd[0], false, false);
-		//}
-		//else
-		//{
-			//cnd[0] = qry.AddCondition(L"С", L"#", NULL, QF_ITERATE|QF_OBJECTONLYONCE, L"Соответствия по начальному согласному");
-			//cnd[0] = qry.AddCondition(L"С", L"Г", NULL, QF_ITERATE|QF_OBJECTONLYONCE, L"Соответствия по согласному после первого гласного", 0, 1);
-			//nCnd = 1;
 		cnd[0] = qry.AddCondition(L"С", L"#", NULL, QF_ITERATE | QF_OBJECTONLYONCE, L"Соответствия по начальному согласному");
 		cnd[1] = qry.AddCondition(L"С", L"Г", NULL, QF_ITERATE | QF_OBJECTONLYONCE, L"Соответствия по согласному после первого гласного", 0, 1);
-		nCnd = 2;
-		//}
-
-
-
-		//cmp.ProcessGuess();
-
-/*
-
-		Query qry;
-		qry.AddCondition(L"Г", L"#", NULL, QF_ITERATE,						L"Соответствия по начальному гласному");
-		qry.AddCondition(L"С", L"#", NULL, QF_ITERATE,						L"Соответствия по начальному согласному");
-		qry.AddCondition(L"Г", L"С", NULL, QF_ITERATE,						L"Соответствия по гласному первого слога после согласного", 0, 1);
-		qry.AddCondition(L"С", L"Г", NULL, QF_ITERATE,						L"Соответствия по согласному после гласного первого слога", 0, 1);
-		qry.AddCondition(L"Г", L"С", NULL, QF_ITERATE,						L"Соответствия по гласному второго слога", 0, 2);
-
-		for (Condition* cnd = qry.FirstCondition(); cnd; cnd = qry.NextCondition())
-		{
-			//cmp.Process(cnd, false, false);
-			//cmp.Process(cnd, false, true);
-			//cmp.Process(cnd, true, false);
-			((Comparison*)&cmp)->Process(cnd, false, false);
-			cmp.OutputCorrespondencesWithMaterial(cnd, &trOut);
-		}
-*/
 
 		cmp.ProcessAndOutput(&trOut, cnd, nCnd, iDictThis, lookMeaning, onlyOrphans);
-
-		//cmp.OutputCorrespondencesWithMaterial(cnd[0], &trOut, true);
 
 		return trOut.Output(bufOut, szOutput, 20, nCols * 2, isBinary);
 	}
@@ -312,8 +274,8 @@ CognateDistanceAnalysis_GetAllOutput(LPTSTR bufIn, int nCols, int nRows, LPTSTR 
 
 		Query qry;
 
-		//		qry.AddCondition(L"Г", L"#", NULL, QF_ITERATE,	 					L"Соответствия по начальному гласному (вес: 1)", 1);
-		//		qry.AddCondition(L"Г", L"(С", NULL, QF_OBJECTONLYONCE|QF_DELETENULLPREV|QF_ITERATE, 	L"Соответствия по гласному первого слога (после согласного) (вес: 1)", 1);
+		qry.AddCondition(L"Г", L"#", NULL, QF_ITERATE, L"Соответствия по начальному гласному (вес: 1)", 1);
+		qry.AddCondition(L"Г", L"(С", NULL, QF_OBJECTONLYONCE | QF_DELETENULLPREV | QF_ITERATE, L"Соответствия по гласному первого слога (после согласного) (вес: 1)", 1);
 		qry.AddCondition(L"(С", L"#", NULL, QF_ITERATE, L"Соответствия по начальному согласному (вес: 5)", 5);
 
 		if (!isBinary)

@@ -78,7 +78,7 @@ public:
 	Pool<InfoNode>	pNodes;
 	InfoNode* 		ndRoot;
 
-	InfoTree(LPTSTR title = NULL) : pString(2000), pNodes(1000)
+	InfoTree(LPTSTR title = NULL) : pString(10000), pNodes(1000)
 	{
 		if (title)
 			ndRoot = new (pNodes.New()) InfoNode(title, 0);
@@ -108,7 +108,8 @@ public:
 
 		if (data)
 		{
-			data = pString.New(data, wcslen(data) + 1);
+			int sz = wcslen(data);
+			data = pString.New(data, sz + 1);
 			if (!data)
 			{
 				data = L"[...]";

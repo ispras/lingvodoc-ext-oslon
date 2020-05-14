@@ -24,7 +24,6 @@ public:
 		trOut->Add(buf, IT_LINEBRKAFTER);
 
 		trOut->HorLine();
-
 		WordForm* wordThis;
 		for (BTree::Walker w(&dic->trWordForms); wordThis = (WordForm*)w.Next();)
 		{
@@ -106,7 +105,6 @@ public:
 
 						OutputCorrespondence(corr, trOut);
 					}
-
 					nMatchingOrphanRows = LookForMatchingOrphans(wordThis, NULL, cndMatch, nCnd, true, corr, wfsOrphans, nsOrphans, lookMeaning, nMatchingOrphanRows, maxnWF);
 
 				NextRow:;
@@ -234,7 +232,6 @@ public:
 			{
 				if (wOrphan == wThis) continue;
 				if (wOrphan->flags & WF_HASLINK) continue;
-
 
 				switch (MatchSegment(wMatching, wOrphan, cndMatch, nCnd, isAnd, dicMatching, dic))
 				{

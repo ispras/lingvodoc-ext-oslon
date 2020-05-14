@@ -237,6 +237,7 @@ public:
 			}
 			int szIPA = ReplaceSymbols(wordOrig, buf/*, 1000*/, dictinfo.iReplacer);
 			wordIPA = pString.New(buf, szIPA + 1);
+
 			ipa->SubmitWordForm(wordIPA);
 		}
 		return wordIPA;
