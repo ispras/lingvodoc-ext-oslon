@@ -523,7 +523,7 @@ void Comparison::OutputCorrespondence(Correspondence* c, InfoTree* trOut, InfoNo
 	{
 		WordForm* wf = c->comparanda[iCol].wf;
 
-		trOut->Add((wf ? wf->formOrig : NULL), IT_TAB, inTo);
+		trOut->Add((wf ? wf->formOrig : NULL), IT_TAB | (c->comparanda[iCol].isSingleInGroup*IT_PARENTHESES), inTo);
 		trOut->Add((wf ? wf->wordTranslation : NULL), IT_MARRQUOTES | IT_TAB, inTo);
 	}
 }

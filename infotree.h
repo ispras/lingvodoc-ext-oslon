@@ -20,7 +20,8 @@
 #define IT_COLUMNWITHSPACES	0x10000
 #define IT_SPACE	 		0x100000
 #define IT_SQRBRK			0x200000
-#define IT_MARRQUOTES		0x400000
+#define IT_PARENTHESES		0x400000
+#define IT_MARRQUOTES		0x800000
 
 class InfoNode
 {
@@ -355,12 +356,16 @@ public:
 		{
 			isLnBrk = false;
 
+			if (flags & IT_PARENTHESES)
+			{
+				lstrcpy(posOut, TEXT("("));
+				posOut++;
+			}
 			if (flags & IT_ASTERISK)
 			{
 				lstrcpy(posOut, TEXT("*"));
 				posOut++;
 			}
-
 			if (flags & IT_SQRBRK)
 			{
 				lstrcpy(posOut, TEXT("["));
@@ -388,7 +393,11 @@ public:
 				lstrcpy(posOut, TEXT("]"));
 				posOut++;
 			}
-
+			if (flags & IT_PARENTHESES)
+			{
+				lstrcpy(posOut, TEXT(")"));
+				posOut++;
+			}
 			if (flags & IT_COLUMN)
 			{
 				lstrcpy(posOut, TEXT(": "));

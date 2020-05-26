@@ -625,21 +625,22 @@ public:
 			{
 				cMain->comparanda[iCol].isSoundInCognates = false;
 
-				if (!cMain->comparanda[iCol].wf && cMain->comparanda[iCol].typeOfSegment != ST_NULL)
-				{//т.е. обнуляем только те, что были добавлены ниже
-					cMain->comparanda[iCol].sound = NULL;
-					cMain->comparanda[iCol].typeOfSegment = ST_EMPTY;
-				}
+				//if (!cMain->comparanda[iCol].wf && cMain->comparanda[iCol].typeOfSegment != ST_NULL)
+				//{//т.е. обнуляем только те, что были добавлены ниже
+				cMain->comparanda[iCol].sound = NULL;
+				cMain->comparanda[iCol].typeOfSegment = ST_EMPTY;
+				//}
 			}
 		}
 		//tCorrespondences.Add(cMain);
 	}
+	/*
 	void SetNextRowAsGroupHead(Correspondence* cMain)
 	{
 		Correspondence* cFirst = cMain->first;
 		tCorrespondences.Remove(cMain);
 
-		SetSingleColsToNull(cMain);
+		SetSingleColsToNull(cMain);//ТАМ ПОМЕНЯЛОСЬ
 
 		CopySoundsToRow(cMain, cFirst);
 
@@ -654,12 +655,15 @@ public:
 		ReaddRow(cMain, true);
 		ReaddRow(cFirst, true);
 	}
+*/
+/*
 	void RemoveSingleWordsInColumns()
 	{
 		while (RemoveSingleWordsInColumnsOnce());//ломалось на коми
 		//RemoveSingleWordsInColumnsOnce();
 	}
-	int RemoveSingleWordsInColumnsOnce()
+*/
+	void RemoveSingleWordsInColumns()
 	{
 		int* nInCol = new int[nDicts];
 		Correspondence** cInCol = new Correspondence*[nDicts];
@@ -670,6 +674,9 @@ public:
 		Correspondence* cStart = NULL;
 		for (CorrespondenceTree::Iterator it(&tCorrespondences); c = it.Next();)
 		{
+			//if (c->comparanda[0].wf)
+			//out(c->comparanda[0].wf->formOrig);
+
 			if (it.IsStartOfGroup())
 			{
 				cStart = c;
@@ -680,7 +687,6 @@ public:
 					cInCol[iCol] = NULL;
 				}
 			}
-
 			for (int iCol = 0; iCol < nDicts; iCol++)
 			{
 				if (c->comparanda[iCol].wf)
@@ -692,88 +698,155 @@ public:
 
 			if (it.IsEndOfGroup())
 			{
+				bool wasSingle = false;
 				for (int iCol = 0; iCol < nDicts; iCol++)
 				{
 					if (nInCol[iCol] == 1)
 					{
-						bool isAlreadyAddedForDelete = false;
-						for (int iiCol = 0; iiCol < nDicts; iiCol++)
-						{
-							if (cStart->comparanda[iiCol].isSingleInGroup)
-							{
-								isAlreadyAddedForDelete = true;
-								break;
-							}
-						}
+						wasSingle = true;
 
 						cStart->comparanda[iCol].isSingleInGroup = true;
-
-						if (!isAlreadyAddedForDelete)
-						{
-							cToDel[ncToDel] = cInCol[iCol];
-							ncToDel++;
-						}
+						cInCol[iCol]->comparanda[iCol].isSingleInGroup = true;
 					}
+				}
+				if (wasSingle)
+				{
+					cToDel[ncToDel] = cStart;
+					ncToDel++;
 				}
 			}
 		}
 
 		for (int i = 0; i < ncToDel; i++)
 		{
-			Correspondence* cMain = cToDel[i]->crspMain;
-			if (cMain) //т.е. в группе
-			{
-				cToDel[i]->RemoveFromGroup();
-				//ReaddRow(cToDel[i], true);
-				cToDel[i]->iUnique = tCorrespondences.GetUniqueID();
+			tCorrespondences.Remove(cToDel[i]);
+			cToDel[i]->iUnique = tCorrespondences.GetUniqueID();
 
-				if (tCorrespondences.Add(cToDel[i]))
-					;//out(L"ААА!");
-//out(L"убрали из группы и вставили в древо:");
-//outrow(cToDel[i]);
-
-				if (!cMain->isBeingChanged)
-				{
-					//out(L"меняем заголовок ИЗ группы!");
-					//outrow(cMain);
-					cMain->isBeingChanged = true;
-					if (!tCorrespondences.Remove(cMain))
-						;//out(L"ООООО!");
-
-					SetSingleColsToNull(cMain);
-
-					ReaddRow(cMain, false);
-				}
-			}
-			else  //т.е. заголовок группы
-			{
-				cMain = cToDel[i];
-				if (!cMain->first)
-					;//ничего не делать, она сама теперь не заголовок, т.к. вся группа ушла
-				else
-				{
-					//out(L"убираем САМ заголовок");
-					//outrow(cMain);
-					SetNextRowAsGroupHead(cMain);
-				}
-			}
+			SetSingleColsToNull(cToDel[i]);
+			ReaddRow(cToDel[i], false);
 		}
-
-		for (CorrespondenceTree::Iterator it(&tCorrespondences); c = it.Next();)
-		{
-			//if (it.IsStartOfGroup())
-			c->isBeingChanged = false;
-			for (int iCol = 0; iCol < nDicts; iCol++)
-				c->comparanda[iCol].isSingleInGroup = false;
-		}
-
 
 		delete[] nInCol;
 		delete[] cInCol;
 		delete[] cToDel;
-
-		return ncToDel;
 	}
+	/*
+		int RemoveSingleWordsInColumnsOnce()
+		{
+			int* nInCol = new int[nDicts];
+			Correspondence** cInCol = new Correspondence*[nDicts];
+			Correspondence** cToDel = new Correspondence*[nRowsAll];
+			int ncToDel = 0;
+
+			Correspondence* c;
+			Correspondence* cStart = NULL;
+			for (CorrespondenceTree::Iterator it(&tCorrespondences); c = it.Next();)
+			{
+				if (it.IsStartOfGroup())
+				{
+					cStart = c;
+
+					for (int iCol = 0; iCol < nDicts; iCol++)
+					{
+						nInCol[iCol] = 0;
+						cInCol[iCol] = NULL;
+					}
+				}
+
+				for (int iCol = 0; iCol < nDicts; iCol++)
+				{
+					if (c->comparanda[iCol].wf)
+					{
+						nInCol[iCol]++;
+						cInCol[iCol] = c;
+					}
+				}
+
+				if (it.IsEndOfGroup())
+				{
+					for (int iCol = 0; iCol < nDicts; iCol++)
+					{
+						if (nInCol[iCol] == 1)
+						{
+							bool isAlreadyAddedForDelete = false;
+							for (int iiCol = 0; iiCol < nDicts; iiCol++)
+							{
+								if (cStart->comparanda[iiCol].isSingleInGroup)
+								{
+									isAlreadyAddedForDelete = true;
+									break;
+								}
+							}
+
+							cStart->comparanda[iCol].isSingleInGroup = true;
+
+							if (!isAlreadyAddedForDelete)
+							{
+								cToDel[ncToDel] = cInCol[iCol];
+								ncToDel++;
+							}
+						}
+					}
+				}
+			}
+
+			for (int i = 0; i < ncToDel; i++)
+			{
+				Correspondence* cMain = cToDel[i]->crspMain;
+				if (cMain) //т.е. в группе
+				{
+					cToDel[i]->RemoveFromGroup();
+					//ReaddRow(cToDel[i], true);
+					cToDel[i]->iUnique = tCorrespondences.GetUniqueID();
+
+					if (tCorrespondences.Add(cToDel[i]))
+						;//out(L"ААА!");
+	//out(L"убрали из группы и вставили в древо:");
+	//outrow(cToDel[i]);
+
+					if (!cMain->isBeingChanged)
+					{
+	//out(L"меняем заголовок ИЗ группы!");
+	//outrow(cMain);
+						cMain->isBeingChanged = true;
+						if (!tCorrespondences.Remove(cMain))
+							;//out(L"ООООО!");
+
+						SetSingleColsToNull(cMain);
+
+						ReaddRow(cMain, false);
+					}
+				}
+				else  //т.е. заголовок группы
+				{
+					cMain = cToDel[i];
+					if (!cMain->first)
+						;//ничего не делать, она сама теперь не заголовок, т.к. вся группа ушла
+					else
+					{
+	//out(L"убираем САМ заголовок");
+	//outrow(cMain);
+						SetNextRowAsGroupHead(cMain);
+					}
+				}
+			}
+
+			for (CorrespondenceTree::Iterator it(&tCorrespondences); c = it.Next();)
+			{
+				//if (it.IsStartOfGroup())
+				c->isBeingChanged = false;
+				for (int iCol = 0; iCol < nDicts; iCol++)
+					c->comparanda[iCol].isSingleInGroup = false;
+			}
+
+
+			delete[] nInCol;
+			delete[] cInCol;
+			delete[] cToDel;
+
+			return ncToDel;
+		}
+	*/
 	void ConflateRows()
 	{
 		Correspondence* c1,
