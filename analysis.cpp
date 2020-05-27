@@ -299,7 +299,7 @@ CognateDistanceAnalysis_GetAllOutput(LPTSTR bufIn, int nCols, int nRows, LPTSTR 
 		}
 
 
-		int threshold = 50;
+		int threshold = 80;
 
 		Condition* cnd = qry.AddCondition(NULL, NULL, NULL, 0, L"Суммарная матрица");
 		cmp.RemoveDistancesIfTooFew(&mtxSum, threshold);

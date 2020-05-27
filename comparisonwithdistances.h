@@ -31,13 +31,14 @@ public:
 		{
 			//if (dictinfos[i].nFilledSoundCorresp);
 
-			int percent;
-			if (nSoundCorresp)
-				percent = (Dict(i)->dictinfo.nFilledSoundCorresp * 100) / nSoundCorresp;
-			else
-				percent = 0;
+			//int percent;
+			//if (nSoundCorresp)
+			//	percent = (Dict(i)->dictinfo.nFilledSoundCorresp * 100) / nSoundCorresp;
+			//else
+			//	percent = 0;
 
-			if (percent < threshold)
+			//if (percent < threshold)
+			if (Dict(i)->dictinfo.nFilledSoundCorresp < threshold)
 			{
 				for (int ii = 0; ii < nDicts; ii++)
 				{
