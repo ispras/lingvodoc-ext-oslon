@@ -722,14 +722,9 @@ public:
 			Correspondence* c = cToDel[i];
 			tCorrespondences.Remove(c);
 
-
-			//if (c->comparanda[8].wf && !(wcscmp(L"zən|ʃəma|ʃəm",c->comparanda[8].wf->formOrig)))
-			//int p=0;
-
 			SetSingleColsToNull(c);
 			FillEmptySoundsInRow(c);
-
-			ReaddRow(cToDel[i], true);
+			ReaddRow(c, true);
 		}
 
 
@@ -933,6 +928,7 @@ public:
 	void OutputReconstructedSounds(Condition* cnd, InfoTree* trOut);
 	void OutputReconstructedWords(InfoTree* trOut);
 	void OutputDistances(Condition* cnd, DistanceMatrix* mtx, InfoTree* trOut);
+
 
 };
 

@@ -36,6 +36,17 @@ public:
 		comparisons[6].condition = qry.AddCondition(L"Г", L"С", NULL, QF_ITERATE, L"Соответствия по гласному 3-го слога", 0, 3);
 		comparisons[7].condition = qry.AddCondition(L"С", L"Г", NULL, QF_ITERATE, L"Соответствия по согласному после гласного 3-го слога", 0, 3);
 		comparisons[8].condition = qry.AddCondition(L"Г", L"С", NULL, QF_ITERATE, L"Соответствия по гласному 4-го слога", 0, 4);
+		/*
+				comparisons[0].condition = qry.AddCondition(L"Г", L"#", NULL, QF_ITERATE,						L"Соответствия по начальному гласному");
+				comparisons[1].condition = qry.AddCondition(L"(С", L"#", NULL, QF_ITERATE,						L"Соответствия по начальному согласному");
+				comparisons[2].condition = qry.AddCondition(L"Г", L"(С", NULL, QF_ITERATE|QF_DELETENULLPREV,	L"Соответствия по гласному 1-го слога (после согласного)", 0, 1);
+				comparisons[3].condition = qry.AddCondition(L"С", L"Г", NULL, QF_ITERATE,						L"Соответствия по согласному после гласного первого слога", 0, 1);
+				comparisons[4].condition = qry.AddCondition(L"Г", L"С", NULL, QF_ITERATE,						L"Соответствия по гласному 2-го слога", 0, 2);
+				comparisons[5].condition = qry.AddCondition(L"С", L"Г", NULL, QF_ITERATE,						L"Соответствия по согласному после гласного 2-го слога", 0, 2);
+				comparisons[6].condition = qry.AddCondition(L"Г", L"С", NULL, QF_ITERATE,						L"Соответствия по гласному 3-го слога", 0, 3);
+				comparisons[7].condition = qry.AddCondition(L"С", L"Г", NULL, QF_ITERATE,						L"Соответствия по согласному после гласного 3-го слога", 0, 3);
+				comparisons[8].condition = qry.AddCondition(L"Г", L"С", NULL, QF_ITERATE,						L"Соответствия по гласному 4-го слога", 0, 4);
+		*/
 
 	}
 	~Reconstruction()
