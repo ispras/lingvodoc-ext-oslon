@@ -223,8 +223,8 @@ CognateAnalysis_GetAllOutput(LPTSTR bufIn, int nCols, int nRows, LPTSTR bufOut, 
 		{
 			//cmp.Process(cnd, false, false);
 			//cmp.Process(cnd, false, true);
-			cmp.Process(cnd, true, false);
-			//cmp.Process(cnd, true, true);
+			//cmp.Process(cnd, true, false);
+			cmp.Process(cnd, true, true);
 			cmp.OutputCorrespondencesWithMaterial(cnd, &trOut);
 		}
 
