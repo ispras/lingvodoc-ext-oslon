@@ -553,7 +553,7 @@ public:
 
 		if (!FillEmptySoundsInRow(crsp))//, true))
 		{
-			//out(L"выродилось!");
+			out(L"выродилось!");
 			//outrow(crsp, false, true);
 			return;
 		}
@@ -562,10 +562,10 @@ public:
 		//out(cFound);
 		if (cFound)
 		{
-			//out(L"не передобавился ряд:");
-			//outrow(crsp);
-			//out(L"ибо был такой:");
-			//outrow(cFound);
+			out(L"не передобавился ряд:");
+			//		outrow(crsp);
+			out(L"ибо был такой:");
+			//		outrow(cFound);
 		}
 		//а лучше сразу добавлять их как-то правильно, а потом ещё раз, что ль, фильтровать???
 		//иначе все звуки стали нулями — но это временно! надо не ...
@@ -625,11 +625,11 @@ public:
 			{
 				cMain->comparanda[iCol].isSoundInCognates = false;
 
-				//if (!cMain->comparanda[iCol].wf && cMain->comparanda[iCol].typeOfSegment != ST_NULL)
-				//{//т.е. обнуляем только те, что были добавлены ниже
-				cMain->comparanda[iCol].sound = NULL;
-				cMain->comparanda[iCol].typeOfSegment = ST_EMPTY;
-				//}
+				if (!cMain->comparanda[iCol].wf && cMain->comparanda[iCol].typeOfSegment != ST_NULL)
+				{//т.е. обнуляем только те, что были добавлены ниже
+					cMain->comparanda[iCol].sound = NULL;
+					cMain->comparanda[iCol].typeOfSegment = ST_EMPTY;
+				}
 			}
 		}
 		//tCorrespondences.Add(cMain);
@@ -720,11 +720,10 @@ public:
 		for (int i = 0; i < ncToDel; i++)
 		{
 			tCorrespondences.Remove(cToDel[i]);
-			cToDel[i]->iUnique = tCorrespondences.GetUniqueID();
-
 			SetSingleColsToNull(cToDel[i]);
-			ReaddRow(cToDel[i], false);
+			ReaddRow(cToDel[i], true);
 		}
+
 
 		delete[] nInCol;
 		delete[] cInCol;
