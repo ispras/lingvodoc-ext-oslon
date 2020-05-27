@@ -562,9 +562,9 @@ public:
 		//out(cFound);
 		if (cFound)
 		{
-			//out(L"не передобавился ряд:");
+			//		out(L"не передобавился ряд:");
 			//		outrow(crsp);
-			//out(L"ибо был такой:");
+			//		out(L"ибо был такой:");
 			//		outrow(cFound);
 		}
 		//а лучше сразу добавлять их как-то правильно, а потом ещё раз, что ль, фильтровать???
@@ -621,11 +621,11 @@ public:
 		//tCorrespondences.Remove(cMain);
 		for (int iCol = 0; iCol < nDicts; iCol++)
 		{
-			if (cMain->comparanda[iCol].isSingleInGroup)
+			if (cMain->comparanda[iCol].isSingleInGroup || cMain->comparanda[iCol].typeOfSegment == ST_EMPTYAUTOFILL)
 			{
 				cMain->comparanda[iCol].isSoundInCognates = false;
 
-				if (!cMain->comparanda[iCol].wf && cMain->comparanda[iCol].typeOfSegment != ST_NULL)
+				//if (!cMain->comparanda[iCol].wf && cMain->comparanda[iCol].typeOfSegment != ST_NULL)
 				{//т.е. обнуляем только те, что были добавлены ниже
 					cMain->comparanda[iCol].sound = NULL;
 					cMain->comparanda[iCol].typeOfSegment = ST_EMPTY;
@@ -719,8 +719,16 @@ public:
 
 		for (int i = 0; i < ncToDel; i++)
 		{
-			tCorrespondences.Remove(cToDel[i]);
-			SetSingleColsToNull(cToDel[i]);
+			Correspondence* c = cToDel[i];
+			tCorrespondences.Remove(c);
+
+
+			//if (c->comparanda[8].wf && !(wcscmp(L"zən|ʃəma|ʃəm",c->comparanda[8].wf->formOrig)))
+			//int p=0;
+
+			SetSingleColsToNull(c);
+			FillEmptySoundsInRow(c);
+
 			ReaddRow(cToDel[i], true);
 		}
 
@@ -864,17 +872,20 @@ public:
 					{
 						if (it2.IsStartOfGroup())
 						{
+
 							if (!wasThis)
 								wasThis = (c1 == c2);
 							else
 							{
 								if (!tCorrespondences.CompareNodes(c1, c2, &cf))
 								{
-									//out(L"включаем в группу ряд:");
-									//outrow(c1);
-									//out(L"вот в эту:");
-									//outrow(c2);
-									//outallrows(c1,c2);
+									/*
+									out(L"включаем в группу ряд:");
+									outrow(c1);
+									out(L"вот в эту:");
+									outrow(c2);
+									outallrows(c1,c2);
+									*/
 									tCorrespondences.Remove(c1);
 
 									c1->AddToGroup(c2);
@@ -922,6 +933,7 @@ public:
 	void OutputReconstructedSounds(Condition* cnd, InfoTree* trOut);
 	void OutputReconstructedWords(InfoTree* trOut);
 	void OutputDistances(Condition* cnd, DistanceMatrix* mtx, InfoTree* trOut);
+
 };
 
 #include "output.h"
