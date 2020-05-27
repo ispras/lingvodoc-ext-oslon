@@ -553,7 +553,7 @@ public:
 
 		if (!FillEmptySoundsInRow(crsp))//, true))
 		{
-			out(L"выродилось!");
+			//out(L"выродилось!");
 			//outrow(crsp, false, true);
 			return;
 		}
@@ -562,7 +562,7 @@ public:
 		//out(cFound);
 		if (cFound)
 		{
-			out(L"не передобавился ряд:");
+			//out(L"не передобавился ряд:");
 			//		outrow(crsp);
 			out(L"ибо был такой:");
 			//		outrow(cFound);
