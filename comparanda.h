@@ -263,6 +263,16 @@ public:
 			return 1;
 		if (cmp1->typeOfSegment != ST_NULL && cmp2->typeOfSegment == ST_NULL)
 			return -1;
+		/////////////////////////////////////////////
+
+		if (cmp1->typeOfSegment == ST_EMPTY && cmp2->typeOfSegment == ST_EMPTY)
+			return 0;
+		if (cmp1->typeOfSegment == ST_EMPTY && cmp2->typeOfSegment != ST_EMPTY)
+			return 1;
+		if (cmp1->typeOfSegment != ST_EMPTY && cmp2->typeOfSegment == ST_EMPTY)
+			return -1;
+
+		/////////////////////////////////////////////
 
 		if (cmp1->typeOfSegment == ST_FRAGMENT && cmp2->typeOfSegment == ST_FRAGMENT)
 		{

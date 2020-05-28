@@ -721,10 +721,15 @@ public:
 		{
 			Correspondence* c = cToDel[i];
 			tCorrespondences.Remove(c);
-
+			//out(i);
+			//outrow(c);
 			SetSingleColsToNull(c);
+			//outrow(c);			
 			FillEmptySoundsInRow(c);
+			//outrow(c);
 			ReaddRow(c, true);
+			//co();
+			//outallrows();
 		}
 
 
@@ -928,6 +933,10 @@ public:
 	void OutputReconstructedSounds(Condition* cnd, InfoTree* trOut);
 	void OutputReconstructedWords(InfoTree* trOut);
 	void OutputDistances(Condition* cnd, DistanceMatrix* mtx, InfoTree* trOut);
+
+
+
+
 
 
 };
