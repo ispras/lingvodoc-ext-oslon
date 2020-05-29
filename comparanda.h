@@ -320,17 +320,17 @@ public:
 
 			bool isCanCompare;
 			if (cf->skipEmpty)
-				isCanCompare = (cmp1->sound && cmp1->typeOfSegment != ST_EMPTYAUTOFILL
-					&& cmp2->sound && cmp2->typeOfSegment != ST_EMPTYAUTOFILL)
-				|| (cmp1->typeOfSegment == ST_NULL || cmp2->typeOfSegment == ST_NULL);
+				isCanCompare = ((cmp1->sound || cmp1->typeOfSegment == ST_NULL) && cmp1->typeOfSegment != ST_EMPTYAUTOFILL
+					&& (cmp2->sound || cmp2->typeOfSegment == ST_NULL) && cmp2->typeOfSegment != ST_EMPTYAUTOFILL);
+			//|| (cmp1->typeOfSegment == ST_NULL || cmp2->typeOfSegment == ST_NULL);
 			else
 				isCanCompare = true;
 
 			if (isCanCompare)
 			{
 				//isNonNull = true;
-				isNonNull = (cmp1->sound && cmp1->typeOfSegment != ST_EMPTYAUTOFILL
-					&& cmp2->sound && cmp2->typeOfSegment != ST_EMPTYAUTOFILL);
+				isNonNull = ((cmp1->sound || cmp1->typeOfSegment == ST_NULL) && cmp1->typeOfSegment != ST_EMPTYAUTOFILL
+					&& (cmp2->sound || cmp2->typeOfSegment == ST_NULL) && cmp2->typeOfSegment != ST_EMPTYAUTOFILL);
 
 				if (res = CompareNodeSoundsEtc(cmp1, cmp2))
 					return res;
