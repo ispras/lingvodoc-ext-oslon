@@ -10,7 +10,7 @@ public:
 		Correspondence* c;
 		for (CorrespondenceTree::Iterator it(&tCorrespondences); c = it.Next();)
 		{
-			if (it.IsStartOfGroup())
+			if (it.IsStartOfGroup() && !c->isDoubtful)
 			{
 				for (int iRow = 0; iRow < nDicts; iRow++)
 				{
