@@ -533,22 +533,31 @@ void Comparison::OutputCorrespondencesWithMaterial(Condition* cnd, InfoTree* trO
 	LPTSTR word;
 	Sound* sound;
 
-	InfoNode* inCnd, *inMult, *inOnce, *inMultList;
+	InfoNode* inCnd, *inMultGood, *inMultBad, *inOnce, *inMultListGood, *inMultListBad;
 
 	inCnd = trOut->Add(cnd->title, IT_COLUMN | IT_LINEBRKBEFORE, NULL, false, cnd);
 
+	bool wasGoodGroup = false,
+		wasBadGroup = false;
+
 	if (!doMakeTablesForSingles)
 	{
-		inMultList = trOut->Add(L"Оглавление (только неединичные соответствия)", IT_COLUMN | IT_EMPTYLINEBEFORE | IT_LINEBRKAFTER, inCnd);
-		inMult = trOut->Add(L"Материал — неединичные соответствия", IT_COLUMN | IT_EMPTYLINEBEFORE | IT_LINEBRKAFTER, inCnd);
-		OutputLanguageHeader(trOut, inMult, false);
-		inOnce = trOut->Add(L"Материал — единичные соответствия", IT_COLUMN | IT_EMPTYLINEBEFORE | IT_LINEBRKAFTER, inCnd);
+		inMultListGood = trOut->Add(L"Надёжные ряды", IT_COLUMN | IT_EMPTYLINEBEFORE | IT_LINEBRKAFTER, inCnd);
+		inMultListBad = trOut->Add(L"Сомнительные ряды", IT_COLUMN | IT_EMPTYLINEBEFORE | IT_LINEBRKAFTER, inCnd);
+
+		inMultGood = trOut->Add(L"Материал — надёжные ряды", IT_COLUMN | IT_EMPTYLINEBEFORE | IT_LINEBRKAFTER, inCnd);
+		OutputLanguageHeader(trOut, inMultGood, false);
+
+		inMultBad = trOut->Add(L"Материал — сомнительные ряды", IT_COLUMN | IT_EMPTYLINEBEFORE | IT_LINEBRKAFTER, inCnd);
+		OutputLanguageHeader(trOut, inMultBad, false);
+
+		inOnce = trOut->Add(L"Материал — единичные ряды", IT_COLUMN | IT_EMPTYLINEBEFORE | IT_LINEBRKAFTER, inCnd);
 		OutputLanguageHeader(trOut, inOnce, false);
 	}
 	else
 	{
-		inMultList = trOut->Add(L"Оглавление", IT_COLUMN | IT_EMPTYLINEBEFORE | IT_LINEBRKAFTER, inCnd);
-		inMult = trOut->Add(L"Материал", IT_COLUMN | IT_EMPTYLINEBEFORE | IT_LINEBRKAFTER, inCnd);
+		inMultListBad = inMultListGood = trOut->Add(L"Оглавление", IT_COLUMN | IT_EMPTYLINEBEFORE | IT_LINEBRKAFTER, inCnd);
+		inMultBad = inMultGood = trOut->Add(L"Материал", IT_COLUMN | IT_EMPTYLINEBEFORE | IT_LINEBRKAFTER, inCnd);
 		inOnce = NULL;// inMult;
 		//trOut->Add(NULL, IT_HORLINE, inMult);
 	}
@@ -566,8 +575,12 @@ void Comparison::OutputCorrespondencesWithMaterial(Condition* cnd, InfoTree* trO
 		case false:
 			if (c->IsInGroup() || !doMakeTablesForSingles) break;
 		case true:
-			OutputSoundsHeader(c, trOut, inMultList, false, false, IT_DASH, IT_LINEBRK);
-			inTo = inMult;
+			if (c->isDoubtful)
+				wasBadGroup = true;
+			else
+				wasGoodGroup = true;
+			OutputSoundsHeader(c, trOut, c->isDoubtful ? inMultListBad : inMultListGood, false, false, IT_DASH, IT_LINEBRK);
+			inTo = c->isDoubtful ? inMultBad : inMultGood;
 			OutputSoundsHeader(c, trOut, inTo, true, false, IT_TAB, IT_HORLINE);
 		}
 
@@ -588,6 +601,9 @@ void Comparison::OutputCorrespondencesWithMaterial(Condition* cnd, InfoTree* trO
 		trOut->Add(NULL, IT_HORLINE, inOnce);
 		trOut->Add(NULL, IT_SECTIONBRK, inOnce);
 	}
+
+	if (!wasBadGroup)
+		trOut->Add(L"НЕТ", 0, inMultListBad);
 }
 
 void Comparison::OutputReconstructedWords(InfoTree* trOut)//нельзя тут повторять

@@ -522,7 +522,7 @@ public:
 			RemoveSingleWordsInColumns();
 		if (doConflate)
 			ConflateRows();
-
+		FilterOutBadGroups();
 		CountFilledSoundCorrespondeces();
 
 		isProcessed = true;
@@ -917,6 +917,116 @@ public:
 		//		delete[] cToDel;
 		for (CorrespondenceTree::Iterator it(&tCorrespondences); c1 = it.Next();)
 			c1->isBeingChanged = false;
+
+		ReuniteSingles();
+	}
+
+	void ReuniteSingles()
+	{
+		Correspondence* c,
+			*cMain = NULL;
+		//CorrespondenceTree::COMPAREFLAGS cf = {true, true, true};
+		for (CorrespondenceTree::Iterator it(&tCorrespondences); c = it.Next();)
+		{
+			if (it.IsStartOfGroup())
+			{
+				cMain = c;
+			}
+
+			if (cMain)
+			{
+				for (int iCol = 0; iCol < nDicts; iCol++)
+				{
+					if (c->comparanda[iCol].isSingleInGroup)
+					{
+						//if (c->comparanda[iCol].wf)
+						//if (!wcscmp(c->comparanda[iCol].wf->formOrig,L"ӵукна"))
+						//int p=0;
+						if (cMain->comparanda[iCol].sound)
+						{
+							if (!tCorrespondences.CompareNodeSoundsEtc(&cMain->comparanda[iCol], &c->comparanda[iCol]))
+							{
+								c->comparanda[iCol].isSingleInGroup = false;
+							}
+						}
+					}
+				}
+
+			}
+			if (it.IsEndOfGroup())
+			{
+				cMain = NULL;
+			}
+		}
+	}
+
+	void FilterOutBadGroups()
+	{
+		Correspondence* c, *cStart = NULL;
+		int* nPairs = new int[nDicts*nDicts];
+		int* isColGood = new int[nDicts];
+
+		for (CorrespondenceTree::Iterator it(&tCorrespondences); c = it.Next();)
+		{
+			if (it.IsStartOfGroup())
+			{
+				cStart = c;
+				for (int i = 0; i < nDicts*nDicts; i++)
+					nPairs[i] = 0;
+				for (int i = 0; i < nDicts; i++)
+					isColGood[i] = false;
+			}
+			else if (!c->IsInGroup())
+				continue;
+
+			for (int iCol1 = 0; iCol1 < nDicts; iCol1++)
+			{
+				for (int iCol2 = iCol1 + 1; iCol2 < nDicts; iCol2++)
+				{
+					if (c->comparanda[iCol1].wf && !c->comparanda[iCol1].isSingleInGroup
+						&& c->comparanda[iCol2].wf && !c->comparanda[iCol2].isSingleInGroup)
+					{
+						int n = ++nPairs[iCol1*nDicts + iCol2];
+						if (n >= 4)
+						{
+							//it.TryExitGroup();
+							cStart->isDoubtful = false;
+							isColGood[iCol1] = isColGood[iCol2] = true;
+						}
+					}
+				}
+			}
+			if (it.IsEndOfGroup())
+			{
+				if (!cStart->isDoubtful)
+				{
+					Correspondence* c2;
+					for (CorrespondenceTree::Iterator it2(&tCorrespondences); c2 = it2.Next();)
+					{
+						if (it2.IsStartOfGroup() && cStart != c2 && !c2->isDoubtful)
+						{
+							for (int iCol = 0; iCol < nDicts; iCol++)
+							{
+								if (isColGood[iCol])
+								{
+									if (tCorrespondences.CompareNodeSoundsEtc(&cStart->comparanda[iCol], &c2->comparanda[iCol]))
+									{
+										goto ExitGroup;
+									}
+								}
+							}
+							//всё совпало
+							cStart->isDoubtful = true;
+							break;
+
+						ExitGroup:
+							it2.TryExitGroup();
+						}
+					}
+				}
+			}
+		}
+		delete[] nPairs;
 	}
 
 	void OutputLanguageList(InfoTree* trOut);

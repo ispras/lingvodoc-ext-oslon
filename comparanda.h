@@ -158,6 +158,7 @@ public:
 	void*			dataExtra;
 	int				iUnique;
 	bool			isBeingChanged;
+	bool			isDoubtful;
 
 	Correspondence(int nDicts, int _iRow)
 	{
@@ -177,6 +178,7 @@ public:
 		iUnique = 0;
 		next = last = crspMain = NULL;
 		isBeingChanged = false;
+		isDoubtful = true;
 		dataExtra = NULL;
 	}
 	~Correspondence()
