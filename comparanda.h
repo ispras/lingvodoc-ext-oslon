@@ -13,6 +13,7 @@ public:
 	bool		isReconstructed;
 	bool		isSoundInCognates;
 	bool		isSingleInGroup;
+	bool		isColGood;//ПОЭТОМУ НАДО ДЕЛАТЬ ОТДЕЛЬНЫЙ ЗАГОЛОВОК!!
 
 	Comparandum()
 	{
@@ -52,6 +53,7 @@ public:
 		chrFragment[0] = L'\0';
 		isSoundInCognates = false;
 		isSingleInGroup = false;
+		isColGood = false;
 		typeOfSegment = ST_EMPTY;
 		sound = NULL;
 	}
