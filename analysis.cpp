@@ -277,7 +277,7 @@ CognateDistanceAnalysis_GetAllOutput(LPTSTR bufIn, int nCols, int nRows, LPTSTR 
 
 		qry.AddCondition(L"Г", L"#", NULL, QF_ITERATE, L"Соответствия по начальному гласному (вес: 1)", 1);
 		qry.AddCondition(L"Г", L"(С", NULL, QF_OBJECTONLYONCE | QF_DELETENULLPREV | QF_ITERATE, L"Соответствия по гласному первого слога (после согласного) (вес: 1)", 1);
-		qry.AddCondition(L"(С", L"#", NULL, QF_ITERATE, L"Соответствия по начальному согласному (вес: 5)", 5);
+		qry.AddCondition(L"(С", L"#", NULL, QF_ITERATE, L"Соответствия по начальному согласному (вес: 1)", 1);
 
 		if (!isBinary)
 			cmp.OutputLanguageList(&trOut);

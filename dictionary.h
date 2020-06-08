@@ -120,7 +120,7 @@ public:
 public:
 	//С ЭТИМ СБИВАЕТСЯ ТАБЛИЦА ВИРТУАЛЬНЫХ Ф-ЦИЙ
 	//	Dictionary(int what) : pString(0), pWordForms(0)
-	//	{
+	//	{5
 	//		//ВРЕМЕННО
 	//	}
 	Dictionary() : pString(5000), pWordForms(1000)
