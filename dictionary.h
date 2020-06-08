@@ -233,8 +233,13 @@ public:
 				dictinfo.iReplacer = GuessReplacer(wordOrig);
 
 				if (dictinfo.sTranscRules)
+				{
 					replacers[dictinfo.iReplacer].AddRules(dictinfo.sTranscRules);
+				}
 			}
+			//if (!wcscmp(wordOrig,L"бэрдема"))
+			//int q=0;
+
 			int szIPA = ReplaceSymbols(wordOrig, buf/*, 1000*/, dictinfo.iReplacer);
 			wordIPA = pString.New(buf, szIPA + 1);
 

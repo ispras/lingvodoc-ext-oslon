@@ -68,7 +68,6 @@ public:
 
 			int szNewToReplace = wcslen(replaceWhat);
 
-
 			Rule *ruleLast = NULL;
 			for (Rule* r = rule; r; r = r->nextSame)
 			{
@@ -79,7 +78,7 @@ public:
 					|| (szNewToReplace == szOldToReplace && !r->condition)
 					)
 				{
-					rule->nextSame = r;
+					ruleNew->nextSame = r;
 					break;
 				}
 
@@ -150,49 +149,6 @@ public:
 	bool IsCharInTable(TCHAR chr)
 	{
 		return !!rules[chr];//.symbolToReplace[0] != L'\0';
-	}
-
-	bool ___CopyOrReplaceSymbols(Rule* rule, LPTSTR* bIn, LPTSTR *bOut, Segmentizer* sgmntzr = NULL, int level = 0)
-	{
-		//if (doCondtionFirst && rule->condition)
-
-		if (rule->nextSame)
-		{
-			if (___CopyOrReplaceSymbols(rule->nextSame, bIn, bOut, sgmntzr, level + 1))
-				return true;
-		}
-
-		int szToReplace = wcslen(rule->symbolToReplace);
-
-		bool isSymbolsOK;
-
-		if (szToReplace <= 1)
-			isSymbolsOK = true;
-		else
-		{
-			isSymbolsOK = !wcsncmp(*bIn, rule->symbolToReplace, szToReplace);
-		}
-
-		if (isSymbolsOK && rule->condition)
-		{
-			isSymbolsOK = (rule->condition->Check(sgmntzr) == ST_SOUND);
-		}
-
-		if (szToReplace == 0)
-		{
-			JustCopySymbols(bIn, bOut, 1);
-			return true;
-		}
-		else if (isSymbolsOK)
-		{
-			ReplaceSymbols(bIn, bOut, szToReplace, rule->symbolToReplaceBy);
-			return true;
-		}
-
-		if (level == 0)
-			JustCopySymbols(bIn, bOut, 1);
-
-		return false;
 	}
 
 	void CopyOrReplaceSymbols(Rule* rule, LPTSTR* bIn, LPTSTR *bOut, Segmentizer* sgmntzr = NULL)
@@ -268,8 +224,10 @@ public:
 		bOut = bOutBeg;
 
 		Sound* sdCur;
-		while (sdCur = sgmntzr.GetNext())
+		while (!sgmntzr.IsLast())
 		{
+			sgmntzr.GetNext();
+
 			Rule* rule = rules[sgmntzr.Current1Char()];
 			bIn = sgmntzr.CurrentPos();
 

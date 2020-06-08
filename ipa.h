@@ -592,8 +592,8 @@ public:
 			return NULL;
 		Sound* sd = ipaAll[pChr];
 
-		if (!sd)
-			sd = tblSounds[FT_UNKNOWNSOUND].AddUnknownSound(pChr);
+		//if (!sd)
+		//	sd = tblSounds[FT_UNKNOWNSOUND].AddUnknownSound(pChr);
 		return sd;
 	}
 

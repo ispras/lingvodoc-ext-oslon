@@ -59,19 +59,19 @@ public:
 
 		TCHAR chr = *pos;
 
-		sound = soundBase = ipa->GetSound(chr);
-
-		if (doSearchModified)
+		if (sound = soundBase = ipa->GetSound(chr))
 		{
-			int	feature[FT_NFEATURETYPES];
-			TCHAR chrWithMod[9];
-			int nPostModifiers = ipa->GetPostModifiers(pos, chrWithMod, feature);
-			pos += nPostModifiers;
+			if (doSearchModified)
+			{
+				int	feature[FT_NFEATURETYPES];
+				TCHAR chrWithMod[9];
+				int nPostModifiers = ipa->GetPostModifiers(pos, chrWithMod, feature);
+				pos += nPostModifiers;
 
-			if (nPostModifiers)
-				sound = ipa->FindModifiedSound(soundBase, feature);
+				if (nPostModifiers)
+					sound = ipa->FindModifiedSound(soundBase, feature);
+			}
 		}
-
 		if (!doPeek)
 		{
 			sndPrevious = sndCurrent;
@@ -84,5 +84,10 @@ public:
 	bool IsFirst()
 	{
 		return pOldInWord == text;
+	}
+	bool IsLast()
+	{
+		if (!pOldInWord) return false;
+		return !*pInWord;
 	}
 };
