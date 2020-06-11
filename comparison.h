@@ -951,13 +951,13 @@ public:
 						{
 							if (!tCorrespondences.CompareNodeSoundsEtc(&cMain->comparanda[iCol].sg, &c->comparanda[iCol].sgOld))
 							{
-								c->comparanda[iCol].sg = c->comparanda[iCol].sgOld;
+								//не нужно?
+								//c->comparanda[iCol].sg = c->comparanda[iCol].sgOld;
 								c->comparanda[iCol].isSingleInGroup = false;
 							}
 						}
 					}
 				}
-
 			}
 			if (it.IsEndOfGroup())
 			{
@@ -1012,10 +1012,12 @@ public:
 				{
 					if (it2.IsStartOfGroup() && c1 != c2 && !c2->isDoubtful)
 					{
+						bool wasCompared = false;
 						for (int iCol = 0; iCol < nDicts; iCol++)
 						{
-							if (c1->comparanda[iCol].isColGood && c2->comparanda[iCol].isColGood)
+							if (c1->comparanda[iCol].isColGood)// && c2->comparanda[iCol].isColGood)
 							{
+								wasCompared = true;
 								if (tCorrespondences.CompareNodeSoundsEtc(&c1->comparanda[iCol].sg, &c2->comparanda[iCol].sg))
 								{
 									goto ExitGroup;
@@ -1023,8 +1025,11 @@ public:
 							}
 						}
 						//всё совпало
-						c1->isDoubtful = true;
-						break;
+						if (wasCompared)
+						{
+							c1->isDoubtful = true;
+							break;
+						}
 
 					ExitGroup:
 						it2.TryExitGroup();
