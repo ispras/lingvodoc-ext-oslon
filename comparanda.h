@@ -1,4 +1,91 @@
-﻿class Comparandum : public OwnNew
+﻿class Segment
+{
+public:
+	Sound*		sound;
+	int			typeOfSegment;
+	TCHAR		chrFragment[8];
+
+	void Reset()
+	{
+		typeOfSegment = ST_EMPTY;
+		sound = NULL;
+		chrFragment[0] = L'\0';
+	}
+	void SetFragment(LPTSTR text)
+	{
+		wcscpy(chrFragment, text);
+		typeOfSegment = ST_FRAGMENT;
+		//isSoundInCognates = true;//надо переименовать
+	}
+	void SetSound(Sound* sd)
+	{
+		typeOfSegment = ST_SOUND;
+		sound = sd;
+		//isSoundInCognates = true;//надо переименовать
+	}
+	LPTSTR Text()//bool ignoreAutoFill = false)
+	{
+		switch (typeOfSegment)
+		{
+			/*case ST_EMPTYAUTOFILL:
+				if (ignoreAutoFill)
+				{
+					return L"=";
+				}*/
+		case ST_FRAGMENT:
+			//ИСПРАВИТЬ!!! return chrFragment;
+			return &chrFragment[0];
+			//case ST_SOUND:
+		case ST_NULL:
+			return NULL;
+		case ST_EMPTY:
+			return NULL;
+		default:
+			//ИСПРАВИТЬ!!! return sound->Symbol;
+			if (!sound)
+				return NULL;
+
+			return &sound->Symbol[0];
+			//case ST_NONE:
+			//	return NULL;
+			//default:
+			//out(typeOfSegment);
+			//	return L"!!";
+		}
+	}
+	bool IsEqualTo(Segment* sg2, bool doMatchDifferentTypes = false, bool doIgnoreModifiers = false)
+	{
+		if (typeOfSegment != sg2->typeOfSegment)
+		{
+			if (!doMatchDifferentTypes)
+				return false;
+			else if ((typeOfSegment == ST_SOUND && sg2->typeOfSegment == ST_FRAGMENT) || (typeOfSegment == ST_FRAGMENT && sg2->typeOfSegment == ST_SOUND))
+				typeOfSegment = ST_SOUND;
+		}
+
+		switch (typeOfSegment)
+		{
+		case ST_FRAGMENT:
+			return !CompareFragmentWith(sg2);
+		case ST_SOUND:
+			//ВРЕМЕННО
+				//if (doIgnoreModifiers)
+				//	return !wcsncmp(sound->Symbol, cmp2->sound->Symbol, 1);
+				//else
+			return !wcscmp(sound->Symbol, sg2->sound->Symbol);
+			//ТОЛЬКО В ОДНОМ СЛОВАРЕ!
+	//			return sound == cmp2->sound;
+		default:
+			return false;
+		}
+	}
+	char signed CompareFragmentWith(Segment* sg2)
+	{
+		return wcscmp(chrFragment, sg2->chrFragment);
+	}
+};
+
+class Comparandum : public OwnNew
 {
 public:
 	WordForm*	wf;
@@ -6,9 +93,10 @@ public:
 	//LPTSTR 		formOrig;
 	//LPTSTR 		translation;
 	LPTSTR		wLength, wF1, wF2, wF3;
-	Sound*		sound;
-	int			typeOfSegment;
-	TCHAR		chrFragment[8];
+
+	Segment		sg;
+	Segment		sgOld;
+
 	TCHAR		chrTranscr[8];
 	bool		isReconstructed;
 	bool		isSoundInCognates;
@@ -50,85 +138,14 @@ public:
 	}
 	void Reset_()
 	{
-		chrFragment[0] = L'\0';
 		isSoundInCognates = false;
 		isSingleInGroup = false;
 		isColGood = false;
-		typeOfSegment = ST_EMPTY;
-		sound = NULL;
-	}
-	void SetFragment(LPTSTR text)
-	{
-		wcscpy(chrFragment, text);
-		typeOfSegment = ST_FRAGMENT;
-		isSoundInCognates = true;//надо переименовать
-	}
-	void SetSound(Sound* sd)
-	{
-		typeOfSegment = ST_SOUND;
-		sound = sd;
-		isSoundInCognates = true;//надо переименовать
-	}
-	LPTSTR Text()//bool ignoreAutoFill = false)
-	{
-		switch (typeOfSegment)
-		{
-			/*case ST_EMPTYAUTOFILL:
-				if (ignoreAutoFill)
-				{
-					return L"=";
-				}*/
-		case ST_FRAGMENT:
-			//ИСПРАВИТЬ!!! return chrFragment;
-			return &chrFragment[0];
-			//case ST_SOUND:
-		case ST_NULL:
-			return NULL;
-		case ST_EMPTY:
-			return NULL;
-		default:
-			//ИСПРАВИТЬ!!! return sound->Symbol;
-			if (!sound)
-				return NULL;
 
-			return &sound->Symbol[0];
-			//case ST_NONE:
-			//	return NULL;
-			//default:
-			//out(typeOfSegment);
-			//	return L"!!";
-		}
+		sg.Reset();
+		sgOld.Reset();
 	}
-	bool IsEqualTo(Comparandum* cmp2, bool doMatchDifferentTypes = false, bool doIgnoreModifiers = false)
-	{
-		if (typeOfSegment != cmp2->typeOfSegment)
-		{
-			if (!doMatchDifferentTypes)
-				return false;
-			else if ((typeOfSegment == ST_SOUND && cmp2->typeOfSegment == ST_FRAGMENT) || (typeOfSegment == ST_FRAGMENT && cmp2->typeOfSegment == ST_SOUND))
-				typeOfSegment = ST_SOUND;
-		}
 
-		switch (typeOfSegment)
-		{
-		case ST_FRAGMENT:
-			return !CompareFragmentWith(cmp2);
-		case ST_SOUND:
-			//ВРЕМЕННО
-				//if (doIgnoreModifiers)
-				//	return !wcsncmp(sound->Symbol, cmp2->sound->Symbol, 1);
-				//else
-			return !wcscmp(sound->Symbol, cmp2->sound->Symbol);
-			//ТОЛЬКО В ОДНОМ СЛОВАРЕ!
-	//			return sound == cmp2->sound;
-		default:
-			return false;
-		}
-	}
-	char signed CompareFragmentWith(Comparandum* cmp2)
-	{
-		return wcscmp(chrFragment, cmp2->chrFragment);
-	}
 };
 
 
@@ -257,7 +274,7 @@ public:
 		bool ignoreRankSame;
 		bool ignoreUniqueID;
 	};
-	int CompareNodeSoundsEtc(Comparandum* cmp1, Comparandum* cmp2)
+	int CompareNodeSoundsEtc(Segment* cmp1, Segment* cmp2)
 	{
 		int res;
 
@@ -324,8 +341,8 @@ public:
 
 			bool isCanCompare;
 			if (cf->skipEmpty)
-				isCanCompare = ((cmp1->sound || cmp1->typeOfSegment == ST_NULL) && cmp1->typeOfSegment != ST_EMPTYAUTOFILL
-					&& (cmp2->sound || cmp2->typeOfSegment == ST_NULL) && cmp2->typeOfSegment != ST_EMPTYAUTOFILL);
+				isCanCompare = ((cmp1->sg.sound || cmp1->sg.typeOfSegment == ST_NULL) && cmp1->sg.typeOfSegment != ST_EMPTYAUTOFILL
+					&& (cmp2->sg.sound || cmp2->sg.typeOfSegment == ST_NULL) && cmp2->sg.typeOfSegment != ST_EMPTYAUTOFILL);
 			//|| (cmp1->typeOfSegment == ST_NULL || cmp2->typeOfSegment == ST_NULL);
 			else
 				isCanCompare = true;
@@ -333,10 +350,10 @@ public:
 			if (isCanCompare)
 			{
 				//isNonNull = true;
-				isNonNull = ((cmp1->sound || cmp1->typeOfSegment == ST_NULL) && cmp1->typeOfSegment != ST_EMPTYAUTOFILL
-					&& (cmp2->sound || cmp2->typeOfSegment == ST_NULL) && cmp2->typeOfSegment != ST_EMPTYAUTOFILL);
+				isNonNull = ((cmp1->sg.sound || cmp1->sg.typeOfSegment == ST_NULL) && cmp1->sg.typeOfSegment != ST_EMPTYAUTOFILL
+					&& (cmp2->sg.sound || cmp2->sg.typeOfSegment == ST_NULL) && cmp2->sg.typeOfSegment != ST_EMPTYAUTOFILL);
 
-				if (res = CompareNodeSoundsEtc(cmp1, cmp2))
+				if (res = CompareNodeSoundsEtc(&cmp1->sg, &cmp2->sg))
 					return res;
 
 				//nSame++;
@@ -359,7 +376,7 @@ public:
 			{
 				if (c1->rankAllSoundsSame == 10 && c2->rankAllSoundsSame == 10)
 				{
-					if (!CompareNodeSoundsEtc(&c1->comparanda[0], &c2->comparanda[0]))
+					if (!CompareNodeSoundsEtc(&c1->comparanda[0].sg, &c2->comparanda[0].sg))
 						goto CheckUninque;
 				}
 			}

@@ -36,7 +36,7 @@ public:
 	int			iSyllableToLook;
 	int			iCurSyllable;
 
-	class Segment
+	class SegmentMask
 	{
 	public:
 		int 		flag;
@@ -46,7 +46,7 @@ public:
 		short		wasAlready;
 		Sound*		sound;
 
-		Segment(LPTSTR _txt)
+		SegmentMask(LPTSTR _txt)
 		{
 			if (_txt && !_txt[0]) _txt = NULL;
 
@@ -128,9 +128,9 @@ public:
 		}
 	};
 
-	Segment		sgPrev;
-	Segment		sgThis;
-	Segment		sgNext;
+	SegmentMask		sgPrev;
+	SegmentMask		sgThis;
+	SegmentMask		sgNext;
 
 	Condition(LPTSTR _ftThis, LPTSTR _ftPrev, LPTSTR _ftNext, int _flags = 0, LPTSTR _title = NULL, int _extraInt = 0, int _nIterate = 2, int _iSyllable = -1) : sgThis(_ftThis), sgPrev(_ftPrev), sgNext(_ftNext)
 	{
@@ -218,9 +218,13 @@ public:
 		sgPrev.Check(sdThis, FT_CLASS);
 		sgNext.Check(sdThis, FT_CLASS);
 
-		int ret = sgThis.Check(sdThis, FT_CLASS);
+		int ret = ST_SOUND;
 
-		if (ret == ST_EMPTY) return ST_EMPTY;
+		if (sgThis.flag != QF_NOTHING)
+		{
+			ret = sgThis.Check(sdThis, FT_CLASS);
+			if (ret == ST_EMPTY) return ST_EMPTY;
+		}
 
 		if (sgPrev.flag & QF_BEGINNING)
 		{

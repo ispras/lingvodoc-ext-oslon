@@ -72,12 +72,14 @@ public:
 			for (Rule* r = rule; r; r = r->nextSame)
 			{
 				int szOldToReplace = wcslen(r->symbolToReplace);
+
 				if (szNewToReplace > szOldToReplace
 					//|| (szNewToReplace == szOldToReplace && isConditional && !r->condition)
 					//|| (szNewToReplace == szOldToReplace && !isConditional && !r->condition)
 					|| (szNewToReplace == szOldToReplace && !r->condition)
 					)
 				{
+					//rule->nextSame = r;
 					ruleNew->nextSame = r;
 					break;
 				}
@@ -129,7 +131,8 @@ public:
 				if (isCond)
 				{
 					fNext = word;
-					rule->condition = new (pConditions.New()) Condition(fThis, fPrev, fNext, 0, NULL);
+					rule->condition = new (pConditions.New()) Condition(NULL, fPrev, fNext, 0, NULL);
+					//rule->condition = new (pConditions.New()) Condition(fThis, fPrev, fNext, 0, NULL);
 				}
 				else
 				{
@@ -230,6 +233,11 @@ public:
 
 			Rule* rule = rules[sgmntzr.Current1Char()];
 			bIn = sgmntzr.CurrentPos();
+
+			//while (sdCur = sgmntzr.GetNext())
+			//{
+			//	Rule* rule = rules[sgmntzr.Current1Char()];
+			//	bIn = sgmntzr.CurrentPos();
 
 			if (!rule || !rule->condition)
 				JustCopySymbols(&bIn, &bOut, 1);

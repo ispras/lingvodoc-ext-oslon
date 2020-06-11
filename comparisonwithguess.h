@@ -159,32 +159,32 @@ public:
 		for (int iCnd = 0; iCnd < nCnd; iCnd++)
 		{
 			Comparandum cmpThis(wordThis);
-			cmpThis.typeOfSegment = cndMatch[iCnd]->GetFirstMatchingFragment(
+			cmpThis.sg.typeOfSegment = cndMatch[iCnd]->GetFirstMatchingFragment(
 				dic1->ipa,
-				&cmpThis.sound,
+				&cmpThis.sg.sound,
 				(wordThis ? wordThis->formIPA : NULL),
-				cmpThis.chrFragment);
+				cmpThis.sg.chrFragment);
 
 
 			Comparandum cmpInRow(wordOther);
-			cmpInRow.typeOfSegment = cndMatch[iCnd]->GetFirstMatchingFragment(
+			cmpInRow.sg.typeOfSegment = cndMatch[iCnd]->GetFirstMatchingFragment(
 				dic2->ipa,
-				&cmpInRow.sound,
+				&cmpInRow.sg.sound,
 				(wordOther ? wordOther->formIPA : NULL),
-				cmpInRow.chrFragment);
+				cmpInRow.sg.chrFragment);
 
-			switch (cmpInRow.typeOfSegment)
+			switch (cmpInRow.sg.typeOfSegment)
 			{
 			case ST_NULL://????
 			case ST_SOUND:
 			case ST_FRAGMENT:
-				if (cmpThis.typeOfSegment == ST_ERROR)
+				if (cmpThis.sg.typeOfSegment == ST_ERROR)
 					return ST_UNEQUAL;
 
-				isEqual = cmpThis.IsEqualTo(&cmpInRow, true, true);
+				isEqual = cmpThis.sg.IsEqualTo(&cmpInRow.sg, true, true);
 				break;
 			case ST_ERROR:
-				wasNotFound = isEqual = (cmpThis.typeOfSegment == ST_ERROR && iCnd == 0);//ни там, ни там не нашли первого согласного (но это временно, ибо надо прописывать в условии)
+				wasNotFound = isEqual = (cmpThis.sg.typeOfSegment == ST_ERROR && iCnd == 0);//ни там, ни там не нашли первого согласного (но это временно, ибо надо прописывать в условии)
 				if (isEqual)
 					continue;
 				else

@@ -323,34 +323,34 @@ public:
 		{
 			Dictionary* dic = Dict(iCol);
 
-			if (!crsp->comparanda[iCol].sound || crsp->comparanda[iCol].typeOfSegment == ST_EMPTYAUTOFILL || crsp->comparanda[iCol].typeOfSegment == ST_NULL)
+			if (!crsp->comparanda[iCol].sg.sound || crsp->comparanda[iCol].sg.typeOfSegment == ST_EMPTYAUTOFILL || crsp->comparanda[iCol].sg.typeOfSegment == ST_NULL)
 				continue;
 
-			if (typWas != ST_ERROR && crsp->comparanda[iCol].typeOfSegment != typWas)
+			if (typWas != ST_ERROR && crsp->comparanda[iCol].sg.typeOfSegment != typWas)
 			{
 				crsp->rankAllSoundsSame = 0;
 				break;
 			}
-			typWas = crsp->comparanda[iCol].typeOfSegment;
+			typWas = crsp->comparanda[iCol].sg.typeOfSegment;
 
 			if (!soundFirst)
-				soundFirst = crsp->comparanda[iCol].sound;
+				soundFirst = crsp->comparanda[iCol].sg.sound;
 
 			if (!wasNotEmpty)
 			{
-				soundSameExact = soundSame = crsp->comparanda[iCol].sound;
+				soundSameExact = soundSame = crsp->comparanda[iCol].sg.sound;
 				crsp->rankAllSoundsSame = 10;
 				wasNotEmpty = true;
 				crsp->nSoundsSame = 1;
 			}
 			else if (soundSameExact)
 			{
-				if (!dic->ipa->CompareSoundsByText(soundSameExact, crsp->comparanda[iCol].sound))
+				if (!dic->ipa->CompareSoundsByText(soundSameExact, crsp->comparanda[iCol].sg.sound))
 					crsp->nSoundsSame++;
-				else if (soundSame && soundSame != crsp->comparanda[iCol].sound)
+				else if (soundSame && soundSame != crsp->comparanda[iCol].sg.sound)
 				{
 					Sound* sdBaseWas = dic->ipa->GetBaseSound(soundSame);
-					Sound* sdBaseThis = dic->ipa->GetBaseSound(crsp->comparanda[iCol].sound);
+					Sound* sdBaseThis = dic->ipa->GetBaseSound(crsp->comparanda[iCol].sg.sound);
 
 					if (sdBaseWas == sdBaseThis)
 					{
@@ -373,10 +373,10 @@ public:
 		{
 			for (int iCol = 0; iCol < nDicts; iCol++)
 			{
-				if (crsp->comparanda[iCol].typeOfSegment != ST_NULL && !crsp->comparanda[iCol].sound/*formIPA*/)
+				if (crsp->comparanda[iCol].sg.typeOfSegment != ST_NULL && !crsp->comparanda[iCol].sg.sound/*formIPA*/)
 				{
-					crsp->comparanda[iCol].sound = soundSame;
-					crsp->comparanda[iCol].typeOfSegment = ST_EMPTYAUTOFILL;
+					crsp->comparanda[iCol].sg.sound = soundSame;
+					crsp->comparanda[iCol].sg.typeOfSegment = ST_EMPTYAUTOFILL;
 				}
 			}
 		}
@@ -401,11 +401,11 @@ public:
 			wasFragmentMaybe = false;
 		for (int iCol = 0; iCol < nDicts; iCol++)
 		{
-			switch (crsp->comparanda[iCol].typeOfSegment = cnd->GetFirstMatchingFragment(
+			switch (crsp->comparanda[iCol].sg.typeOfSegment = cnd->GetFirstMatchingFragment(
 				Dict(iCol)->ipa,
-				&crsp->comparanda[iCol].sound,
+				&crsp->comparanda[iCol].sg.sound,
 				(crsp->comparanda[iCol].wf ? crsp->comparanda[iCol].wf->formIPA : NULL),
-				crsp->comparanda[iCol].chrFragment
+				crsp->comparanda[iCol].sg.chrFragment
 				, &wasPrev))
 			{
 			case ST_NULL://т.е. факультативное ничто
@@ -435,14 +435,14 @@ public:
 	{
 		for (int iCol = 0; iCol < nDicts; iCol++)
 		{
-			switch (crsp->comparanda[iCol].typeOfSegment)
+			switch (crsp->comparanda[iCol].sg.typeOfSegment)
 			{
 			case ST_NULL:
 				crsp->comparanda[iCol].isSoundInCognates = true;
 			case ST_EMPTYAUTOFILL:
 				break;
 			default:
-				crsp->comparanda[iCol].isSoundInCognates = !!crsp->comparanda[iCol].sound;
+				crsp->comparanda[iCol].isSoundInCognates = !!crsp->comparanda[iCol].sg.sound;
 			}
 		}
 
@@ -475,10 +475,10 @@ public:
 		for (int iCol = 0; iCol < nDicts; iCol++)
 		{
 			Comparandum* cThis = &crsp->comparanda[iCol];
-			if (/*cThis->formIPA &&*/ cThis->sound && cThis->typeOfSegment != ST_EMPTYAUTOFILL)
+			if (/*cThis->formIPA &&*/ cThis->sg.sound && cThis->sg.typeOfSegment != ST_EMPTYAUTOFILL)
 			{
 				Comparandum* cMain = &crsp->crspMain->comparanda[iCol];
-				if (!cMain->sound || cMain->typeOfSegment == ST_EMPTYAUTOFILL)
+				if (!cMain->sg.sound || cMain->sg.typeOfSegment == ST_EMPTYAUTOFILL)
 				{
 
 					if (!wasChange)
@@ -488,9 +488,12 @@ public:
 						tCorrespondences.Remove(crsp->crspMain);
 					}
 
-					cMain->sound = cThis->sound;
-					cMain->typeOfSegment = cThis->typeOfSegment;
-					wcscpy(cMain->chrFragment, cThis->chrFragment);
+					//ТУТ НАДО CopySoundOrFragment → CopySegment
+					//ИЛИ ДАЖЕ:
+					//cMain->sg = cThis->sg;
+					cMain->sg.sound = cThis->sg.sound;
+					cMain->sg.typeOfSegment = cThis->sg.typeOfSegment;
+					wcscpy(cMain->sg.chrFragment, cThis->sg.chrFragment);
 
 					cMain->isSoundInCognates = true;
 				}
@@ -577,12 +580,12 @@ public:
 	{
 		for (int iCol = 0; iCol < nDicts; iCol++)
 		{
-			if (crsp->comparanda[iCol].typeOfSegment == ST_FRAGMENTMAYBE)
+			if (crsp->comparanda[iCol].sg.typeOfSegment == ST_FRAGMENTMAYBE)
 			{
 				if (wasFragment)
-					crsp->comparanda[iCol].typeOfSegment = ST_FRAGMENT;
+					crsp->comparanda[iCol].sg.typeOfSegment = ST_FRAGMENT;
 				else
-					crsp->comparanda[iCol].typeOfSegment = ST_SOUND;
+					crsp->comparanda[iCol].sg.typeOfSegment = ST_SOUND;
 			}
 		}
 	}
@@ -606,14 +609,15 @@ public:
 			cTo->comparanda[iCol].isSoundInCognates = cFrom->comparanda[iCol].isSoundInCognates;
 			if (cTo->comparanda[iCol].isSoundInCognates)
 			{
-				cTo->comparanda[iCol].sound = cFrom->comparanda[iCol].sound;
-				cTo->comparanda[iCol].typeOfSegment = cFrom->comparanda[iCol].typeOfSegment;
-				wcscpy(cTo->comparanda[iCol].chrFragment, cFrom->comparanda[iCol].chrFragment);
+				//ТУТ НАДО CopySoundOrFragment → CopySegment
+				cTo->comparanda[iCol].sg.sound = cFrom->comparanda[iCol].sg.sound;
+				cTo->comparanda[iCol].sg.typeOfSegment = cFrom->comparanda[iCol].sg.typeOfSegment;
+				wcscpy(cTo->comparanda[iCol].sg.chrFragment, cFrom->comparanda[iCol].sg.chrFragment);
 			}
 			else if (!cTo->comparanda[iCol].wf)
 			{
-				cTo->comparanda[iCol].sound = NULL;
-				cTo->comparanda[iCol].typeOfSegment = ST_EMPTY;
+				cTo->comparanda[iCol].sg.sound = NULL;
+				cTo->comparanda[iCol].sg.typeOfSegment = ST_EMPTY;
 			}
 		}
 		//cTo->comparanda[0].sound
@@ -623,14 +627,14 @@ public:
 		//tCorrespondences.Remove(cMain);
 		for (int iCol = 0; iCol < nDicts; iCol++)
 		{
-			if (cMain->comparanda[iCol].isSingleInGroup || cMain->comparanda[iCol].typeOfSegment == ST_EMPTYAUTOFILL)
+			if (cMain->comparanda[iCol].isSingleInGroup || cMain->comparanda[iCol].sg.typeOfSegment == ST_EMPTYAUTOFILL)
 			{
 				cMain->comparanda[iCol].isSoundInCognates = false;
 
 				//if (!cMain->comparanda[iCol].wf && cMain->comparanda[iCol].typeOfSegment != ST_NULL)
 				{//т.е. обнуляем только те, что были добавлены ниже
-					cMain->comparanda[iCol].sound = NULL;
-					cMain->comparanda[iCol].typeOfSegment = ST_EMPTY;
+					cMain->comparanda[iCol].sg.sound = NULL;
+					cMain->comparanda[iCol].sg.typeOfSegment = ST_EMPTY;
 				}
 			}
 		}
@@ -709,6 +713,8 @@ public:
 
 						cStart->comparanda[iCol].isSingleInGroup = true;
 						cInCol[iCol]->comparanda[iCol].isSingleInGroup = true;
+
+						cInCol[iCol]->comparanda[iCol].sgOld = cInCol[iCol]->comparanda[iCol].sg;
 					}
 				}
 				if (wasSingle)
@@ -924,8 +930,7 @@ public:
 	}
 
 	void ReuniteSingles()
-	{
-		return;
+	{//return;
 		Correspondence* c,
 			*cMain = NULL;
 		//CorrespondenceTree::COMPAREFLAGS cf = {true, true, true};
@@ -936,25 +941,17 @@ public:
 				cMain = c;
 			}
 
-			if (cMain && c != cMain)
+			if (cMain)
 			{
 				for (int iCol = 0; iCol < nDicts; iCol++)
 				{
 					if (c->comparanda[iCol].isSingleInGroup)
 					{
-						//if (c->comparanda[iCol].wf)
-						//if (!wcsncmp(c->comparanda[iCol].wf->formOrig,L"rɨt|rɨt'ja|",11))
-						//if (!wcscmp(c->comparanda[iCol].wf->formOrig,L"irnɨ"))
-						//{
-						//out(cMain);
-						//out(c);
-						//out(cMain->comparanda[iCol].Text());
-						//out(c->comparanda[iCol].Text());
-						//}
 						if (cMain->comparanda[iCol].isSoundInCognates)
 						{
-							if (!tCorrespondences.CompareNodeSoundsEtc(&cMain->comparanda[iCol], &c->comparanda[iCol]))
+							if (!tCorrespondences.CompareNodeSoundsEtc(&cMain->comparanda[iCol].sg, &c->comparanda[iCol].sgOld))
 							{
+								c->comparanda[iCol].sg = c->comparanda[iCol].sgOld;
 								c->comparanda[iCol].isSingleInGroup = false;
 							}
 						}
@@ -1019,7 +1016,7 @@ public:
 						{
 							if (c1->comparanda[iCol].isColGood && c2->comparanda[iCol].isColGood)
 							{
-								if (tCorrespondences.CompareNodeSoundsEtc(&c1->comparanda[iCol], &c2->comparanda[iCol]))
+								if (tCorrespondences.CompareNodeSoundsEtc(&c1->comparanda[iCol].sg, &c2->comparanda[iCol].sg))
 								{
 									goto ExitGroup;
 								}

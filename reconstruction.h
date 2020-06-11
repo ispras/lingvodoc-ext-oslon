@@ -85,7 +85,7 @@ public:
 			if (crsp->IsInGroup())
 				crsp = crsp->crspMain;
 
-			txt = crsp->comparanda[0].Text();
+			txt = crsp->comparanda[0].sg.Text();
 			if (!txt)
 			{
 				for (int iCol = 1; iCol < comparisons[0].nDicts; iCol++)
@@ -181,16 +181,18 @@ public:
 	}
 	void CopySoundOrFragment(Comparandum* cReconstr, Comparandum* c)
 	{
-		switch (c->typeOfSegment)
+		switch (c->sg.typeOfSegment)
 		{
 		case ST_SOUND:
 		case ST_EMPTYAUTOFILL:
-			cReconstr->SetSound(ipa->SubmitWordForm(c->sound->Symbol));
-			cReconstr->sound->used = true;
+			cReconstr->sg.SetSound(ipa->SubmitWordForm(c->sg.sound->Symbol));
+			cReconstr->isSoundInCognates = true;
+			cReconstr->sg.sound->used = true;
 			break;
 		case ST_FRAGMENT:
-			cReconstr->SetFragment(c->chrFragment);
-			cReconstr->sound = ipa->GetSound(c->chrFragment[0]);
+			cReconstr->sg.SetFragment(c->sg.chrFragment);
+			cReconstr->isSoundInCognates = true;
+			cReconstr->sg.sound = ipa->GetSound(c->sg.chrFragment[0]);
 			break;
 		default:
 			;//out(c->typeOfSegment);
@@ -201,7 +203,7 @@ public:
 	{
 		for (int iCol = 1; iCol < cmp->nDicts; iCol++)
 		{
-			if (crsp->comparanda[iCol].typeOfSegment == ST_FRAGMENT)
+			if (crsp->comparanda[iCol].sg.typeOfSegment == ST_FRAGMENT)
 			{
 				CopySoundOrFragment(cReconstr, &crsp->comparanda[iCol]);
 				return true;
@@ -217,7 +219,7 @@ public:
 
 		for (int iCol = 1; iCol < cmp->nDicts; iCol++)
 		{
-			if (crsp->comparanda[iCol].sound->feature[FT_COARTICULATION])
+			if (crsp->comparanda[iCol].sg.sound->feature[FT_COARTICULATION])
 			{
 				CopySoundOrFragment(cReconstr, &crsp->comparanda[iCol]);
 
@@ -256,14 +258,15 @@ public:
 
 		for (BTree::Walker w(&dt); d = (Distance*)w.Next();)
 		{
-			if (!d->cmp.sound->used)
+			if (!d->cmp.sg.sound->used)
 			{
-				d->cmp.sound->used = true;
-				cReconstr->SetSound(d->cmp.sound);
+				d->cmp.sg.sound->used = true;
+				cReconstr->sg.SetSound(d->cmp.sg.sound);
+				cReconstr->isSoundInCognates = true;
 				return true;
 			}
 		}
-		cReconstr->sound = NULL;
+		cReconstr->sg.sound = NULL;
 
 		return false;
 	}

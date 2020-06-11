@@ -52,19 +52,19 @@ public:
 		bool isS1 = cmp1->isSoundInCognates;
 		bool isS2 = cmp2->isSoundInCognates;
 
-		Segmentizer sgmntzr1(ipa, cmp1->chrFragment);
-		Segmentizer sgmntzr2(ipa, cmp2->chrFragment);
+		Segmentizer sgmntzr1(ipa, cmp1->sg.chrFragment);
+		Segmentizer sgmntzr2(ipa, cmp2->sg.chrFragment);
 
 		Sound* s1 = NULL;
 		Sound* s2 = NULL;
 		while (true)
 		{
-			if (cmp1->typeOfSegment == ST_FRAGMENT)				s1 = sgmntzr1.GetNext();
-			else if (!s1)										s1 = cmp1->sound;
+			if (cmp1->sg.typeOfSegment == ST_FRAGMENT)			s1 = sgmntzr1.GetNext();
+			else if (!s1)										s1 = cmp1->sg.sound;
 			else												s1 = NULL;
 
-			if (cmp2->typeOfSegment == ST_FRAGMENT)				s2 = sgmntzr2.GetNext();
-			else if (!s2) 										s2 = cmp2->sound;
+			if (cmp2->sg.typeOfSegment == ST_FRAGMENT)			s2 = sgmntzr2.GetNext();
+			else if (!s2) 										s2 = cmp2->sg.sound;
 			else												s2 = NULL;
 
 			if (!s1 && !s2)
@@ -72,8 +72,8 @@ public:
 
 			int dist = 0;
 
-			bool isNotSameType = (cmp1->typeOfSegment == ST_SOUND && cmp2->typeOfSegment == ST_FRAGMENT)
-				|| (cmp2->typeOfSegment == ST_SOUND && cmp1->typeOfSegment == ST_FRAGMENT);
+			bool isNotSameType = (cmp1->sg.typeOfSegment == ST_SOUND && cmp2->sg.typeOfSegment == ST_FRAGMENT)
+				|| (cmp2->sg.typeOfSegment == ST_SOUND && cmp1->sg.typeOfSegment == ST_FRAGMENT);
 			bool isSound1 = !!s1 && isS1;//isS1 — входной, но лучше от него избавиться
 			bool isSound2 = !!s2 && isS2;
 
@@ -117,8 +117,8 @@ public:
 			}
 			else if (isNotSameType)
 				dist = 0;
-			else if ((cmp1->typeOfSegment == ST_NULL && (cmp2->typeOfSegment == ST_SOUND || cmp2->typeOfSegment == ST_FRAGMENT))
-				|| (cmp2->typeOfSegment == ST_NULL && (cmp1->typeOfSegment == ST_SOUND || cmp1->typeOfSegment == ST_FRAGMENT)))
+			else if ((cmp1->sg.typeOfSegment == ST_NULL && (cmp2->sg.typeOfSegment == ST_SOUND || cmp2->sg.typeOfSegment == ST_FRAGMENT))
+				|| (cmp2->sg.typeOfSegment == ST_NULL && (cmp1->sg.typeOfSegment == ST_SOUND || cmp1->sg.typeOfSegment == ST_FRAGMENT)))
 				dist = 4;
 			else
 				dist = 0;
@@ -176,7 +176,8 @@ class Distance : public BNode
 public:
 	Distance(Sound* sd)
 	{
-		cmp.SetSound(sd);
+		cmp.sg.SetSound(sd);
+		cmp.isSoundInCognates = true;
 		dist = 0;
 	}
 

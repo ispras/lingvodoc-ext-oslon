@@ -187,7 +187,7 @@ void Comparison::OutputSoundsHeader(Correspondence* c, InfoTree* trOut, InfoNode
 
 		if (isSoundOK)
 		{
-			word = c->comparanda[iCol].Text();
+			word = c->comparanda[iCol].sg.Text();
 
 			fAdd |= IT_ASTERISK * c->comparanda[iCol].isReconstructed;
 
@@ -252,7 +252,7 @@ void Comparison::OutputCognatesBySound(Correspondence* cGroupTop, Correspondence
 		/////////////////////////////////////////////////
 		//}
 		//else
-		trCld->Add(cEqual->comparanda[iColDiff].Text(), IT_SQRBRK | IT_SPACE);
+		trCld->Add(cEqual->comparanda[iColDiff].sg.Text(), IT_SQRBRK | IT_SPACE);
 		trCld->Add(L"в других рядах", IT_LINEBRKAFTER);
 	}
 
@@ -268,7 +268,7 @@ void Comparison::OutputCognatesBySound(Correspondence* cGroupTop, Correspondence
 		if (cExtra == cOther)
 			continue;
 
-		if (cExtra->comparanda[iColDiff].IsEqualTo(&cEqual->comparanda[iColDiff]))
+		if (cExtra->comparanda[iColDiff].sg.IsEqualTo(&cEqual->comparanda[iColDiff].sg))
 		{
 			isRegExtra = false;
 
@@ -283,7 +283,7 @@ void Comparison::OutputCognatesBySound(Correspondence* cGroupTop, Correspondence
 						{
 							isRegExtra = true;
 
-							trOut->Add(cEqual->comparanda[iColDiff].Text(), IT_SQRBRK | IT_SPACE, inMult);
+							trOut->Add(cEqual->comparanda[iColDiff].sg.Text(), IT_SQRBRK | IT_SPACE, inMult);
 							trOut->Add(L"также в ряду", IT_COLUMN | IT_TAB, inMult);
 							OutputSoundsHeader(cExtra, trOut, inMult, false, false, IT_DASH, IT_HORLINE);
 						}
@@ -352,7 +352,7 @@ void Comparison::OutputDeviationsWithMaterial(Condition* cnd, InfoTree* trOut, I
 			{
 				if (cOther->comparanda[iCol].wf)
 				{
-					if (!cGroupTop->comparanda[iCol].IsEqualTo(&cOther->comparanda[iCol]))
+					if (!cGroupTop->comparanda[iCol].sg.IsEqualTo(&cOther->comparanda[iCol].sg))
 					{
 						nDiff++;
 						iColDiff = iCol;
@@ -362,7 +362,7 @@ void Comparison::OutputDeviationsWithMaterial(Condition* cnd, InfoTree* trOut, I
 
 			if (nDiff == 1)
 			{
-				if (cGroupTop->comparanda[iColDiff].sound)
+				if (cGroupTop->comparanda[iColDiff].sg.sound)
 				{
 					bool isSomethingInGroup = false;
 					for (itGroup.TryEnterGroup(); cGroup; cGroup = itGroup.Next())
@@ -416,14 +416,14 @@ void Comparison::OutputDeviationsWithMaterial(Condition* cnd, InfoTree* trOut, I
 					strcatb(bufn, nDeviations);
 					trCld->Add(bufn, IT_COLUMN | IT_SPACE);//лучше разными вызовами Add и убрать к чёрту bufn
 
-					trCld->Add(cGroupTop->comparanda[iColDiff].Text(), IT_SQRBRK | IT_SPACE);
+					trCld->Add(cGroupTop->comparanda[iColDiff].sg.Text(), IT_SQRBRK | IT_SPACE);
 					trCld->Add(L":", IT_SPACE);
-					trCld->Add(cOther->comparanda[iColDiff].Text(), IT_SQRBRK | IT_LINEBRKAFTER);
+					trCld->Add(cOther->comparanda[iColDiff].sg.Text(), IT_SQRBRK | IT_LINEBRKAFTER);
 
 
 
 
-					trCld->Add(cGroupTop->comparanda[iColDiff].Text(), IT_SQRBRK | IT_SPACE);
+					trCld->Add(cGroupTop->comparanda[iColDiff].sg.Text(), IT_SQRBRK | IT_SPACE);
 					trCld->Add(L"в простейшем ряду", IT_COLUMN | IT_SPACE);
 					OutputSoundsHeader(cGroupTop, trCld, NULL, false, true, IT_DASH, IT_LINEBRKAFTER);
 
@@ -462,9 +462,9 @@ void Comparison::OutputDeviationsWithMaterial(Condition* cnd, InfoTree* trOut, I
 
 
 					trOut->Add(L"Отклонение", IT_COLUMN | IT_SPACE, inMult);
-					trOut->Add(cGroupTop->comparanda[iColDiff].Text(), IT_SQRBRK, inMult);
+					trOut->Add(cGroupTop->comparanda[iColDiff].sg.Text(), IT_SQRBRK, inMult);
 					trOut->Add(L" : ", 0, inMult);
-					trOut->Add(cOther->comparanda[iColDiff].Text(), IT_SQRBRK | IT_LINEBRKAFTER, inMult);
+					trOut->Add(cOther->comparanda[iColDiff].sg.Text(), IT_SQRBRK | IT_LINEBRKAFTER, inMult);
 
 					trOut->Add(NULL, IT_LINEBRK, inMult);
 
@@ -474,7 +474,7 @@ void Comparison::OutputDeviationsWithMaterial(Condition* cnd, InfoTree* trOut, I
 
 
 
-					trCld->Add(cOther->comparanda[iColDiff].Text(), IT_SQRBRK | IT_SPACE);
+					trCld->Add(cOther->comparanda[iColDiff].sg.Text(), IT_SQRBRK | IT_SPACE);
 					trCld->Add(L"в отклоняющемся ряду", IT_COLUMN | IT_SPACE);
 					OutputSoundsHeader(cOther, trCld, NULL, false, true, IT_DASH, IT_LINEBRKAFTER);
 
