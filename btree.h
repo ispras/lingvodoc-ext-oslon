@@ -458,11 +458,11 @@ public:
 			return node;
 
 		BNode*	son = node->son[dir1];
-		BNode*	BNode;
+		BNode*	bn;
 
 		if (son) {
-			if (BNode = find(son, ndToFind))
-				return BNode;
+			if (bn = find(son, ndToFind))
+				return bn;
 		}
 		return NULL;
 	}
@@ -485,8 +485,11 @@ public:
 			pool[nAll] = bn;
 			nAll++;
 
-			if (bn != Find(bn))
+			if (Find(bn) != bn)
+			{
+				ndFound = bn;//чтобы понять, какой не найден
 				return false;
+			}
 
 			if (bn->son[1])
 			{

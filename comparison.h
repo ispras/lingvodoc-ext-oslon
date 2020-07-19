@@ -447,7 +447,8 @@ public:
 		}
 
 		Correspondence* c;
-		CorrespondenceTree::COMPAREFLAGS cf = { true, false, false };
+		CorrespondenceTree::COMPAREFLAGS cf = { true, false, true };
+		//CorrespondenceTree::COMPAREFLAGS cf = {true, false, false};
 
 		for (CorrespondenceTree::Iterator it(&tCorrespondences); c = it.Next();)
 		{
@@ -464,7 +465,7 @@ public:
 		if (!crsp->crspMain)
 		{
 			if (tCorrespondences.Add(crsp))
-				;//	out("УЖЕ ЕСТЬ!");
+				;//out("УЖЕ ЕСТЬ!");
 		}
 		else
 			FillMainRowWithMissingSounds(crsp);//, false);
@@ -501,7 +502,7 @@ public:
 		}
 
 		if (wasChange)
-			ReaddRow(crsp->crspMain, false);
+			ReaddRow(crsp->crspMain);
 	}
 	void Process(Condition* cnd, bool doRemoveSingleWordsInColumns, bool doConflate)
 	{
@@ -551,10 +552,10 @@ public:
 			}
 		}
 	}
-	void ReaddRow(Correspondence* crsp, bool isUnique)
+	void ReaddRow(Correspondence* crsp)//, bool isUnique)
 	{
-		if (isUnique)
-			crsp->iUnique = tCorrespondences.GetUniqueID();
+		//if (isUnique)
+		//	crsp->iUnique = tCorrespondences.GetUniqueID();
 
 		if (!FillEmptySoundsInRow(crsp))//, true))
 		{
@@ -564,16 +565,35 @@ public:
 		}
 
 		Correspondence* cFound = (Correspondence*)tCorrespondences.Add(crsp);
-		//out(cFound);
-		if (cFound)
-		{
-			//		out(L"не передобавился ряд:");
-			//		outrow(crsp);
-			//		out(L"ибо был такой:");
-			//		outrow(cFound);
-		}
-		//а лучше сразу добавлять их как-то правильно, а потом ещё раз, что ль, фильтровать???
-		//иначе все звуки стали нулями — но это временно! надо не ...
+		/*
+				if (cFound)
+				{
+					out(L"не передобавился ряд:");
+					outrow(crsp);
+					out(L"ибо был такой:");
+					outrow(cFound);
+				}
+				else
+				{
+					if (crsp != (Correspondence*)tCorrespondences.Find(crsp))
+					{
+						out(L"Не находится!");
+						outrow(crsp);
+					}
+					if (!tCorrespondences.CheckOrder())
+					{
+						out(L"Дерево порченое! Передобавляли ряд:");
+						outrow(crsp);
+						out(L"При проверке не найден ряд:");
+						outrow((Correspondence*)tCorrespondences.ndFound);
+
+						//out(tCorrespondences.Find(tCorrespondences.ndFound));
+						outallrows();
+					}
+				}
+				//а лучше сразу добавлять их как-то правильно, а потом ещё раз, что ль, фильтровать???
+				//иначе все звуки стали нулями — но это временно! надо не ...
+		*/
 	}
 
 	void ConfirmOrAnnullMaybeDiphthongs(Correspondence* crsp, bool wasFragment)
@@ -728,16 +748,16 @@ public:
 		for (int i = 0; i < ncToDel; i++)
 		{
 			Correspondence* c = cToDel[i];
+
 			tCorrespondences.Remove(c);
 			//out(i);
 			//outrow(c);
+
 			SetSingleColsToNull(c);
 			//outrow(c);			
-			FillEmptySoundsInRow(c);
-			//outrow(c);
-			ReaddRow(c, true);
-			//co();
-			//outallrows();
+			//			FillEmptySoundsInRow(c);//УЖЕ ЕСТЬ В ReaddRow
+			ReaddRow(c);
+
 		}
 
 
@@ -745,6 +765,7 @@ public:
 		delete[] cInCol;
 		delete[] cToDel;
 	}
+
 	/*
 		int RemoveSingleWordsInColumnsOnce()
 		{
@@ -887,13 +908,15 @@ public:
 							{
 								if (!tCorrespondences.CompareNodes(c1, c2, &cf))
 								{
-									/*
-									out(L"включаем в группу ряд:");
-									outrow(c1);
-									out(L"вот в эту:");
-									outrow(c2);
-									outallrows(c1,c2);
-									*/
+
+									//out(L"включаем в группу ряд:");
+									//outrow(c1);
+									//out(L"вот в эту:");
+									//outrow(c2);
+
+
+
+
 									tCorrespondences.Remove(c1);
 
 									c1->AddToGroup(c2);
@@ -902,7 +925,6 @@ public:
 
 									//cToDel[ncToDel] = c1;
 									//ncToDel++;
-//outallrows(NULL, c1->crspMain);
 									goto Anew;
 								}
 							}
@@ -1053,9 +1075,6 @@ public:
 	void OutputReconstructedSounds(Condition* cnd, InfoTree* trOut);
 	void OutputReconstructedWords(InfoTree* trOut);
 	void OutputDistances(Condition* cnd, DistanceMatrix* mtx, InfoTree* trOut);
-
-
-
 
 
 

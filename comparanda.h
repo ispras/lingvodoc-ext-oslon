@@ -23,6 +23,28 @@ public:
 		sound = sd;
 		//isSoundInCognates = true;//надо переименовать
 	}
+	LPTSTR TextForDebug()
+	{
+		switch (typeOfSegment)
+		{
+		case ST_EMPTYAUTOFILL:
+			return L"=";
+		case ST_FRAGMENT:
+			return &chrFragment[0];
+		case ST_NULL:
+			return L"0";
+		case ST_EMPTY:
+			return L"?";
+		case ST_SOUND:
+			if (!sound)
+				return L"#";
+			return &sound->Symbol[0];
+		default:
+			return L"!!";
+		}
+	}
+
+
 	LPTSTR Text()//bool ignoreAutoFill = false)
 	{
 		switch (typeOfSegment)
@@ -175,7 +197,7 @@ public:
 	int				nSoundsSame;
 	int				nSoundsEmpty;
 	void*			dataExtra;
-	int				iUnique;
+	//int				iUnique;
 	bool			isBeingChanged;
 	bool			isDoubtful;
 
@@ -194,7 +216,7 @@ public:
 		rankAllSoundsSame = 0;
 		nSoundsSame = 0;
 		nSoundsEmpty = 0;
-		iUnique = 0;
+		//iUnique = 0;
 		next = last = crspMain = NULL;
 		isBeingChanged = false;
 		isDoubtful = true;
@@ -377,24 +399,36 @@ public:
 				if (c1->rankAllSoundsSame == 10 && c2->rankAllSoundsSame == 10)
 				{
 					if (!CompareNodeSoundsEtc(&c1->comparanda[0].sg, &c2->comparanda[0].sg))
-						goto CheckUninque;
+						goto CheckUnique;
 				}
 			}
+
 			if (c1->iRow < c2->iRow)
 				return 1;
 			if (c1->iRow > c2->iRow)
 				return -1;
 		}
-	CheckUninque:
+
+
+
+	CheckUnique:
+
 		if (!cf->ignoreUniqueID)
 		{
-			if (c1->iUnique || c2->iUnique)
-			{
-				if (c1->iUnique > c2->iUnique)
-					return 1;
-				else if (c1->iUnique < c2->iUnique)
-					return -1;
-			}
+			if (c1->iRow < c2->iRow)
+				return 1;
+			if (c1->iRow > c2->iRow)
+				return -1;
+
+			/*
+						if (c1->iUnique || c2->iUnique)
+						{
+							if (c1->iUnique > c2->iUnique)
+								return 1;
+							else if (c1->iUnique < c2->iUnique)
+								return -1;
+						}
+			*/
 		}
 
 		return 0;
@@ -437,15 +471,16 @@ public:
 		}
 		bool IsStartOfGroup()
 		{
+			Correspondence* crspCurr = (Correspondence*)Current();
 			if (skipInsideGroup)
 			{
-				Correspondence* crspCurr = (Correspondence*)Current();
 				if (!crspCurr)
 					return false;
 				return (crspCurr->next);
 			}
 			else
 			{
+				//return (crspCurr->crspMain == crspCurr);
 				return (crspCurrInGroup == Current());
 			}
 		}
