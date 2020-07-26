@@ -167,7 +167,11 @@ public:
 		sg.Reset();
 		sgOld.Reset();
 	}
-
+	void IsAuto()
+	{
+		//не сделано
+		//return (sg.sound = NULL ||cThis->sg.typeOfSegment == ST_NULL) && cThis->sg.typeOfSegment != ST_EMPTYAUTOFILL
+	}
 };
 
 
@@ -365,7 +369,6 @@ public:
 			if (cf->skipEmpty)
 				isCanCompare = ((cmp1->sg.sound || cmp1->sg.typeOfSegment == ST_NULL) && cmp1->sg.typeOfSegment != ST_EMPTYAUTOFILL
 					&& (cmp2->sg.sound || cmp2->sg.typeOfSegment == ST_NULL) && cmp2->sg.typeOfSegment != ST_EMPTYAUTOFILL);
-			//|| (cmp1->typeOfSegment == ST_NULL || cmp2->typeOfSegment == ST_NULL);
 			else
 				isCanCompare = true;
 

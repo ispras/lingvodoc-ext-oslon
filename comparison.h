@@ -476,10 +476,10 @@ public:
 		for (int iCol = 0; iCol < nDicts; iCol++)
 		{
 			Comparandum* cThis = &crsp->comparanda[iCol];
-			if (/*cThis->formIPA &&*/ cThis->sg.sound && cThis->sg.typeOfSegment != ST_EMPTYAUTOFILL)
+			if (/*cThis->formIPA &&*/  (cThis->sg.sound || cThis->sg.typeOfSegment == ST_NULL) && cThis->sg.typeOfSegment != ST_EMPTYAUTOFILL)
 			{
 				Comparandum* cMain = &crsp->crspMain->comparanda[iCol];
-				if (!cMain->sg.sound || cMain->sg.typeOfSegment == ST_EMPTYAUTOFILL)
+				if ((!cMain->sg.sound && cThis->sg.typeOfSegment != ST_NULL) || cMain->sg.typeOfSegment == ST_EMPTYAUTOFILL)
 				{
 
 					if (!wasChange)
@@ -887,7 +887,6 @@ public:
 	{
 		Correspondence* c1,
 			*c2;
-		//CorrespondenceTree::COMPAREFLAGS cf = {false, true, true};
 		CorrespondenceTree::COMPAREFLAGS cf = { true, true, true };
 	Anew:
 		for (CorrespondenceTree::Iterator it1(&tCorrespondences); c1 = it1.Next();)
