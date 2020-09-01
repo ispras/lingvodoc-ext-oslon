@@ -29,9 +29,9 @@ public:
 		for (Reconstruction* rc = reconstructions; rc < reconstructions + nGroups; rc++)
 		{
 			for (int i = 0; i < rc->nComparisons; i++)
-				//rc->comparisons[i].Process(rc->comparisons[i].condition, false, true);
-				//rc->comparisons[i].Process(rc->comparisons[i].condition, true, true);
-				rc->comparisons[i].Process(rc->comparisons[i].condition, true, false);
+				rc->comparisons[i].Process(rc->comparisons[i].condition, false, true);
+			//rc->comparisons[i].Process(rc->comparisons[i].condition, true, true);
+			//rc->comparisons[i].Process(rc->comparisons[i].condition, true, false);
 
 			for (int i = 0; i < rc->nComparisons; i++)
 				rc->ReconstructSounds(i);
